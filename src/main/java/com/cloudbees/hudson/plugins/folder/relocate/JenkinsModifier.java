@@ -87,6 +87,7 @@ public class JenkinsModifier implements ItemGroupModifier<Jenkins, TopLevelItem>
                         return null;
                     }
                 });
+        // TODO we should probably call onLoad first, in case AbstractItem.name is not yet defined
         if (items != null) {
             items.put(item.getName(), item);
         }
