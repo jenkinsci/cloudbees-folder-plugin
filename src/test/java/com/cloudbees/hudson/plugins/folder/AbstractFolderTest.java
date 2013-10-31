@@ -27,8 +27,13 @@ package com.cloudbees.hudson.plugins.folder;
 import org.jvnet.hudson.test.HudsonTestCase;
 
 import java.io.IOException;
+import jenkins.model.Jenkins;
+import org.jvnet.hudson.test.JenkinsRule;
 
+/** @deprecated use {@link JenkinsRule} instead */
+@Deprecated
 public abstract class AbstractFolderTest extends HudsonTestCase {
+    /** @deprecated Just use {@link Jenkins#createProject(Class, String)} with {@link Folder} */
     protected Folder createFolder() throws IOException, InterruptedException {
         return hudson.createProject(Folder.class,"folder"+hudson.getItems().size());
     }
