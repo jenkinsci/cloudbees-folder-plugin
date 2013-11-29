@@ -39,7 +39,7 @@ THE SOFTWARE.
         </f:entry>
 
         <f:entry title="${%Description}" field="description">
-          <f:textarea />
+          <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
         </f:entry>
 
         <!-- TODO tried to hide unless ${it.icon.descriptor.all().size() > 1} using f:invisibleEntry but this did not seem to work: -->
