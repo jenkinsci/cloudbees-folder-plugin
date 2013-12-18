@@ -24,17 +24,16 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.ItemGroup;
 import hudson.model.TopLevelItem;
+import java.io.IOException;
+import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 
-import java.io.IOException;
-
-/**
- * An extension point for modifying item groups.
- * TODO this should probably be in core instead.
- */
+/** @deprecated Use {@link DirectlyModifiableTopLevelItemGroup} instead. */
+@Deprecated
 public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelItem> extends ExtensionPoint {
 
     /**
@@ -107,4 +106,27 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
             return best;
         }
     }
+
+    @Extension final class StandardModifier implements ItemGroupModifier<DirectlyModifiableTopLevelItemGroup,TopLevelItem> {
+
+        @Override public Class<DirectlyModifiableTopLevelItemGroup> getTargetClass() {
+            return DirectlyModifiableTopLevelItemGroup.class;
+        }
+
+        @Override public <II extends TopLevelItem> boolean canAdd(DirectlyModifiableTopLevelItemGroup target, II item) {
+            return target.canAdd(item);
+        }
+
+        @Override public <II extends TopLevelItem> II add(DirectlyModifiableTopLevelItemGroup target, II item) throws IOException {
+            II _item = target.add(item, item.getName());
+            _item.onLoad(target, item.getName());
+            return _item;
+        }
+
+        @Override public void remove(DirectlyModifiableTopLevelItemGroup target, TopLevelItem item) throws IOException {
+            target.onDeleted(item);
+        }
+
+    }
+
 }
