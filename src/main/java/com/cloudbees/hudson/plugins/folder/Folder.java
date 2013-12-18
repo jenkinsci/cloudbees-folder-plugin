@@ -581,9 +581,7 @@ public class Folder extends AbstractItem
     }
 
     public void onDeleted(TopLevelItem item) throws IOException {
-        for (ItemListener l : ItemListener.all()) {
-            l.onDeleted(item);
-        }
+        ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
         for (View v : views) {
             v.onJobRenamed(item, item.getName(), null);
