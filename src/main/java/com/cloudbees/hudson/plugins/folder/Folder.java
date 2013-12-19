@@ -543,6 +543,7 @@ public class Folder extends AbstractItem
     public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
         items.remove(oldName);
         items.put(newName, item);
+        // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, oldName, newName);
         }
@@ -583,6 +584,7 @@ public class Folder extends AbstractItem
     public void onDeleted(TopLevelItem item) throws IOException {
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
+        // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, item.getName(), null);
         }
