@@ -862,6 +862,10 @@ public class Folder extends AbstractItem
         return item;
     }
 
+    @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
+        items.remove(item.getName());
+    }
+
     @Extension
     public static class DescriptorImpl extends TopLevelItemDescriptor {
         @Override

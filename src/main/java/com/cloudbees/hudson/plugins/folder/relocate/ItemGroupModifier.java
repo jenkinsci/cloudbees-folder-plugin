@@ -124,7 +124,7 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
         }
 
         @Override public void remove(DirectlyModifiableTopLevelItemGroup target, TopLevelItem item) throws IOException {
-            target.onDeleted(item);
+            target.remove(item);
         }
 
     }
