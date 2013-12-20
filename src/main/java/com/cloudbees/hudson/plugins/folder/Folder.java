@@ -594,7 +594,17 @@ public class Folder extends AbstractItem
     }
 
     public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        return mixin.createTopLevelItem(req, rsp);
+        TopLevelItem nue = mixin.createTopLevelItem(req, rsp);
+        if (!isAllowedChild(nue)) {
+            // TODO would be better to intercept it before creation, if mode is set
+            try {
+                nue.delete();
+            } catch (InterruptedException x) {
+                throw (IOException) new IOException(x.toString()).initCause(x);
+            }
+            throw new IOException("forbidden child type");
+        }
+        return nue;
     }
 
     public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
@@ -647,11 +657,23 @@ public class Folder extends AbstractItem
      * Copies an existing {@link TopLevelItem} to into this folder with a new name.
      */
     public <T extends TopLevelItem> T copy(T src, String name) throws IOException {
+        if (!isAllowedChild(src)) {
+            throw new IOException("forbidden child type");
+        }
         return mixin.copy(src, name);
     }
 
     public TopLevelItem createProjectFromXML(String name, InputStream xml) throws IOException {
-        return mixin.createProjectFromXML(name, xml);
+        TopLevelItem nue = mixin.createProjectFromXML(name, xml);
+        if (!isAllowedChild(nue)) {
+            try {
+                nue.delete();
+            } catch (InterruptedException x) {
+                throw (IOException) new IOException(x.toString()).initCause(x);
+            }
+            throw new IOException("forbidden child type");
+        }
+        return nue;
     }
 
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
@@ -663,6 +685,9 @@ public class Folder extends AbstractItem
     }
 
     public TopLevelItem createProject(TopLevelItemDescriptor type, String name, boolean notify) throws IOException {
+        if (!isAllowedChildDescriptor(type)) {
+            throw new IOException("forbidden child type");
+        }
         return mixin.createProject(type, name, notify);
     }
 
@@ -739,6 +764,7 @@ public class Folder extends AbstractItem
 
     /**
      * Items that can be created in this {@link Folder}.
+     * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
         List<TopLevelItemDescriptor> r = new ArrayList<TopLevelItemDescriptor>();
