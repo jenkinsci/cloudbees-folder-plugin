@@ -47,7 +47,7 @@ import org.kohsuke.stapler.HttpResponses;
  * Handler which can move items which are both {@link AbstractItem} and {@link TopLevelItem} into a {@link DirectlyModifiableTopLevelItemGroup}.
  */
 @Restricted(NoExternalUse.class)
-@Extension(ordinal=-1000) public final class StandardHandler implements RelocationHandler {
+@Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
 
     public HandlingMode applicability(Item item) {
         if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup) {

@@ -40,9 +40,9 @@ import org.kohsuke.stapler.HttpResponse;
  * Handlers are chained in extension registration order, so that some can decorate other handlers.
  * It is also possible for a handler to send a placeholder response and schedule a move for later (keeping the rest of the handlers ready).
  */
-public interface RelocationHandler extends ExtensionPoint {
+public abstract class RelocationHandler implements ExtensionPoint {
 
-    enum HandlingMode {
+    public enum HandlingMode {
         /** Can in general handle the actual move. {@link #handle} and {@link #validDestinations} may both be called. */
         HANDLE,
         /** May only delegate to another handler. {@link #handle} may be called, but not {@link #validDestinations}. */
@@ -56,7 +56,7 @@ public interface RelocationHandler extends ExtensionPoint {
      * @param item an item which the user wishes to move
      * @return how this handler might handle the given item
      */
-    @NonNull HandlingMode applicability(@NonNull Item item);
+    public abstract @NonNull HandlingMode applicability(@NonNull Item item);
 
     /**
      * Possibly handles redirecting an item.
@@ -68,7 +68,7 @@ public interface RelocationHandler extends ExtensionPoint {
      * @throws IOException if the move was attempted but failed
      * @throws InterruptedException if the move was attempted but was interrupted
      */
-    @CheckForNull HttpResponse handle(@NonNull Item item, @NonNull ItemGroup<?> destination, @NonNull AtomicReference<Item> newItem, @NonNull List<RelocationHandler> chain) throws IOException, InterruptedException;
+    public abstract @CheckForNull HttpResponse handle(@NonNull Item item, @NonNull ItemGroup<?> destination, @NonNull AtomicReference<Item> newItem, @NonNull List<RelocationHandler> chain) throws IOException, InterruptedException;
 
     /**
      * Gathers a list of possible destinations to which an item may be moved.
@@ -76,6 +76,6 @@ public interface RelocationHandler extends ExtensionPoint {
      * @param item an item which the user wishes to move
      * @return potential destinations (may be empty if this handler does not need to add new kinds of destinations)
      */
-    @NonNull List<? extends ItemGroup<?>> validDestinations(@NonNull Item item);
+    public abstract @NonNull List<? extends ItemGroup<?>> validDestinations(@NonNull Item item);
 
 }
