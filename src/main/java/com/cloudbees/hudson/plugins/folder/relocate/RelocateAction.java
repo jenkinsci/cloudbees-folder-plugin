@@ -85,7 +85,7 @@ public class RelocateAction implements Action {
     }
 
     @Override public String getDisplayName() {
-        return "Move"; // TODO I18N
+        return Messages.RelocateAction_displayName();
     }
 
     @Override public String getUrlName() {
