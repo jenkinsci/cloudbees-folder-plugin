@@ -68,7 +68,7 @@ public abstract class RelocationHandler implements ExtensionPoint {
      * @throws IOException if the move was attempted but failed
      * @throws InterruptedException if the move was attempted but was interrupted
      */
-    public abstract @CheckForNull HttpResponse handle(@NonNull Item item, @NonNull ItemGroup<?> destination, @NonNull AtomicReference<Item> newItem, @NonNull List<RelocationHandler> chain) throws IOException, InterruptedException;
+    public abstract @CheckForNull HttpResponse handle(@NonNull Item item, @NonNull ItemGroup<?> destination, @NonNull AtomicReference<Item> newItem, @NonNull List<? extends RelocationHandler> chain) throws IOException, InterruptedException;
 
     /**
      * Gathers a list of possible destinations to which an item may be moved.

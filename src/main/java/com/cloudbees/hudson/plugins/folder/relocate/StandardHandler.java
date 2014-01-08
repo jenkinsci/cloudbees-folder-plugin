@@ -57,7 +57,7 @@ import org.kohsuke.stapler.HttpResponses;
         }
     }
 
-    @Override public HttpResponse handle(Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<RelocationHandler> chain) throws IOException, InterruptedException {
+    @Override public HttpResponse handle(Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<? extends RelocationHandler> chain) throws IOException, InterruptedException {
         if (!(destination instanceof DirectlyModifiableTopLevelItemGroup)) {
             return chain.isEmpty() ? null : chain.get(0).handle(item, destination, newItem, chain.subList(1, chain.size()));
         }
