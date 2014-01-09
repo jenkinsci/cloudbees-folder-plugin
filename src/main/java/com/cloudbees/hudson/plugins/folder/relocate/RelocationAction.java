@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -50,7 +52,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * Does the actual work of relocating an item.
  */
-public class RelocateAction implements Action {
+@Restricted(NoExternalUse.class)
+public class RelocationAction implements Action {
 
     /**
      * The permission required to move an item.
@@ -67,7 +70,7 @@ public class RelocateAction implements Action {
      *
      * @param item the item that would be moved.
      */
-    public RelocateAction(Item item) {
+    public RelocationAction(Item item) {
         this.item = item;
     }
 
@@ -174,7 +177,7 @@ public class RelocateAction implements Action {
 
         @Override
         public Collection<? extends Action> createFor(Item target) {
-            return Collections.singleton(new RelocateAction(target));
+            return Collections.singleton(new RelocationAction(target));
         }
     }
 
