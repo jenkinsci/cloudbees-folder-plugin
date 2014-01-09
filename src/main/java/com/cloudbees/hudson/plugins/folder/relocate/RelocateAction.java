@@ -24,16 +24,12 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.Messages;
-import com.cloudbees.hudson.plugins.folder.TransientFolderActionFactory;
 import hudson.Extension;
-import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
-import hudson.model.TransientProjectActionFactory;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
 import hudson.util.HttpResponses;
@@ -45,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import jenkins.model.Jenkins;
+import jenkins.model.TransientActionFactory;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -161,33 +158,24 @@ public class RelocateAction implements Action {
         }
     }
 
-    // TODO JENKINS-18224 replace with a single TransientActionFactory
-
     /**
-     * Makes sure that {@link AbstractProject}s have the action.
+     * Makes sure that {@link Item}s have the action.
      */
     @Extension
-    public static class TransientProjectActionFactoryImpl extends TransientProjectActionFactory {
+    public static class TransientActionFactoryImpl extends TransientActionFactory<Item> {
 
         static {
             RELOCATE.getId(); // ensure loaded eagerly
         }
 
+        @Override public Class<Item> type() {
+            return Item.class;
+        }
+
         @Override
-        public Collection<? extends Action> createFor(AbstractProject target) {
+        public Collection<? extends Action> createFor(Item target) {
             return Collections.singleton(new RelocateAction(target));
         }
     }
 
-    /**
-     * Makes sure that {@link Folder}s have the action.
-     */
-    @Extension
-    public static class TransientFolderActionFactoryImpl extends TransientFolderActionFactory {
-
-        @Override
-        public Collection<? extends Action> createFor(Folder target) {
-            return Collections.singleton(new RelocateAction(target));
-        }
-    }
 }

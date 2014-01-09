@@ -27,12 +27,11 @@ package com.cloudbees.hudson.plugins.folder;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
-import hudson.model.AbstractProject;
 import hudson.model.Action;
-import hudson.model.Hudson;
-import hudson.tasks.BuildStep;
 
 import java.util.Collection;
+import jenkins.model.Jenkins;
+import jenkins.model.TransientActionFactory;
 
 /**
  * Extension point for inserting transient {@link Action}s into {@link Folder}s.
@@ -46,7 +45,9 @@ import java.util.Collection;
  * To register your implementation, put {@link Extension} on your subtype.
  *
  * @see Action
+ * @deprecated Use {@link TransientActionFactory} on {@link Folder} instead.
  */
+@Deprecated
 public abstract class TransientFolderActionFactory implements ExtensionPoint {
     /**
      * Creates actions for the given project.
@@ -62,7 +63,7 @@ public abstract class TransientFolderActionFactory implements ExtensionPoint {
      * Returns all the registered {@link TransientFolderActionFactory}s.
      */
     public static ExtensionList<TransientFolderActionFactory> all() {
-        return Hudson.getInstance().getExtensionList(TransientFolderActionFactory.class);
+        return Jenkins.getInstance().getExtensionList(TransientFolderActionFactory.class);
     }
 }
 

@@ -82,7 +82,6 @@ import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -97,7 +96,6 @@ import java.util.Vector;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import static hudson.Util.fixEmpty;
 import hudson.init.InitMilestone;
@@ -282,16 +280,7 @@ public class Folder extends AbstractItem
             try {
                 lv.getColumns().replaceBy(columns.toList());
                 lv.getJobFilters().replaceBy(filters.toList());
-
-                try { // TODO use setIncludeRegex as of 1.526
-                    Field f = lv.getClass().getDeclaredField("includeRegex");
-                    f.setAccessible(true);
-                    f.set(lv, ".*");
-                    f = lv.getClass().getDeclaredField("includePattern");
-                    f.setAccessible(true);
-                    f.set(lv, Pattern.compile(".*"));
-                } catch (Throwable e) {
-                }
+                lv.setIncludeRegex(".*");
                 lv.save();
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
@@ -393,6 +382,7 @@ public class Folder extends AbstractItem
      *
      * @see TransientProjectActionFactory
      */
+    @SuppressWarnings("deprecation")
     @Override
     public synchronized List<Action> getActions() {
         // add all the transient actions, too
@@ -806,13 +796,17 @@ public class Folder extends AbstractItem
     @Override protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
             @Override protected SearchItem get(String key) {
-                return items.get(key);
+                return Jenkins.getInstance().getItem(key, grp());
             }
             @Override protected Collection<TopLevelItem> all() {
-                return items.values();
+                return Items.getAllItems(grp(), TopLevelItem.class);
             }
             @Override protected String getName(TopLevelItem j) {
-                return j.getName();
+                return j.getRelativeNameFrom(grp());
+            }
+            /** Disambiguates calls that otherwise would match {@link Item} too. */
+            private ItemGroup<?> grp() {
+                return Folder.this;
             }
         });
     }
@@ -937,7 +931,7 @@ public class Folder extends AbstractItem
          */
         public AutoCompletionCandidates doAutoCompleteCopyNewItemFrom(@AncestorInPath final Folder f,
                                                                       @QueryParameter final String value) {
-            // TODO use ofJobNames in 1.489+
+            // TODO use ofJobNames but filter by isAllowedChild
             final AutoCompletionCandidates r = new AutoCompletionCandidates();
 
             abstract class VisitorImpl extends ItemVisitor {

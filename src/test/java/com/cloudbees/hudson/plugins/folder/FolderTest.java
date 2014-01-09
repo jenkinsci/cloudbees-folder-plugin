@@ -28,26 +28,21 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlRadioButtonInput;
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Job;
 import hudson.model.ListView;
-import hudson.model.TopLevelItem;
+import hudson.search.SearchItem;
 import hudson.tasks.BuildTrigger;
-import hudson.tasks.Shell;
-import hudson.util.VersionNumber;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
-import jenkins.model.Jenkins;
-import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.SleepBuilder;
-import org.jvnet.hudson.test.TestBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 
 public class FolderTest extends AbstractFolderTest {
     /**
@@ -192,7 +187,6 @@ public class FolderTest extends AbstractFolderTest {
         assertTrue(2<new ListView("test").getColumns().size());
     }
 
-    /* TODO 1.512 adjust Folder.makeSearchIndex to use Items.getAllItems (and check against 1.527/#848):
     public void testSearch() throws Exception {
         FreeStyleProject topJob = jenkins.createProject(FreeStyleProject.class, "top job");
         Folder f1 = jenkins.createProject(Folder.class, "f1");
@@ -203,13 +197,8 @@ public class FolderTest extends AbstractFolderTest {
         f1.getSearchIndex().suggest("job", items);
         assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<SearchItem>(items));
     }
-    */
 
-    // TODO: define @ZenDesk(13067)
     public void testReloadJenkinsAndFindBuildInProgress() throws Exception {
-        if (new VersionNumber("1.500").compareTo(Jenkins.getVersion())>0)
-            return; // this test only works with 1.509 LTS and onward
-
         Folder f1 = jenkins.createProject(Folder.class, "f");
         FreeStyleProject p1 = f1.createProject(FreeStyleProject.class, "test1");
 
