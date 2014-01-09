@@ -28,7 +28,6 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty;
-import com.cloudbees.hudson.plugins.folder.relocate.ItemGroupModifier;
 import hudson.AbortException;
 import hudson.CopyOnWrite;
 import hudson.Extension;
@@ -69,7 +68,6 @@ import hudson.views.DefaultViewsTabBar;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
 import hudson.views.ViewsTabBar;
-import jenkins.model.ModifiableTopLevelItemGroup;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
@@ -88,7 +86,6 @@ import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -113,6 +110,7 @@ import hudson.search.SearchItem;
 import hudson.util.FormApply;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -120,7 +118,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * {@link Item} that contains other {@link Item}s, without modeling dependency.
  */
 public class Folder extends AbstractItem
-        implements ModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback {
+        implements DirectlyModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback {
 
     /**
      * @see #getNewPronoun
@@ -545,6 +543,7 @@ public class Folder extends AbstractItem
     public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
         items.remove(oldName);
         items.put(newName, item);
+        // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, oldName, newName);
         }
@@ -583,10 +582,9 @@ public class Folder extends AbstractItem
     }
 
     public void onDeleted(TopLevelItem item) throws IOException {
-        for (ItemListener l : ItemListener.all()) {
-            l.onDeleted(item);
-        }
+        ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
+        // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, item.getName(), null);
         }
@@ -788,6 +786,7 @@ public class Folder extends AbstractItem
         return true;
     }
 
+    /** Historical synonym for {@link #canAdd}. */
     public boolean isAllowedChild(TopLevelItem tid) {
         for (FolderProperty<?> p : properties) {
             if (!p.allowsParentToHave(tid)) {
@@ -874,6 +873,25 @@ public class Folder extends AbstractItem
 
     public HttpResponse doLastBuild(StaplerRequest req) {
         return HttpResponses.redirectToDot();
+    }
+
+    @Override public boolean canAdd(TopLevelItem item) {
+        return isAllowedChild(item);
+    }
+
+    @Override public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
+        if (!canAdd(item)) {
+            throw new IllegalArgumentException();
+        }
+        if (items.containsKey(name)) {
+            throw new IllegalArgumentException("already an item '" + name + "'");
+        }
+        items.put(item.getName(), item);
+        return item;
+    }
+
+    @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
+        items.remove(item.getName());
     }
 
     @Extension
@@ -982,46 +1000,6 @@ public class Folder extends AbstractItem
         @Override
         protected File getRootDirFor(String name) {
             return Folder.this.getRootDirFor(name);
-        }
-    }
-
-    /**
-     * Handles modifying folders.
-     */
-    @Extension
-    public static class FolderModifier implements ItemGroupModifier<Folder, TopLevelItem> {
-
-        /**
-         * {@inheritDoc}
-         */
-        public Class<Folder> getTargetClass() {
-            return Folder.class;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public <II extends TopLevelItem> boolean canAdd(Folder target, II item) {
-            if (target == null || item == null) {
-                return false;
-            }
-            return target.isAllowedChild(item);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public <I extends TopLevelItem> I add(Folder target, I item) throws IOException {
-            target.items.put(item.getName(), item);
-            item.onLoad(target, item.getName());
-            return item;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public void remove(Folder target, TopLevelItem item) throws IOException {
-            target.onDeleted(item);
         }
     }
 
