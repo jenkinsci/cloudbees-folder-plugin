@@ -230,29 +230,25 @@ public class FolderTest extends AbstractFolderTest {
 
     public void testNameStrategyOnExistingFolders() throws Exception{
         jenkins.setProjectNamingStrategy(new ProjectNamingStrategy.PatternProjectNamingStrategy("DUMMY.*", true));
+        
+        Folder folder = jenkins.createProject(Folder.class, "DUMMY_folder");
+
+        assertNotNull("No folder created", folder);
         try {
-            Folder folder = jenkins.createProject(Folder.class, "DUMMY_folder");
+            jenkins.createProject(Folder.class, "project");
+            fail("Should not get here, the folder name is not allowed, therefore the creation must fail!");
+        } catch (Failure failure) {
+            // expected exception.
+        }
 
-            assertNotNull("No folder created", folder);
-            try {
-                jenkins.createProject(Folder.class, "project");
-                fail("Should not get here, the folder name is not allowed, therefore the creation must fail!");
-            } catch (Failure failure) {
-                // expected exception.
-            }
-
-            try {
-                folder.renameTo("project");
-                folder.setDisplayName("project");
-                folder.save();
-                System.out.println(folder.getDisplayName());
-                fail("Should not be allowed to rename existing folder to invalid folder.");
-            } catch (Failure failure) {
-                // expected exception.
-            }
-        } finally {
-            // Reset project naming strategy so other tests don't fail!
-            jenkins.setProjectNamingStrategy(ProjectNamingStrategy.DEFAULT_NAMING_STRATEGY);
+        try {
+            folder.renameTo("project");
+            folder.setDisplayName("project");
+            folder.save();
+            System.out.println(folder.getDisplayName());
+            fail("Should not be allowed to rename existing folder to invalid folder.");
+        } catch (Failure failure) {
+            // expected exception.
         }
     }
 }
