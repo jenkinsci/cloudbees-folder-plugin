@@ -28,14 +28,12 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlRadioButtonInput;
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.Job;
-import hudson.model.ListView;
+import hudson.model.*;
 import hudson.search.SearchItem;
 import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
+import jenkins.model.ProjectNamingStrategy;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
 
@@ -230,4 +228,31 @@ public class FolderTest extends AbstractFolderTest {
         p1b2.getExecutor().interrupt(); // kill the executor
     }
 
+    public void testNameStrategyOnExistingFolders() throws Exception{
+        jenkins.setProjectNamingStrategy(new ProjectNamingStrategy.PatternProjectNamingStrategy("DUMMY.*", true));
+        try {
+            Folder folder = jenkins.createProject(Folder.class, "DUMMY_folder");
+
+            assertNotNull("No folder created", folder);
+            try {
+                jenkins.createProject(Folder.class, "project");
+                fail("Should not get here, the folder name is not allowed, therefore the creation must fail!");
+            } catch (Failure failure) {
+                // expected exception.
+            }
+
+            try {
+                folder.renameTo("project");
+                folder.setDisplayName("project");
+                folder.save();
+                System.out.println(folder.getDisplayName());
+                fail("Should not be allowed to rename existing folder to invalid folder.");
+            } catch (Failure failure) {
+                // expected exception.
+            }
+        } finally {
+            // Reset project naming strategy so other tests don't fail!
+            jenkins.setProjectNamingStrategy(ProjectNamingStrategy.DEFAULT_NAMING_STRATEGY);
+        }
+    }
 }

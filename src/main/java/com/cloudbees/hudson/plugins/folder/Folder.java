@@ -475,6 +475,8 @@ public class Folder extends AbstractItem
      */
     @Override
     public void renameTo(String newName) throws IOException {
+        Jenkins.getInstance().getProjectNamingStrategy().checkName(newName);
+
         super.renameTo(newName);
     }
 
