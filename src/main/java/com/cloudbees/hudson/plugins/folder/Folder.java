@@ -47,6 +47,7 @@ import hudson.model.ItemVisitor;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.AllView;
+import hudson.model.ListView;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
@@ -133,6 +134,18 @@ public class Folder extends AbstractItem
     /*package*/ transient Map<String, TopLevelItem> items =
             new CopyOnWriteMap.Tree<String, TopLevelItem>(CaseInsensitiveComparator.INSTANCE);
 
+
+    /**
+     * @deprecated as of 1.7
+     *             Folder is no longer a view by itself.
+     */
+    private transient DescribableList<ListViewColumn, Descriptor<ListViewColumn>> columns;
+
+    /**
+     * @deprecated as of 1.7
+     *             Folder is no longer a view by itself.
+     */
+    private transient DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>> filters;
 
     private FolderIcon icon;
 
@@ -258,9 +271,26 @@ public class Folder extends AbstractItem
         }
         if (views.size() == 0) {
             try {
-                AllView v = new AllView("All", this);
-                views.add(v);
-                v.save();
+                if (columns != null || filters != null) {
+                    // we're loading an ancient config
+                    if (columns == null) {
+                        columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+                                ListViewColumn.createDefaultInitialColumnList());
+                    }
+                    if (filters == null) {
+                        filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
+                    }
+                    ListView lv = new ListView("All", this);
+                    views.add(lv);
+                    lv.getColumns().replaceBy(columns.toList());
+                    lv.getJobFilters().replaceBy(filters.toList());
+                    lv.setIncludeRegex(".*");
+                    lv.save();
+                } else {
+                    AllView v = new AllView("All", this);
+                    views.add(v);
+                    v.save();
+                }
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
             }
