@@ -28,7 +28,6 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty;
-import com.cloudbees.hudson.plugins.folder.relocate.ItemGroupModifier;
 import hudson.AbortException;
 import hudson.CopyOnWrite;
 import hudson.Extension;
@@ -69,7 +68,6 @@ import hudson.views.DefaultViewsTabBar;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
 import hudson.views.ViewsTabBar;
-import jenkins.model.ModifiableTopLevelItemGroup;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
@@ -84,11 +82,9 @@ import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -100,7 +96,6 @@ import java.util.Vector;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import static hudson.Util.fixEmpty;
 import hudson.init.InitMilestone;
@@ -113,6 +108,7 @@ import hudson.search.SearchItem;
 import hudson.util.FormApply;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -120,7 +116,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * {@link Item} that contains other {@link Item}s, without modeling dependency.
  */
 public class Folder extends AbstractItem
-        implements ModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback {
+        implements DirectlyModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback {
 
     /**
      * @see #getNewPronoun
@@ -364,6 +360,7 @@ public class Folder extends AbstractItem
      *
      * @see TransientProjectActionFactory
      */
+    @SuppressWarnings("deprecation")
     @Override
     public synchronized List<Action> getActions() {
         // add all the transient actions, too
@@ -515,6 +512,7 @@ public class Folder extends AbstractItem
     public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
         items.remove(oldName);
         items.put(newName, item);
+        // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, oldName, newName);
         }
@@ -553,10 +551,9 @@ public class Folder extends AbstractItem
     }
 
     public void onDeleted(TopLevelItem item) throws IOException {
-        for (ItemListener l : ItemListener.all()) {
-            l.onDeleted(item);
-        }
+        ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
+        // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, item.getName(), null);
         }
@@ -564,7 +561,17 @@ public class Folder extends AbstractItem
     }
 
     public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        return mixin.createTopLevelItem(req, rsp);
+        TopLevelItem nue = mixin.createTopLevelItem(req, rsp);
+        if (!isAllowedChild(nue)) {
+            // TODO would be better to intercept it before creation, if mode is set
+            try {
+                nue.delete();
+            } catch (InterruptedException x) {
+                throw (IOException) new IOException(x.toString()).initCause(x);
+            }
+            throw new IOException("forbidden child type");
+        }
+        return nue;
     }
 
     public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
@@ -617,11 +624,23 @@ public class Folder extends AbstractItem
      * Copies an existing {@link TopLevelItem} to into this folder with a new name.
      */
     public <T extends TopLevelItem> T copy(T src, String name) throws IOException {
+        if (!isAllowedChild(src)) {
+            throw new IOException("forbidden child type");
+        }
         return mixin.copy(src, name);
     }
 
     public TopLevelItem createProjectFromXML(String name, InputStream xml) throws IOException {
-        return mixin.createProjectFromXML(name, xml);
+        TopLevelItem nue = mixin.createProjectFromXML(name, xml);
+        if (!isAllowedChild(nue)) {
+            try {
+                nue.delete();
+            } catch (InterruptedException x) {
+                throw (IOException) new IOException(x.toString()).initCause(x);
+            }
+            throw new IOException("forbidden child type");
+        }
+        return nue;
     }
 
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
@@ -633,6 +652,9 @@ public class Folder extends AbstractItem
     }
 
     public TopLevelItem createProject(TopLevelItemDescriptor type, String name, boolean notify) throws IOException {
+        if (!isAllowedChildDescriptor(type)) {
+            throw new IOException("forbidden child type");
+        }
         return mixin.createProject(type, name, notify);
     }
 
@@ -713,6 +735,7 @@ public class Folder extends AbstractItem
 
     /**
      * Items that can be created in this {@link Folder}.
+     * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
         List<TopLevelItemDescriptor> r = new ArrayList<TopLevelItemDescriptor>();
@@ -736,6 +759,7 @@ public class Folder extends AbstractItem
         return true;
     }
 
+    /** Historical synonym for {@link #canAdd}. */
     public boolean isAllowedChild(TopLevelItem tid) {
         for (FolderProperty<?> p : properties) {
             if (!p.allowsParentToHave(tid)) {
@@ -755,13 +779,17 @@ public class Folder extends AbstractItem
     @Override protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
             @Override protected SearchItem get(String key) {
-                return items.get(key);
+                return Jenkins.getInstance().getItem(key, grp());
             }
             @Override protected Collection<TopLevelItem> all() {
-                return items.values();
+                return Items.getAllItems(grp(), TopLevelItem.class);
             }
             @Override protected String getName(TopLevelItem j) {
-                return j.getName();
+                return j.getRelativeNameFrom(grp());
+            }
+            /** Disambiguates calls that otherwise would match {@link Item} too. */
+            private ItemGroup<?> grp() {
+                return Folder.this;
             }
         });
     }
@@ -824,6 +852,25 @@ public class Folder extends AbstractItem
         return HttpResponses.redirectToDot();
     }
 
+    @Override public boolean canAdd(TopLevelItem item) {
+        return isAllowedChild(item);
+    }
+
+    @Override public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
+        if (!canAdd(item)) {
+            throw new IllegalArgumentException();
+        }
+        if (items.containsKey(name)) {
+            throw new IllegalArgumentException("already an item '" + name + "'");
+        }
+        items.put(item.getName(), item);
+        return item;
+    }
+
+    @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
+        items.remove(item.getName());
+    }
+
     @Extension
     public static class DescriptorImpl extends TopLevelItemDescriptor {
         @Override
@@ -867,7 +914,7 @@ public class Folder extends AbstractItem
          */
         public AutoCompletionCandidates doAutoCompleteCopyNewItemFrom(@AncestorInPath final Folder f,
                                                                       @QueryParameter final String value) {
-            // TODO use ofJobNames in 1.489+
+            // TODO use ofJobNames but filter by isAllowedChild
             final AutoCompletionCandidates r = new AutoCompletionCandidates();
 
             abstract class VisitorImpl extends ItemVisitor {
@@ -930,46 +977,6 @@ public class Folder extends AbstractItem
         @Override
         protected File getRootDirFor(String name) {
             return Folder.this.getRootDirFor(name);
-        }
-    }
-
-    /**
-     * Handles modifying folders.
-     */
-    @Extension
-    public static class FolderModifier implements ItemGroupModifier<Folder, TopLevelItem> {
-
-        /**
-         * {@inheritDoc}
-         */
-        public Class<Folder> getTargetClass() {
-            return Folder.class;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public <II extends TopLevelItem> boolean canAdd(Folder target, II item) {
-            if (target == null || item == null) {
-                return false;
-            }
-            return target.isAllowedChild(item);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public <I extends TopLevelItem> I add(Folder target, I item) throws IOException {
-            target.items.put(item.getName(), item);
-            item.onLoad(target, item.getName());
-            return item;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public void remove(Folder target, TopLevelItem item) throws IOException {
-            target.onDeleted(item);
         }
     }
 

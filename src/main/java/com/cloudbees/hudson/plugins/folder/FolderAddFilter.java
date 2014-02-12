@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 CloudBees.
+ * Copyright 2013 Jesse Glick.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,27 +25,36 @@
 package com.cloudbees.hudson.plugins.folder;
 
 import hudson.Extension;
-import hudson.model.Action;
-import hudson.plugins.jobConfigHistory.JobConfigHistoryProjectAction;
-import java.util.Collection;
-import java.util.Collections;
-import jenkins.model.Jenkins;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.TopLevelItemDescriptor;
+import hudson.model.View;
+import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest;
 
-@Extension(optional=true)
-public class FolderConfigHistoryActionFactory extends TransientFolderActionFactory {
+/**
+ * Restricts additions to a folder via {@code View/newJob.jelly}.
+ * @see Folder#getItemDescriptors
+ */
+@Extension public class FolderAddFilter extends DescriptorVisibilityFilter {
 
-    @Override public Collection<? extends Action> createFor(Folder target) {
-        if (Jenkins.getInstance().getPlugin("jobConfigHistory") != null) {
-            return Collections.singleton(make(target));
-        } else {
-            return Collections.emptySet();
+    @Override public boolean filter(Object context, Descriptor descriptor) {
+        StaplerRequest req = Stapler.getCurrentRequest();
+        if (req == null || !req.getRequestURI().endsWith("/newJob")) {
+            return true;
         }
-    }
-
-    // Separated into its own method to avoid resolving when this class is loaded.
-    // May or may not be necessary, depending on JVM (spec is unclear on this point), but cannot hurt.
-    private static Action make(Folder target) {
-        return new JobConfigHistoryProjectAction(target);
+        if (!(descriptor instanceof TopLevelItemDescriptor)) {
+            return true;
+        }
+        Folder d;
+        if (context instanceof Folder) {
+            d = ((Folder) context);
+        } else if (context instanceof View && ((View) context).getOwnerItemGroup() instanceof Folder) {
+            d = (Folder) ((View) context).getOwnerItemGroup();
+        } else {
+            return true;
+        }
+        return d.isAllowedChildDescriptor((TopLevelItemDescriptor) descriptor);
     }
 
 }

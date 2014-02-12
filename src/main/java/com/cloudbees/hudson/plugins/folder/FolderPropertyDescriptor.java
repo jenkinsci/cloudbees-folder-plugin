@@ -26,8 +26,6 @@ package com.cloudbees.hudson.plugins.folder;
 
 import hudson.DescriptorExtensionList;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
-import hudson.model.JobProperty;
 import net.sf.json.JSONObject;
 import org.jvnet.tiger_types.Types;
 import org.kohsuke.stapler.StaplerRequest;
@@ -36,13 +34,14 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import jenkins.model.Jenkins;
 
 public abstract class FolderPropertyDescriptor extends Descriptor<FolderProperty<?>> {
     /**
      * {@inheritDoc}
      *
      * @return
-     *      null to avoid setting an instance of {@link JobProperty} to the target project.
+     *      null to avoid setting an instance of {@link FolderProperty} to the target folder.
      */
     @Override
     public FolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
@@ -54,22 +53,22 @@ public abstract class FolderPropertyDescriptor extends Descriptor<FolderProperty
     }
 
     /**
-     * Returns true if this {@link JobProperty} type is applicable to the
-     * given job type.
+     * Returns true if this {@link FolderProperty} type is applicable to the
+     * given folder type.
      *
      * <p>
-     * The default implementation of this method checks if the given job type is assignable to 'J' of
-     * {@link JobProperty}<tt>&lt;J></tt>, but subtypes can extend this to change this behavior.
+     * The default implementation of this method checks if the given folder type is assignable to the type parameter of
+     * {@link FolderProperty}, but subtypes can extend this to change this behavior.
      *
      * @return
      *      true to indicate applicable, in which case the property will be
-     *      displayed in the configuration screen of this job.
+     *      displayed in the configuration screen of this folder.
      */
     public boolean isApplicable(Class<? extends Folder> containerType) {
         Type parameterization = Types.getBaseClass(clazz, FolderProperty.class);
         if (parameterization instanceof ParameterizedType) {
             ParameterizedType pt = (ParameterizedType) parameterization;
-            Class applicable = Types.erasure(Types.getTypeArgument(pt, 0));
+            Class<?> applicable = Types.erasure(Types.getTypeArgument(pt, 0));
             return applicable.isAssignableFrom(containerType);
         } else {
             throw new AssertionError(clazz+" doesn't properly parameterize FolderProperty. The isApplicable() method must be overriden.");
@@ -77,7 +76,7 @@ public abstract class FolderPropertyDescriptor extends Descriptor<FolderProperty
     }
 
     /**
-     * Gets the {@link FolderPropertyDescriptor}s applicable for a given job type.
+     * Gets the {@link FolderPropertyDescriptor}s applicable for a given folder type.
      */
     public static List<FolderPropertyDescriptor> getPropertyDescriptors(Class<? extends Folder> containerType) {
         List<FolderPropertyDescriptor> r = new ArrayList<FolderPropertyDescriptor>();
@@ -89,6 +88,6 @@ public abstract class FolderPropertyDescriptor extends Descriptor<FolderProperty
 
     @SuppressWarnings({"unchecked"})
     public static DescriptorExtensionList<FolderProperty<?>, FolderPropertyDescriptor> all() {
-        return (DescriptorExtensionList)Hudson.getInstance().getDescriptorList(FolderProperty.class);
+        return Jenkins.getInstance().getDescriptorList(FolderProperty.class);
     }
 }
