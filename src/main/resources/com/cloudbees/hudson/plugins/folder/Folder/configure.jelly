@@ -42,6 +42,23 @@ THE SOFTWARE.
           <f:textarea />
         </f:entry>
 
+        <j:if test="${it.views.size()>1}">
+          <f:entry title="${%Default View}" field="defaultView">
+            <select class="setting-input" name="primaryView">
+              <j:forEach var="v" items="${it.views}">
+                <j:choose>
+                  <j:when test="${it.primaryView==v}">
+                    <option value="${v.viewName}" selected="selected">${v.viewName}</option>
+                  </j:when>
+                  <j:otherwise>
+                    <option value="${v.viewName}">${v.viewName}</option>
+                  </j:otherwise>
+                </j:choose>
+              </j:forEach>
+            </select>
+          </f:entry>
+        </j:if>
+
         <!-- TODO tried to hide unless ${it.icon.descriptor.all().size() > 1} using f:invisibleEntry but this did not seem to work: -->
         <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
 
