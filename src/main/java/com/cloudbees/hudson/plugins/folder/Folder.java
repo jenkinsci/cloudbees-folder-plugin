@@ -110,13 +110,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
+import jenkins.model.ModelObjectWithChildren;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * {@link Item} that contains other {@link Item}s, without modeling dependency.
  */
 public class Folder extends AbstractItem
-        implements DirectlyModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback {
+        implements DirectlyModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback, ModelObjectWithChildren {
 
     /**
      * @see #getNewPronoun
@@ -639,6 +640,14 @@ public class Folder extends AbstractItem
         } catch (Failure e) {
             return FormValidation.error(e.getMessage());
         }
+    }
+
+    public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
+        ContextMenu menu = new ContextMenu();
+        for (View view : getViews()) {
+            menu.add(view.getAbsoluteUrl(),view.getDisplayName());
+        }
+        return menu;
     }
 
     /**
