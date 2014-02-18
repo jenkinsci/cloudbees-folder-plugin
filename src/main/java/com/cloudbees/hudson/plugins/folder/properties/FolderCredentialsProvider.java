@@ -28,12 +28,14 @@ import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.FolderProperty;
 import com.cloudbees.hudson.plugins.folder.FolderPropertyDescriptor;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.CredentialsStoreAction;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.DomainSpecification;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -84,6 +86,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     @Override
     public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
                                                           @Nullable Authentication authentication) {
+        return getCredentials(type, itemGroup, authentication, Collections.<DomainRequirement>emptyList());
+    }
+
+    @NonNull
+    @Override
+    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
+                                                          @Nullable Authentication authentication,
+                                                          @NonNull List<DomainRequirement> domainRequirements) {
         if (authentication == null) {
             authentication = ACL.SYSTEM;
         }
@@ -94,7 +104,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                     final Folder folder = Folder.class.cast(itemGroup);
                     FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
                     if (property != null) {
-                        result.addAll(property.getCredentials(type));
+                        result.addAll(DomainCredentials.getCredentials(
+                                property.getDomainCredentialsMap(),
+                                type,
+                                domainRequirements,
+                                CredentialsMatchers.always()));
                     }
                 }
                 if (itemGroup instanceof Item) {
