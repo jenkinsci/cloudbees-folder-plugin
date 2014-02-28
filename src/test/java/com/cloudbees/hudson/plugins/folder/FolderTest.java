@@ -83,7 +83,7 @@ public class FolderTest extends AbstractFolderTest {
         assertEquals(1,f.getItems().size());
 
         child.delete();
-        Thread.sleep(500); // TODO working around JENKINS-19446 “fix”
+        Thread.sleep(500); // TODO pending JENKINS-22001 in 1.554
         assertEquals(0,f.getItems().size());
     }
 
