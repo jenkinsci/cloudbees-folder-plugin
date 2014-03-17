@@ -47,6 +47,7 @@ import hudson.model.ItemGroupMixIn;
 import hudson.model.ItemVisitor;
 import hudson.model.Items;
 import hudson.model.Job;
+import hudson.model.AllView;
 import hudson.model.ListView;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
@@ -114,13 +115,14 @@ import hudson.util.FormApply;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import jenkins.model.Jenkins;
+import jenkins.model.ModelObjectWithChildren;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * {@link Item} that contains other {@link Item}s, without modeling dependency.
  */
 public class Folder extends AbstractItem
-        implements ModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback {
+        implements ModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback, ModelObjectWithChildren {
 
     /**
      * @see #getNewPronoun
@@ -268,33 +270,31 @@ public class Folder extends AbstractItem
         for (FolderProperty p : properties) {
             p.setOwner(this);
         }
-        if (columns == null) {
-            columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
-                    ListViewColumn.createDefaultInitialColumnList());
-        }
-        if (filters == null) {
-            filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
-        }
         if (views == null) {
             views = new CopyOnWriteArrayList<View>();
         }
         if (views.size() == 0) {
-            ListView lv = new ListView("All", this);
-            views.add(lv);
             try {
-                lv.getColumns().replaceBy(columns.toList());
-                lv.getJobFilters().replaceBy(filters.toList());
-
-                try { // TODO use setIncludeRegex as of 1.526
-                    Field f = lv.getClass().getDeclaredField("includeRegex");
-                    f.setAccessible(true);
-                    f.set(lv, ".*");
-                    f = lv.getClass().getDeclaredField("includePattern");
-                    f.setAccessible(true);
-                    f.set(lv, Pattern.compile(".*"));
-                } catch (Throwable e) {
+                if (columns != null || filters != null) {
+                    // we're loading an ancient config
+                    if (columns == null) {
+                        columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+                                ListViewColumn.createDefaultInitialColumnList());
+                    }
+                    if (filters == null) {
+                        filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
+                    }
+                    ListView lv = new ListView("All", this);
+                    views.add(lv);
+                    lv.getColumns().replaceBy(columns.toList());
+                    lv.getJobFilters().replaceBy(filters.toList());
+                    lv.setIncludeRegex(".*");
+                    lv.save();
+                } else {
+                    AllView v = new AllView("All", this);
+                    views.add(v);
+                    v.save();
                 }
-                lv.save();
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
             }
@@ -479,7 +479,8 @@ public class Folder extends AbstractItem
      *             Folder is no longer a view by itself.
      */
     public DescribableList<ListViewColumn, Descriptor<ListViewColumn>> getColumns() {
-        return columns;
+        return new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+                ListViewColumn.createDefaultInitialColumnList());
     }
 
     /**
@@ -653,6 +654,14 @@ public class Folder extends AbstractItem
         }
     }
 
+    public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
+        ContextMenu menu = new ContextMenu();
+        for (View view : getViews()) {
+            menu.add(view.getAbsoluteUrl(),view.getDisplayName());
+        }
+        return menu;
+    }
+
     /**
      * Copies an existing {@link TopLevelItem} to into this folder with a new name.
      */
@@ -700,6 +709,10 @@ public class Folder extends AbstractItem
 
         description = json.getString("description");
         displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
+
+        if (json.has("primaryView")) {
+            setPrimaryView(viewGroupMixIn.getView(json.getString("primaryView")));
+        }
 
         properties.rebuild(req, json, getDescriptor().getPropertyDescriptors());
         for (FolderProperty p : properties) // TODO: push this to the subtype of property descriptors
