@@ -24,9 +24,9 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:s="/lib/form">
   <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
 
-  <l:task icon="images/24x24/new-package.gif" href="${url}/new" title="${%newJob(it.newPronoun)}" permission="${it.CREATE}" />
+  <l:task icon="images/24x24/new-package.png" href="${url}/new" title="${%newJob(it.newPronoun)}" permission="${it.CREATE}" />
   <j:if test="${view==it.primaryView}">
     <!-- avoid showing two delete icons -->
-    <l:task icon="images/24x24/edit-delete.gif" href="${url}/delete" title="${%delete(it.pronoun)}" permission="${it.DELETE}" />
+    <l:task icon="images/24x24/edit-delete.png" href="${url}/delete" title="${%delete(it.pronoun)}" permission="${it.DELETE}" />
   </j:if>
 </j:jelly>
