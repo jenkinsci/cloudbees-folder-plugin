@@ -24,8 +24,8 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
   <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
-  <l:task icon="images/24x24/up.gif" href="${url}/../../" title="${%Up}" contextMenu="false"/>
-  <l:task icon="images/24x24/search.gif"  href="${url}/" title="${%Status}" contextMenu="false" />
+  <l:task icon="images/24x24/up.png" href="${url}/../../" title="${%Up}" contextMenu="false"/>
+  <l:task icon="images/24x24/search.png"  href="${url}/" title="${%Status}" contextMenu="false" />
   <j:choose>
     <j:when test="${h.hasPermission(it,it.CONFIGURE)}">
       <l:task icon="images/24x24/setting.png" href="${url}/configure" title="${%Configure}" />
