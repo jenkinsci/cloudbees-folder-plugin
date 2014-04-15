@@ -81,6 +81,7 @@ public class RelocationAction implements Action {
             }
         }
         // No actual handler, so just hide.
+        // TODO this is not working for MatrixConfiguration
         return null;
     }
 
