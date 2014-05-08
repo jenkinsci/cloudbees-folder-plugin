@@ -740,9 +740,7 @@ public class Folder extends AbstractItem
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
-    /**
-     * Renames this job.
-     */
+    // TODO boilerplate like this should not be necessary: JENKINS-22936
     @RequirePOST
     public void doDoRename(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
 
