@@ -362,7 +362,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          */
         @NonNull
         private synchronized List<Credentials> getCredentials(@NonNull Domain domain) {
-            if (Jenkins.getInstance().hasPermission(CredentialsProvider.VIEW)) {
+            if (store.hasPermission(CredentialsProvider.VIEW)) {
                 List<Credentials> list = getDomainCredentialsMap().get(domain);
                 if (list == null || list.isEmpty()) {
                     return Collections.emptyList();
