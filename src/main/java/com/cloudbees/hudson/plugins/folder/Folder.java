@@ -706,6 +706,9 @@ public class Folder extends AbstractItem
 
         description = json.getString("description");
         displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
+        if (json.has("viewsTabBar")) {
+            viewsTabBar = req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar"));
+        }
 
         if (json.has("primaryView")) {
             setPrimaryView(viewGroupMixIn.getView(json.getString("primaryView")));

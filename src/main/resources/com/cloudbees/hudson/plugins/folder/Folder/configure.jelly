@@ -59,6 +59,8 @@ THE SOFTWARE.
           </f:entry>
         </j:if>
 
+        <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
+
         <!-- TODO tried to hide unless ${it.icon.descriptor.all().size() > 1} using f:invisibleEntry but this did not seem to work: -->
         <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
 
