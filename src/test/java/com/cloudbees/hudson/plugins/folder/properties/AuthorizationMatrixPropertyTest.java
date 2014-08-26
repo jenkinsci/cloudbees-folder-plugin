@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.properties;
 
-import com.cloudbees.hudson.plugins.folder.AbstractFolderTest;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import hudson.model.FreeStyleProject;
@@ -32,24 +31,28 @@ import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.security.HudsonPrivateSecurityRealm;
 import hudson.security.ProjectMatrixAuthorizationStrategy;
-import org.acegisecurity.AccessDeniedException;
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
 import java.util.concurrent.Callable;
+import org.acegisecurity.AccessDeniedException;
+import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
-public class AuthorizationMatrixPropertyTest extends AbstractFolderTest {
-    public void testBasics1() throws Exception {
+public class AuthorizationMatrixPropertyTest {
+
+    @Rule public JenkinsRule r = new JenkinsRule();
+
+    @Test public void basics1() throws Exception {
         HudsonPrivateSecurityRealm realm = new HudsonPrivateSecurityRealm(false);
         realm.createAccount("alice","alice");
         realm.createAccount("bob","bob");
-        hudson.setSecurityRealm(realm);
+        r.jenkins.setSecurityRealm(realm);
 
         ProjectMatrixAuthorizationStrategy as = new ProjectMatrixAuthorizationStrategy();
-        hudson.setAuthorizationStrategy(as);
+        r.jenkins.setAuthorizationStrategy(as);
         as.add(Hudson.READ,"authenticated");
 
-        Folder f = createFolder();
+        Folder f = r.jenkins.createProject(Folder.class, "d");
         AuthorizationMatrixProperty amp = new AuthorizationMatrixProperty();
         amp.add(Item.READ,"alice");
         amp.add(Item.BUILD,"alice");
@@ -57,7 +60,7 @@ public class AuthorizationMatrixPropertyTest extends AbstractFolderTest {
 
         final FreeStyleProject foo = f.createProject(FreeStyleProject.class, "foo");
 
-        WebClient wc = createWebClient().login("bob");
+        JenkinsRule.WebClient wc = r.createWebClient().login("bob");
         try {
             wc.getPage(foo);
             fail();
@@ -65,7 +68,7 @@ public class AuthorizationMatrixPropertyTest extends AbstractFolderTest {
             assertEquals(404, e.getStatusCode());
         }
 
-        wc = createWebClient().login("alice");
+        wc = r.createWebClient().login("alice");
         wc.getPage(foo);    // this should succeed
 
         // and build permission should be set, too

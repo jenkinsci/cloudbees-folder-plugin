@@ -36,48 +36,55 @@ import hudson.search.SearchItem;
 import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
-import org.jvnet.hudson.test.SleepBuilder;
-import org.jvnet.hudson.test.recipes.LocalData;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.SleepBuilder;
+import org.jvnet.hudson.test.recipes.LocalData;
 
-public class FolderTest extends AbstractFolderTest {
+public class FolderTest {
+
+    @Rule public JenkinsRule r = new JenkinsRule();
+
     /**
      * Tests rename operation.
      */
-    public void testRename() throws Exception {
+    @Test public void rename() throws Exception {
         Folder f = createFolder();
         f.setDescription("Some view");
 
         String oldName = f.getName();
 
-        HtmlForm cfg = createWebClient().getPage(f, "configure").getFormByName("config");
+        HtmlForm cfg = r.createWebClient().getPage(f, "configure").getFormByName("config");
         cfg.getInputByName("_.name").setValueAttribute("newName");
-        for (HtmlForm form : submit(cfg).getForms()) {
+        for (HtmlForm form : r.submit(cfg).getForms()) {
             if (form.getActionAttribute().equals("doRename")) {
-                submit(form);
+                r.submit(form);
                 break;
             }
         }
 
         assertEquals("newName",f.getName());
         assertEquals("Some view",f.getDescription());
-        assertNull(hudson.getItem(oldName));
-        assertSame(hudson.getItem("newName"),f);
+        assertNull(r.jenkins.getItem(oldName));
+        assertSame(r.jenkins.getItem("newName"),f);
     }
 
-    public void testConfigRoundtrip() throws Exception {
+    @Test public void configRoundtrip() throws Exception {
         Folder f = createFolder();
-        configRoundtrip(f);
+        r.configRoundtrip(f);
     }
 
     /**
      * Makes sure the child can be deleted.
      */
-    public void testDeleteChild() throws Exception {
+    @Test public void deleteChild() throws Exception {
         Folder f = createFolder();
         FreeStyleProject child = f.createProject(FreeStyleProject.class, "foo");
         assertEquals(1,f.getItems().size());
@@ -90,20 +97,20 @@ public class FolderTest extends AbstractFolderTest {
     /**
      * Tests the path resolution of "foo" (relative) vs "/foo" (absolute)
      */
-    public void testCopyJob() throws Exception {
+    @Test public void copyJob() throws Exception {
         /*
             - foo
             - folder
               - foo
          */
-        FreeStyleProject top = createFreeStyleProject("foo");
+        FreeStyleProject top = r.createFreeStyleProject("foo");
         top.setDescription("top");
 
         Folder f = createFolder();
         FreeStyleProject child = f.createProject(FreeStyleProject.class, "foo");
         child.setDescription("child");
 
-        WebClient wc = createWebClient();
+        JenkinsRule.WebClient wc = r.createWebClient();
 
         // "foo" should copy "child"
         copyFromGUI(f, wc, "foo", "xyz");
@@ -115,25 +122,25 @@ public class FolderTest extends AbstractFolderTest {
 
     }
 
-    private void copyFromGUI(Folder f, WebClient wc, String fromName, String toName) throws Exception {
+    private void copyFromGUI(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
         HtmlPage page = wc.getPage(f, "new");
         ((HtmlInput)page.getElementById("name")).setValueAttribute(toName);
         HtmlInput fe = (HtmlInput) page.getElementById("from");
         fe.focus();
         fe.type(fromName);
-        submit(page.getForms().get(1));
+        r.submit(page.getForms().get(1));
     }
 
     /**
      * When copying a folder, its contents need to be recursively copied.
      */
-    public void testCopy() throws Exception {
+    @Test public void copy() throws Exception {
         Folder f = createFolder();
         FreeStyleProject c1 = f.createProject(FreeStyleProject.class, "child1");
         Folder c2 = f.createProject(Folder.class, "nested");
         FreeStyleProject c21 = c2.createProject(FreeStyleProject.class,"child2");
 
-        Folder f2 = hudson.copy(f, "fcopy");
+        Folder f2 = r.jenkins.copy(f, "fcopy");
         assertTrue(f2.getItem("child1") instanceof FreeStyleProject);
         Folder n = (Folder)f2.getItem("nested");
         assertTrue(n.getItem("child2") instanceof FreeStyleProject);
@@ -142,13 +149,13 @@ public class FolderTest extends AbstractFolderTest {
     /**
      * This is more of a test of the core, but make sure the triggers resolve between ourselves.
      */
-    public void testTrigger() throws Exception {
+    @Test public void trigger() throws Exception {
         Folder f = createFolder();
         FreeStyleProject a = f.createProject(FreeStyleProject.class, "a");
         FreeStyleProject b = f.createProject(FreeStyleProject.class, "b");
         a.getPublishersList().add(new BuildTrigger("b",false));
 
-        FreeStyleBuild a1 = assertBuildStatusSuccess(a.scheduleBuild2(0));
+        FreeStyleBuild a1 = r.assertBuildStatusSuccess(a.scheduleBuild2(0));
         for (int i=0; i<10 && b.getLastBuild()==null; i++) {
             Thread.sleep(100);
         }
@@ -158,16 +165,16 @@ public class FolderTest extends AbstractFolderTest {
     /**
      * Makes sure that there's no JavaScript error in the new view page.
      */
-    public void testNewViewPage() throws Exception {
+    @Test public void newViewPage() throws Exception {
         Folder f = createFolder();
-        HtmlPage p = createWebClient().getPage(f, "newView");
+        HtmlPage p = r.createWebClient().getPage(f, "newView");
         HtmlForm fm = p.getFormByName("createItem");
         fm.getInputByName("name").setValueAttribute("abcView");
         for (HtmlRadioButtonInput r : fm.getRadioButtonsByName("mode")) {
             if (r.getValueAttribute().equals(ListView.class.getName()))
                 r.click();
         }
-        submit(fm);
+        r.submit(fm);
         assertSame(ListView.class, f.getView("abcView").getClass());
     }
 
@@ -176,8 +183,8 @@ public class FolderTest extends AbstractFolderTest {
      * correctly comes back.
      */
     @LocalData
-    public void testDataCompatibility() throws Exception {
-        Folder f = (Folder)jenkins.getItem("foo");
+    @Test public void dataCompatibility() throws Exception {
+        Folder f = (Folder) r.jenkins.getItem("foo");
         ListView pv = (ListView)f.getPrimaryView();
         assertEquals(2,pv.getColumns().size());
         assertEquals(JobColumn.class, pv.getColumns().get(0).getClass());
@@ -187,9 +194,9 @@ public class FolderTest extends AbstractFolderTest {
         assertTrue(2<new ListView("test").getColumns().size());
     }
 
-    public void testSearch() throws Exception {
-        FreeStyleProject topJob = jenkins.createProject(FreeStyleProject.class, "top job");
-        Folder f1 = jenkins.createProject(Folder.class, "f1");
+    @Test public void search() throws Exception {
+        FreeStyleProject topJob = r.jenkins.createProject(FreeStyleProject.class, "top job");
+        Folder f1 = r.jenkins.createProject(Folder.class, "f1");
         FreeStyleProject middleJob = f1.createProject(FreeStyleProject.class, "middle job");
         Folder f2 = f1.createProject(Folder.class, "f2");
         FreeStyleProject bottomJob = f2.createProject(FreeStyleProject.class, "bottom job");
@@ -198,8 +205,8 @@ public class FolderTest extends AbstractFolderTest {
         assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<SearchItem>(items));
     }
 
-    public void testReloadJenkinsAndFindBuildInProgress() throws Exception {
-        Folder f1 = jenkins.createProject(Folder.class, "f");
+    @Test public void reloadJenkinsAndFindBuildInProgress() throws Exception {
+        Folder f1 = r.jenkins.createProject(Folder.class, "f");
         FreeStyleProject p1 = f1.createProject(FreeStyleProject.class, "test1");
 
         FreeStyleBuild p1b1 = p1.scheduleBuild2(0).get();  // one completed build
@@ -209,9 +216,9 @@ public class FolderTest extends AbstractFolderTest {
         FreeStyleBuild p1b2 = p1.scheduleBuild2(0).waitForStart(); // another build in progress
 
         // trigger the full Jenkins reload
-        jenkins.reload();
+        r.jenkins.reload();
 
-        Folder f2 = (Folder)jenkins.getItem("f");
+        Folder f2 = (Folder) r.jenkins.getItem("f");
         assertNotSame(f1,f2);
 
         FreeStyleProject p2 = (FreeStyleProject) f2.getItem("test1");
@@ -228,6 +235,10 @@ public class FolderTest extends AbstractFolderTest {
         assertNotSame(p1b1,p2b1);
 
         p1b2.getExecutor().interrupt(); // kill the executor
+    }
+
+    private Folder createFolder() throws IOException {
+        return r.jenkins.createProject(Folder.class, "folder" + r.jenkins.getItems().size());
     }
 
 }
