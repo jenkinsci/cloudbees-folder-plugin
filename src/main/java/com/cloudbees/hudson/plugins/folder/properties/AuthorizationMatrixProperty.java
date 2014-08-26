@@ -31,12 +31,10 @@ import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import edu.umd.cs.findbugs.annotations.*;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
-import hudson.model.Job;
 import hudson.model.Run;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
@@ -84,9 +82,9 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
     protected AuthorizationMatrixProperty() {
     }
 
-    public AuthorizationMatrixProperty(Map<Permission, Set<String>> grantedPermissions) {
+    public AuthorizationMatrixProperty(Map<Permission,? extends Set<String>> grantedPermissions) {
         // do a deep copy to be safe
-        for (Entry<Permission,Set<String>> e : grantedPermissions.entrySet())
+        for (Entry<Permission,? extends Set<String>> e : grantedPermissions.entrySet())
             this.grantedPermissions.put(e.getKey(),new HashSet<String>(e.getValue()));
     }
 
