@@ -112,6 +112,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
+import org.acegisecurity.AccessDeniedException;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
@@ -522,7 +523,13 @@ public class Folder extends AbstractItem
             return null;
         }
         TopLevelItem item = items.get(name);
-        if (item == null || !item.hasPermission(Item.READ)) {
+        if (item == null) {
+            return null;
+        }
+        if (!item.hasPermission(Item.READ)) {
+            if (item.hasPermission(Item.DISCOVER)) {
+                throw new AccessDeniedException("Please login to access job " + name);
+            }
             return null;
         }
         return item;

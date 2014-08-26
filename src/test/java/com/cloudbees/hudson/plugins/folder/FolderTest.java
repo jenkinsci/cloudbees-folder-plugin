@@ -30,17 +30,25 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlRadioButtonInput;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.ListView;
+import hudson.model.User;
 import hudson.search.SearchItem;
+import hudson.security.ACL;
+import hudson.security.AuthorizationMatrixProperty;
+import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import jenkins.model.Jenkins;
+import org.acegisecurity.AccessDeniedException;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -235,6 +243,41 @@ public class FolderTest {
         assertNotSame(p1b1,p2b1);
 
         p1b2.getExecutor().interrupt(); // kill the executor
+    }
+
+    @Test public void discoverPermission() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        ProjectMatrixAuthorizationStrategy as = new ProjectMatrixAuthorizationStrategy();
+        as.add(Jenkins.READ, "anonymous");
+        as.add(Jenkins.READ, "authenticated");
+        as.add(Item.DISCOVER, "authenticated");
+        r.jenkins.setAuthorizationStrategy(as);
+        final Folder d = r.jenkins.createProject(Folder.class, "d");
+        /* Cannot make test be meaningful unless using matrix-auth 1.2 and setting blocksInheritance on h.s.AMP on both p1 & p2:
+        d.addProperty(new com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty(Collections.singletonMap(Item.READ, new HashSet<String>(Arrays.asList("anonymous", "authenticated")))));
+        */
+        final FreeStyleProject p1 = d.createProject(FreeStyleProject.class, "p1");
+        p1.addProperty(new AuthorizationMatrixProperty(Collections.singletonMap(Item.READ, Collections.singleton("alice"))));
+        FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
+        ACL.impersonate(Jenkins.ANONYMOUS, new Runnable() {
+            @Override public void run() {
+                assertEquals(Collections.emptyList(), d.getItems());
+                assertNull(d.getItem("p1"));
+                assertNull(d.getItem("p2"));
+            }
+        });
+        ACL.impersonate(User.get("alice").impersonate(), new Runnable() {
+            @Override public void run() {
+                assertEquals(Collections.singletonList(p1), d.getItems());
+                assertEquals(p1, d.getItem("p1"));
+                try {
+                    d.getItem("p2");
+                    fail("should have been told p2 exists");
+                } catch (AccessDeniedException x) {
+                    // correct
+                }
+            }
+        });
     }
 
     private Folder createFolder() throws IOException {
