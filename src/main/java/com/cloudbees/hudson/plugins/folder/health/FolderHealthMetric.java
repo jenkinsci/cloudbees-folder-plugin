@@ -25,13 +25,11 @@
 package com.cloudbees.hudson.plugins.folder.health;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
-import com.cloudbees.hudson.plugins.folder.FolderProperty;
-import hudson.DescriptorExtensionList;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.HealthReport;
-import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.TopLevelItem;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -62,6 +60,11 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
     }
 
     public static interface Reporter {
+        /**
+         * Called during recursive traversal of the tree from the folder on which this metric is specified.
+         * May be called on intermediate {@code Folder}s, so implementations should not call {@link #getHealthReport} in this case.
+         * @param item a {@link Folder} or any other {@link TopLevelItem}
+         */
         void observe(Item item);
         List<HealthReport> report();
     }

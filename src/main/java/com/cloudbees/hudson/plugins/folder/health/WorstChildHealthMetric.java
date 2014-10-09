@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder.health;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.model.HealthReport;
 import hudson.model.Item;
@@ -60,6 +61,10 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
         HealthReport worst = null;
 
         public void observe(Item item) {
+            if (item instanceof Folder) {
+                // only interested in non-folders in order to prevent double counting
+                return;
+            }
             HealthReport report = getHealthReport(item);
             if (report != null && (worst == null || report.getScore() < worst.getScore())) {
                 worst = new HealthReport(report.getScore(), report.getIconUrl(),
