@@ -75,13 +75,15 @@ public class RelocationAction implements Action {
     }
 
     @Override public String getIconFileName() {
+        if (!item.hasPermission(RELOCATE)) {
+            return null;
+        }
         for (RelocationHandler handler : Jenkins.getInstance().getExtensionList(RelocationHandler.class)) {
             if (handler.applicability(item) == RelocationHandler.HandlingMode.HANDLE) {
                 return "/plugin/cloudbees-folder/images/24x24/move.png";
             }
         }
         // No actual handler, so just hide.
-        // TODO this is not working for MatrixConfiguration
         return null;
     }
 
