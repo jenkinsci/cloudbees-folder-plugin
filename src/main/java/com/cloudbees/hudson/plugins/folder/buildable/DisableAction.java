@@ -26,6 +26,7 @@ package com.cloudbees.hudson.plugins.folder.buildable;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.Messages;
+import com.google.common.collect.Ordering;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
@@ -68,7 +69,15 @@ public class DisableAction implements Action {
     }
 
     public Collection<? extends Job> getJobs() {
-        return item.getAllJobs();
+        return new Ordering<Job>() {
+            @Override
+            public int compare(Job job, Job t1) {
+                if (job.getParent().equals(t1.getParent())) {
+                    return job.getName().compareTo(t1.getName());
+                }
+                return job.getParent().getFullDisplayName().compareTo(t1.getParent().getFullDisplayName());
+            }
+        }.immutableSortedCopy(item.getAllJobs());
     }
 
     /**
@@ -77,7 +86,7 @@ public class DisableAction implements Action {
     @RequirePOST
     public HttpResponse doDisable(StaplerRequest req) throws IOException {
         LOGGER.finest("Trying to disable all jobs in " + item.getName());
-        for (Job job : getJobs()) {
+        for (Job job : item.getAllJobs()) {
             try {
                 ((AbstractProject) job).disable();
                 LOGGER.finest("Set " + job.getName() + " as not buildable");
