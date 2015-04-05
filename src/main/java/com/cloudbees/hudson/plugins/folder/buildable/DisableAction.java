@@ -27,10 +27,16 @@ package com.cloudbees.hudson.plugins.folder.buildable;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.Messages;
 import hudson.Extension;
+import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.Job;
+import hudson.util.HttpResponses;
 import jenkins.model.TransientActionFactory;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Logger;
@@ -59,6 +65,28 @@ public class DisableAction implements Action {
 
     public Folder getItem() {
         return item;
+    }
+
+    public Collection<? extends Job> getJobs() {
+        return item.getAllJobs();
+    }
+
+    /**
+     * Disable jobs contained in this folder.
+     */
+    @RequirePOST
+    public HttpResponse doDisable(StaplerRequest req) throws IOException {
+        LOGGER.finest("Trying to disable all jobs in " + item.getName());
+        for (Job job : getJobs()) {
+            try {
+                ((AbstractProject) job).disable();
+                LOGGER.finest("Set " + job.getName() + " as not buildable");
+            } catch (ClassCastException e) {
+                LOGGER.info("Cannot disable " + job.getName());
+                LOGGER.fine(e.getMessage());
+            }
+        }
+        return HttpResponses.redirectViaContextPath(item.getParent().getUrl() + item.getShortUrl());
     }
 
     @Extension

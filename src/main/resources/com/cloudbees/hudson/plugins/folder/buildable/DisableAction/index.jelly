@@ -6,6 +6,17 @@
       <h1>
         ${%Disable.title(it.item.getDisplayName())}
       </h1>
+
+      <form action="disable" method="POST">
+      ${%confirmationMessage}
+        <ul>
+          <j:forEach var="it" items="${it.getJobs()}">
+            <li>${it.getFullDisplayName()}</li>
+          </j:forEach>
+        </ul>
+
+        <f:submit value="${%Disable}"/>
+      </form>
     </l:main-panel>
   </l:layout>
 </j:jelly>
