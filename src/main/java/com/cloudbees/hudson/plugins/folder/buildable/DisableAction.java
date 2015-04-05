@@ -43,7 +43,7 @@ public class DisableAction implements Action {
     }
 
     public String getIconFileName() {
-        if (!item.hasPermission(Job.CONFIGURE)) {
+        if (!item.hasPermission(Job.CONFIGURE) || item.isDisabled()) {
             return null;
         }
         return "disabled.png";

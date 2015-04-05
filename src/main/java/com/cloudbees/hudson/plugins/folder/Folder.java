@@ -918,6 +918,14 @@ public class Folder extends AbstractItem
         items.remove(item.getName());
     }
 
+    @Exported
+    public boolean isDisabled() {
+        for (Job job : getAllJobs()) {
+            if (job.isBuildable()) return false;
+        }
+        return true;
+    }
+
     @Extension
     public static class DescriptorImpl extends TopLevelItemDescriptor {
         @Override
