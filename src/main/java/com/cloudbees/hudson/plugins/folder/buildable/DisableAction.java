@@ -28,6 +28,7 @@ import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.Messages;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import hudson.Extension;
 import hudson.model.AbstractProject;
@@ -96,14 +97,19 @@ public class DisableAction implements Action {
     @RequirePOST
     public HttpResponse doDisable(StaplerRequest req) throws IOException {
         LOGGER.finest("Trying to disable all jobs in " + item.getName());
+        Collection<Job> missed = Lists.newArrayList();
         for (Job job : getPossibleJobs()) {
             try {
                 ((AbstractProject) job).disable();
                 LOGGER.finest("Set " + job.getName() + " as not buildable");
+                missed.add(job);
             } catch (ClassCastException e) {
                 LOGGER.info("Cannot disable " + job.getName());
-                LOGGER.fine(e.getMessage());
+                LOGGER.info(e.getMessage());
             }
+        }
+        if (!missed.isEmpty()) {
+            return HttpResponses.forwardToView(this, "error").with("missed", missed);
         }
         return HttpResponses.redirectViaContextPath(item.getParent().getUrl() + item.getShortUrl());
     }
