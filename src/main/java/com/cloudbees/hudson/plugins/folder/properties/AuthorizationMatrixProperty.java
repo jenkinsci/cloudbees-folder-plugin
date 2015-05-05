@@ -181,7 +181,7 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
         }
 
         public boolean showPermission(Permission p) {
-            return p.getEnabled();
+            return p.getEnabled() && p.isContainedBy(PermissionScope.ITEM_GROUP);
         }
 
         public FormValidation doCheckName(@AncestorInPath Folder folder, @QueryParameter String value) throws IOException, ServletException {
