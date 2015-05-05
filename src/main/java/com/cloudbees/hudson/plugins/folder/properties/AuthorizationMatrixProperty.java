@@ -36,6 +36,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Run;
+import hudson.model.View;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
@@ -171,7 +172,7 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
         }
 
         public List<PermissionGroup> getAllGroups() {
-            return Arrays.asList(PermissionGroup.get(Item.class),PermissionGroup.get(Run.class));
+            return Arrays.asList(PermissionGroup.get(Item.class), PermissionGroup.get(Run.class), PermissionGroup.get(View.class));
         }
 
         public boolean showPermission(Permission p) {
