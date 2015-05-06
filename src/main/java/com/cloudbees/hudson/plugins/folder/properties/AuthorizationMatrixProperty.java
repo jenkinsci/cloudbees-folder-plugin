@@ -34,11 +34,10 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
-import hudson.model.Item;
-import hudson.model.Run;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import hudson.security.PermissionScope;
 import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.security.SidACL;
 import hudson.util.FormValidation;
@@ -51,6 +50,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -171,11 +171,17 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
         }
 
         public List<PermissionGroup> getAllGroups() {
-            return Arrays.asList(PermissionGroup.get(Item.class),PermissionGroup.get(Run.class));
+            List<PermissionGroup> groups = new ArrayList<PermissionGroup>();
+            for (PermissionGroup g : PermissionGroup.getAll()) {
+                if (g.hasPermissionContainedBy(PermissionScope.ITEM_GROUP)) {
+                    groups.add(g);
+                }
+            }
+            return groups;
         }
 
         public boolean showPermission(Permission p) {
-            return p.getEnabled();
+            return p.getEnabled() && p.isContainedBy(PermissionScope.ITEM_GROUP);
         }
 
         public FormValidation doCheckName(@AncestorInPath Folder folder, @QueryParameter String value) throws IOException, ServletException {
