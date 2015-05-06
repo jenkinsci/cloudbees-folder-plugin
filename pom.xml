@@ -7,7 +7,7 @@
         <version>1.554.1</version>
     </parent>
     <artifactId>cloudbees-folder</artifactId>
-    <version>4.8-SNAPSHOT</version>
+    <version>4.8</version>
     <packaging>hpi</packaging>
     <name>CloudBees Folders Plugin</name>
     <description>This plugin allows users to create "folders" to organize jobs. Users can define custom taxonomies (like by project type, organization type etc). Folders are nestable and you can define views within folders.</description>
@@ -16,7 +16,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-      <tag>HEAD</tag>
+      <tag>cloudbees-folder-4.8</tag>
   </scm>
     <licenses>
         <license>
