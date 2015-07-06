@@ -103,6 +103,7 @@ public abstract class RelocationUI implements ExtensionPoint {
     public static RelocationUI for_(@Nonnull Item item) {
         final Class<? extends Item> itemClass = item.getClass();
         final Jenkins jenkins = Jenkins.getInstance();
+        // TODO replace with ExtensionList.lookup once Jenkins 1.572+
         for (final RelocationUI ui : jenkins == null
                 ? ExtensionList.create((Jenkins) null, RelocationUI.class)
                 : jenkins.getExtensionList(RelocationUI.class)) {
