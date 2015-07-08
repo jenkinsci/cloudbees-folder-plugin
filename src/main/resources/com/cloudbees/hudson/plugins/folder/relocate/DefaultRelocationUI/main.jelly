@@ -1,0 +1,30 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <h1><img src="${resURL}/plugin/cloudbees-folder/images/48x48/move.png" alt=""/>${%Move}</h1>
+  <form method="post" action="move">
+    ${%blurb(item.pronoun, item.displayName)}
+    <select name="destination" class="select setting-input">
+      <j:forEach var="destination" items="${it.listDestinations(item)}">
+        <j:choose>
+          <j:when test="${destination == itemParent and destination == app}">
+            <option selected="yes" value="/${destination.fullName}">${app.displayName}</option>
+          </j:when>
+          <j:when test="${destination == itemParent and destination != app}">
+            <option selected="yes" value="/${destination.fullName}">
+              ${app.displayName} &#187; ${destination.fullDisplayName}
+            </option>
+          </j:when>
+          <j:when test="${destination != itemParent and destination == app}">
+            <option value="/${destination.fullName}">${app.displayName}</option>
+          </j:when>
+          <j:otherwise>
+            <option value="/${destination.fullName}">
+              ${app.displayName} &#187; ${destination.fullDisplayName}
+            </option>
+          </j:otherwise>
+        </j:choose>
+      </j:forEach>
+    </select>
+    <f:submit value="${%Move}"/>
+  </form>
+</j:jelly>

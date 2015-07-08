@@ -1,37 +1,18 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <l:layout title="${%Move}">
-    <st:include page="sidepanel.jelly" it="${it.item}"/>
-    <l:main-panel>
-      <h1><img src="${resURL}/plugin/cloudbees-folder/images/48x48/move.png" alt=""/>${%Move}</h1>
-      <form method="post" action="move">
-        ${%blurb(it.item.pronoun, it.item.displayName)}
-        <select name="destination" class="select setting-input">
-          <j:forEach var="destination" items="${it.destinations}">
-            <j:if test="${destination == it.itemParent}">
-              <j:if test="${destination == app}">
-                <option selected="yes" value="/${destination.fullName}">${app.displayName}</option>
-              </j:if>
-              <j:if test="${destination != app}">
-                <option selected="yes" value="/${destination.fullName}">${app.displayName} &#187;
-                  ${destination.fullDisplayName}
-                </option>
-              </j:if>
-            </j:if>
-            <j:if test="${destination != it.itemParent}">
-              <j:if test="${destination == app}">
-                <option value="/${destination.fullName}">${app.displayName}</option>
-              </j:if>
-              <j:if test="${destination != app}">
-                <option value="/${destination.fullName}">${app.displayName} &#187; ${destination.fullDisplayName}
-                </option>
-              </j:if>
-            </j:if>
-          </j:forEach>
-        </select>
-        <f:submit value="${%Move}"/>
-      </form>
-
-    </l:main-panel>
-  </l:layout>
+  <j:choose>
+    <j:when test="${it.ui != null}">
+      <l:layout title="${%Move}">
+        <st:include page="sidepanel.jelly" it="${it.item}"/>
+        <l:main-panel>
+          <j:set var="item" value="${it.item}"/>
+          <j:set var="itemParent" value="${it.itemParent}"/>
+          <st:include it="${it.ui}" page="main.jelly"/>
+        </l:main-panel>
+      </l:layout>
+    </j:when>
+    <j:otherwise>
+      <st:statusCode value="404"/>
+    </j:otherwise>
+  </j:choose>
 </j:jelly>
