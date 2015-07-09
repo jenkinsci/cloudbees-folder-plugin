@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.relocate;
 
 import com.cloudbees.hudson.plugins.folder.Messages;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
@@ -70,8 +71,9 @@ public class RelocationAction implements Action, StaplerFallback {
      *
      * @param item the item that would be moved.
      */
-    public RelocationAction(Item item) {
-        this(item, RelocationUI.for_(item));
+    public RelocationAction(@Nonnull Item item) {
+        this.item = item;
+        this.ui = RelocationUI.for_(item);
     }
 
     public RelocationAction(@Nonnull Item item, @Nonnull RelocationUI ui) {
@@ -143,6 +145,7 @@ public class RelocationAction implements Action, StaplerFallback {
     /**
      * Makes sure that {@link Item}s have the action.
      */
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT", justification = "ensure loaded eagerly")
     @Extension
     public static class TransientActionFactoryImpl extends TransientActionFactory<Item> {
 
@@ -155,7 +158,7 @@ public class RelocationAction implements Action, StaplerFallback {
         }
 
         @Override
-        public Collection<? extends Action> createFor(Item target) {
+        public Collection<? extends Action> createFor(@Nonnull Item target) {
             return Collections.singleton(new RelocationAction(target));
         }
     }

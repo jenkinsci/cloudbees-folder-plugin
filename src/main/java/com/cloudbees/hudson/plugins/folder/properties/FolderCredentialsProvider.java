@@ -40,6 +40,7 @@ import com.cloudbees.plugins.credentials.domains.DomainSpecification;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.model.Action;
@@ -184,6 +185,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          *
          * @since 1.5
          */
+        @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Only unprotected during deserialization")
         @SuppressWarnings("deprecation")
         private Object readResolve() throws ObjectStreamException {
             if (domainCredentialsMap == null) {
