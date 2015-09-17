@@ -69,6 +69,7 @@ import hudson.views.DefaultViewsTabBar;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
 import hudson.views.ViewsTabBar;
+import java.lang.reflect.InvocationTargetException;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
@@ -802,6 +803,16 @@ public class Folder extends AbstractItem
             if (!p.allowsParentToCreate(tid)) {
                 return false;
             }
+        }
+        // TODO Jenkins 1.607+ use method directly
+        try {
+            return Boolean.TRUE.equals(tid.getClass().getMethod("isApplicableIn", ItemGroup.class).invoke(this));
+        } catch (NoSuchMethodException e) {
+            // ignore
+        } catch (InvocationTargetException e) {
+            // ignore
+        } catch (IllegalAccessException e) {
+            // ignore
         }
         return true;
     }
