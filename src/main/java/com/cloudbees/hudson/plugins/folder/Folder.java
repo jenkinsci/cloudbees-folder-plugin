@@ -806,7 +806,7 @@ public class Folder extends AbstractItem
         }
         // TODO Jenkins 1.607+ use method directly
         try {
-            return Boolean.TRUE.equals(tid.getClass().getMethod("isApplicableIn", ItemGroup.class).invoke(this));
+            return Boolean.TRUE.equals(tid.getClass().getMethod("isApplicableIn", ItemGroup.class).invoke(tid, this));
         } catch (NoSuchMethodException e) {
             // ignore
         } catch (InvocationTargetException e) {
