@@ -261,6 +261,8 @@ public class Folder extends AbstractItem
     private void init() {
         if (icon == null) {
             icon = new StockFolderIcon();
+        } else {
+            icon.setFolder(this);
         }
         if (properties == null) {
             properties = new DescribableList<FolderProperty<?>, FolderPropertyDescriptor>(this);
