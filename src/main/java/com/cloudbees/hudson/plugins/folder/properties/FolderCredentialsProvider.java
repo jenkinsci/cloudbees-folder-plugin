@@ -461,7 +461,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @SuppressWarnings("unused") // used by stapler
             public DescriptorExtensionList<DomainSpecification, Descriptor<DomainSpecification>>
             getSpecificationDescriptors() {
-                return Jenkins.getInstance().getDescriptorList(DomainSpecification.class);
+                return Jenkins.getActiveInstance().getDescriptorList(DomainSpecification.class);
             }
         }
 

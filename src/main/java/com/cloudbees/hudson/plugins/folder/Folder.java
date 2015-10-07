@@ -39,7 +39,6 @@ import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Failure;
 import hudson.model.HealthReport;
-import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
@@ -197,7 +196,7 @@ public class Folder extends AbstractItem
         if (!loadJobTotalRan.compareAndSet(false, true)) {
             return; // TODO why does Jenkins run the initializer many times?!
         }
-        scan(new File(Jenkins.getInstance().getRootDir(), "jobs"), 0);
+        scan(new File(Jenkins.getActiveInstance().getRootDir(), "jobs"), 0);
         // TODO reset count after reload config from disk (otherwise goes up to 200% etc.)
     }
     private static void scan(File d, int depth) {
@@ -428,7 +427,7 @@ public class Folder extends AbstractItem
 
     @Override
     public ACL getACL() {
-        AuthorizationStrategy as = Hudson.getInstance().getAuthorizationStrategy();
+        AuthorizationStrategy as = Jenkins.getActiveInstance().getAuthorizationStrategy();
         // TODO this should be an extension point, or ideally matrix-auth would have an optional dependency on cloudbees-folder
         if (as.getClass().getName().equals("hudson.security.ProjectMatrixAuthorizationStrategy")) {
             AuthorizationMatrixProperty p = getProperties().get(AuthorizationMatrixProperty.class);
@@ -646,7 +645,7 @@ public class Folder extends AbstractItem
         }
 
         try {
-            Hudson.checkGoodName(value);
+            Jenkins.checkGoodName(value);
             value = value.trim();
             if (getItem(value) != null) {
                 throw new Failure(hudson.model.Messages.Hudson_JobAlreadyExists(value));
@@ -690,7 +689,7 @@ public class Folder extends AbstractItem
     }
 
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Hudson.getInstance().getDescriptor(type), name));
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.getActiveInstance().getDescriptor(type), name));
     }
 
     public TopLevelItem createProject(TopLevelItemDescriptor type, String name) throws IOException {
@@ -739,7 +738,7 @@ public class Folder extends AbstractItem
         String newName = json.getString("name");
         if (newName != null && !newName.equals(name)) {
             // check this error early to avoid HTTP response splitting.
-            Hudson.checkGoodName(newName);
+            Jenkins.checkGoodName(newName);
             rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
         } else {
             FormApply.success(".").generateResponse(req, rsp, this);
@@ -826,7 +825,7 @@ public class Folder extends AbstractItem
     @Override protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
             @Override protected SearchItem get(String key) {
-                return Jenkins.getInstance().getItem(key, grp());
+                return Jenkins.getActiveInstance().getItem(key, grp());
             }
             @Override protected Collection<TopLevelItem> all() {
                 return Items.getAllItems(grp(), TopLevelItem.class);
@@ -842,7 +841,7 @@ public class Folder extends AbstractItem
     }
 
     public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) Hudson.getInstance().getDescriptorOrDie(getClass());
+        return (DescriptorImpl) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }
 
     public DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> getHealthMetrics() {

@@ -74,7 +74,7 @@ import org.kohsuke.stapler.HttpResponses;
 
     @Override public List<? extends ItemGroup<?>> validDestinations(Item item) {
         List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<DirectlyModifiableTopLevelItemGroup>();
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.getActiveInstance();
         if (permitted(item, instance)) {
             result.add(instance);
         }

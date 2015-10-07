@@ -33,7 +33,6 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
@@ -61,6 +60,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 
 /**
  * Holds ACL for {@link ProjectMatrixAuthorizationStrategy}.
@@ -159,7 +159,7 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
         public boolean isApplicable(Class<? extends Folder> containerType) {
             // only applicable when ProjectMatrixAuthorizationStrategy is in charge
             try {
-                return Hudson.getInstance().getAuthorizationStrategy() instanceof ProjectMatrixAuthorizationStrategy;
+                return Jenkins.getActiveInstance().getAuthorizationStrategy() instanceof ProjectMatrixAuthorizationStrategy;
             } catch (NoClassDefFoundError x) { // after matrix-auth split?
                 return false;
             }

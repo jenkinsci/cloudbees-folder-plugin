@@ -27,8 +27,8 @@ package com.cloudbees.hudson.plugins.folder;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractStatusIcon;
 import hudson.model.Describable;
-import hudson.model.Hudson;
 import hudson.model.StatusIcon;
+import jenkins.model.Jenkins;
 
 /**
  * Renders {@link StatusIcon} for a folder.
@@ -47,6 +47,6 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
     protected abstract void setFolder(Folder folder);
 
     public FolderIconDescriptor getDescriptor() {
-        return (FolderIconDescriptor)Hudson.getInstance().getDescriptorOrDie(getClass());
+        return (FolderIconDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }
 }

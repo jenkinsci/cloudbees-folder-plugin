@@ -88,6 +88,6 @@ public abstract class FolderPropertyDescriptor extends Descriptor<FolderProperty
 
     @SuppressWarnings({"unchecked"})
     public static DescriptorExtensionList<FolderProperty<?>, FolderPropertyDescriptor> all() {
-        return Jenkins.getInstance().getDescriptorList(FolderProperty.class);
+        return Jenkins.getActiveInstance().getDescriptorList(FolderProperty.class);
     }
 }

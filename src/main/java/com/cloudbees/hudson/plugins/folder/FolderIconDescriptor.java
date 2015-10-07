@@ -26,10 +26,10 @@ package com.cloudbees.hudson.plugins.folder;
 
 import hudson.DescriptorExtensionList;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
+import jenkins.model.Jenkins;
 
 public abstract class FolderIconDescriptor extends Descriptor<FolderIcon> {
     public static DescriptorExtensionList<FolderIcon, FolderIconDescriptor> all() {
-        return Hudson.getInstance().<FolderIcon, FolderIconDescriptor>getDescriptorList(FolderIcon.class);
+        return Jenkins.getActiveInstance().<FolderIcon, FolderIconDescriptor>getDescriptorList(FolderIcon.class);
     }
 }
