@@ -26,5 +26,5 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
     <st:include page="/hudson/model/AbstractItem/_api.jelly"/>
-    <st:include page="/hudson/model/ModifiableItemGroup/_api.jelly" optional="true"/> <!-- TODO remove optional when on 1.569+ -->
+    <st:include page="/hudson/model/ModifiableItemGroup/_api.jelly"/>
 </j:jelly>
