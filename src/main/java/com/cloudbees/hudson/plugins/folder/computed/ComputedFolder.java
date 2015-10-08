@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.model.AbstractItem;
@@ -167,6 +168,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractIte
 
     protected abstract Map<String,I> computeChildren(TaskListener listener) throws IOException, InterruptedException;
 
+    protected abstract void afterNewItemCreated(I item);
+
     protected abstract void updateExistingItem(I existing, I replacement);
 
     /**
@@ -186,6 +189,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractIte
                 replacement.save();
                 deadItems.remove(childName);
                 items.put(childName, replacement);
+                afterNewItemCreated(replacement);
             }
         }
         for (String childName : deadItems) {
@@ -231,9 +235,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractIte
             primaryView = json.getString("primaryView");
         }
 
-        submit(req, rsp);
-
-        save();
+        BulkChange bc = new BulkChange(this);
+        try {
+            submit(req, rsp);
+            save();
+            bc.commit();
+        } finally {
+            bc.abort();
+        }
 
         // TODO boilerplate; need to consider ProjectNamingStrategy
         String newName = json.getString("name");
@@ -267,10 +276,12 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @Override public synchronized void save() throws IOException {
+        if (BulkChange.contains(this)) {
+            return;
+        }
         super.save();
         // TODO should this not just be done in AbstractItem?
         ItemListener.fireOnUpdated(this);
-        // TODO we could perhaps be more discriminating here.
         scheduleBuild();
     }
 
