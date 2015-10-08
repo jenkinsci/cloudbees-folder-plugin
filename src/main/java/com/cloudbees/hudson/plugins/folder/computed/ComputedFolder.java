@@ -105,6 +105,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * The children should also not offer {@link Item#CONFIGURE} to anyone.
  * Generalizes some techniques originally written in {@code MultiBranchProject} and {@link Folder}.
  * @param <I> the child item type
+ * @since FIXME
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, Saveable, ViewGroup, StaplerFallback, ModelObjectWithChildren, BuildableItem, Queue.FlyweightTask {
