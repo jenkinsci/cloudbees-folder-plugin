@@ -24,116 +24,58 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
-import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
-import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
-import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
-import com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty;
-import hudson.AbortException;
 import hudson.CopyOnWrite;
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.AutoCompletionCandidates;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Failure;
-import hudson.model.HealthReport;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
 import hudson.model.ItemVisitor;
 import hudson.model.Items;
-import hudson.model.Job;
-import hudson.model.AllView;
 import hudson.model.ListView;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
-import hudson.model.ViewGroup;
-import hudson.model.ViewGroupMixIn;
-import hudson.model.listeners.ItemListener;
-import hudson.security.ACL;
-import hudson.security.AuthorizationStrategy;
-import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.util.AlternativeUiTextProvider;
-import hudson.util.CaseInsensitiveComparator;
-import hudson.util.CopyOnWriteMap;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
-import hudson.util.Function1;
-import hudson.util.HttpResponses;
-import hudson.util.IOException2;
-import hudson.views.DefaultViewsTabBar;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import hudson.views.ViewsTabBar;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerFallback;
-import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.export.Exported;
 
 import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URLEncoder;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 import java.util.Vector;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static hudson.Util.fixEmpty;
-import hudson.init.InitMilestone;
-import hudson.init.Initializer;
-import static hudson.model.ItemGroupMixIn.loadChildren;
-import hudson.model.TransientProjectActionFactory;
-import hudson.search.CollectionSearchIndex;
-import hudson.search.SearchIndexBuilder;
-import hudson.search.SearchItem;
-import hudson.util.FormApply;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
-import jenkins.model.ModelObjectWithChildren;
-import org.acegisecurity.AccessDeniedException;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
- * {@link Item} that contains other {@link Item}s, without modeling dependency.
+ * A mutable folder.
  */
-public class Folder extends AbstractItem
-        implements DirectlyModifiableTopLevelItemGroup, ViewGroup, TopLevelItem, StaplerOverridable, StaplerFallback, ModelObjectWithChildren {
+public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModifiableTopLevelItemGroup {
 
     /**
      * @see #getNewPronoun
      * @since 4.0
      */
     public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<Folder>();
-
-    private DescribableList<FolderProperty<?>, FolderPropertyDescriptor> properties;
-
-    /**
-     * All {@link Item}s keyed by their {@link Item#getName() name} s.
-     */
-    /*package*/ transient Map<String, TopLevelItem> items =
-            new CopyOnWriteMap.Tree<String, TopLevelItem>(CaseInsensitiveComparator.INSTANCE);
-
 
     /**
      * @deprecated as of 1.7
@@ -147,8 +89,6 @@ public class Folder extends AbstractItem
      */
     private transient DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>> filters;
 
-    private FolderIcon icon;
-
     private transient /*final*/ ItemGroupMixIn mixin;
 
     /**
@@ -161,226 +101,48 @@ public class Folder extends AbstractItem
     @CopyOnWrite
     protected transient volatile List<Action> transientActions = new Vector<Action>();
 
-    /**
-     * {@link View}s.
-     */
-    private /*almost final*/ CopyOnWriteArrayList<View> views;
-
-    /**
-     * Currently active Views tab bar.
-     */
-    private volatile ViewsTabBar viewsTabBar;
-
-    /**
-     * Name of the primary view.
-     */
-    private volatile String primaryView;
-
-    private transient /*almost final*/ ViewGroupMixIn viewGroupMixIn;
-
-    private DescribableList<FolderHealthMetric,FolderHealthMetricDescriptor> healthMetrics;
-
     public Folder(ItemGroup parent, String name) {
         super(parent, name);
         init();
     }
 
-    private static long loadingTick;
-    private static final AtomicInteger jobTotal = new AtomicInteger();
-    private static final AtomicInteger jobEncountered = new AtomicInteger();
-    private static final AtomicBoolean loadJobTotalRan = new AtomicBoolean();
-    private static final int TICK_INTERVAL = 15000;
-
-    @Initializer(before=InitMilestone.JOB_LOADED, fatal=false)
-    public static void loadJobTotal() {
-        if (!loadJobTotalRan.compareAndSet(false, true)) {
-            return; // TODO why does Jenkins run the initializer many times?!
-        }
-        scan(new File(Jenkins.getActiveInstance().getRootDir(), "jobs"), 0);
-        // TODO reset count after reload config from disk (otherwise goes up to 200% etc.)
-    }
-    private static void scan(File d, int depth) {
-        File[] projects = d.listFiles();
-        if (projects == null) {
-            return;
-        }
-        for (File project : projects) {
-            if (!new File(project, "config.xml").isFile()) {
-                continue;
-            }
-            if (depth > 0) {
-                jobTotal.incrementAndGet();
-            }
-            File jobs = new File(project, "jobs");
-            if (jobs.isDirectory()) {
-                scan(jobs, depth + 1);
-            }
-        }
-    }
-
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
-        init();
-        final Thread t = Thread.currentThread();
-        String n = t.getName();
-        try {
-            if (items ==null) {
-                // when Jenkins is getting reloaed, we want children being loaded to be able to find
-                // existing items that they will be overriding. This is necessary for  them to correctly
-                // keep the running builds, for example. See ZD-13067
-                Item current = parent.getItem(name);
-                if (current!=null && current.getClass()==getClass()) {
-                    this.items = ((Folder)current).items;
-                }
-            }
-
-            items = loadChildren(this, getJobsDir(), new Function1<String, Item>() {
-                public String call(Item item) {
-                    String fullName = item.getFullName();
-                    t.setName("Loading job " + fullName);
-                    float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
-                    long now = System.currentTimeMillis();
-                    if (loadingTick == 0) {
-                        loadingTick = now;
-                    } else if (now - loadingTick > TICK_INTERVAL) {
-                        LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
-                        loadingTick = now;
-                    }
-                    return item.getName();
-                }
-            });
-        } finally {
-            t.setName(n);
-        }
         updateTransientActions();
     }
 
-    private void init() {
-        if (icon == null) {
-            icon = new StockFolderIcon();
-        }
-        if (properties == null) {
-            properties = new DescribableList<FolderProperty<?>, FolderPropertyDescriptor>(this);
-        }
-        for (FolderProperty p : properties) {
-            p.setOwner(this);
-        }
-        if (views == null) {
-            views = new CopyOnWriteArrayList<View>();
-        }
-        if (views.size() == 0) {
-            try {
-                if (columns != null || filters != null) {
-                    // we're loading an ancient config
-                    if (columns == null) {
-                        columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
-                                ListViewColumn.createDefaultInitialColumnList());
-                    }
-                    if (filters == null) {
-                        filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
-                    }
-                    ListView lv = new ListView("All", this);
-                    views.add(lv);
-                    lv.getColumns().replaceBy(columns.toList());
-                    lv.getJobFilters().replaceBy(filters.toList());
-                    lv.setIncludeRegex(".*");
-                    lv.save();
-                } else {
-                    AllView v = new AllView("All", this);
-                    views.add(v);
-                    v.save();
-                }
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
-            }
-        }
-        if (viewsTabBar == null) {
-            viewsTabBar = new DefaultViewsTabBar();
-        }
-        if (primaryView == null) {
-            primaryView = views.get(0).getViewName();
-        }
+    @Override
+    protected final void init() {
+        super.init();
         mixin = new MixInImpl(this);
-        viewGroupMixIn = new ViewGroupMixIn(this) {
-            protected List<View> views() {
-                return views;
-            }
+    }
 
-            protected String primaryView() {
-                return primaryView;
+    @Override
+    protected void initViews(List<View> views) throws IOException {
+        if (columns != null || filters != null) {
+            // we're loading an ancient config
+            if (columns == null) {
+                columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+                        ListViewColumn.createDefaultInitialColumnList());
             }
-
-            protected void primaryView(String name) {
-                primaryView = name;
+            if (filters == null) {
+                filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
             }
-        };
-        if (healthMetrics == null) {
-            List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
-            for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
-                FolderHealthMetric metric = d.createDefault();
-                if (metric != null) {
-                    metrics.add(metric);
-                }
-            }
-            healthMetrics = new DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor>(this, metrics);
+            ListView lv = new ListView("All", this);
+            views.add(lv);
+            lv.getColumns().replaceBy(columns.toList());
+            lv.getJobFilters().replaceBy(filters.toList());
+            lv.setIncludeRegex(".*");
+            lv.save();
+        } else {
+            super.initViews(views);
         }
-    }
-
-    public void addView(View v) throws IOException {
-        viewGroupMixIn.addView(v);
-    }
-
-    public boolean canDelete(View view) {
-        return viewGroupMixIn.canDelete(view);
-    }
-
-    public void deleteView(View view) throws IOException {
-        viewGroupMixIn.deleteView(view);
-    }
-
-    public View getView(String name) {
-        return viewGroupMixIn.getView(name);
-    }
-
-    @Exported
-    public Collection<View> getViews() {
-        return viewGroupMixIn.getViews();
-    }
-
-    @Exported
-    public View getPrimaryView() {
-        return viewGroupMixIn.getPrimaryView();
-    }
-
-    public void setPrimaryView(View v) {
-        primaryView = v.getViewName();
-    }
-
-    public void onViewRenamed(View view, String oldName, String newName) {
-        viewGroupMixIn.onViewRenamed(view, oldName, newName);
-    }
-
-    public ViewsTabBar getViewsTabBar() {
-        return viewsTabBar;
-    }
-
-    public ItemGroup<? extends TopLevelItem> getItemGroup() {
-        return this;
-    }
-
-    public List<Action> getViewActions() {
-        return Collections.emptyList();
     }
 
     @Override
     public void onCreatedFromScratch() {
         updateTransientActions();
-    }
-
-    @Override
-    public String getPronoun() {
-        return AlternativeUiTextProvider.get(PRONOUN, this, getDescriptor().getDisplayName());
     }
 
     /**
@@ -389,7 +151,8 @@ public class Folder extends AbstractItem
      * <p/>
      * Note that this method returns a read-only view of {@link Action}s.
      *
-     * @see TransientProjectActionFactory
+     * @see TransientFolderActionFactory
+     * @see FolderProperty#getFolderActions
      */
     @SuppressWarnings("deprecation")
     @Override
@@ -404,38 +167,23 @@ public class Folder extends AbstractItem
     /**
      * effectively deprecated. Since using updateTransientActions correctly
      * under concurrent environment requires a lock that can too easily cause deadlocks.
-     * <p/>
-     * <p/>
-     * Override {@link #createTransientActions()} instead.
      */
     protected void updateTransientActions() {
         transientActions = createTransientActions();
     }
 
+    @SuppressWarnings("deprecation")
     protected List<Action> createTransientActions() {
         Vector<Action> ta = new Vector<Action>();
 
         for (TransientFolderActionFactory tpaf : TransientFolderActionFactory.all()) {
             ta.addAll(Util.fixNull(tpaf.createFor(this))); // be defensive against null
         }
-        for (FolderProperty<?> p: properties) {
+        for (FolderProperty<?> p: getProperties().getAll(FolderProperty.class)) {
             ta.addAll(Util.fixNull(p.getFolderActions()));
         }
 
         return ta;
-    }
-
-    @Override
-    public ACL getACL() {
-        AuthorizationStrategy as = Jenkins.getActiveInstance().getAuthorizationStrategy();
-        // TODO this should be an extension point, or ideally matrix-auth would have an optional dependency on cloudbees-folder
-        if (as.getClass().getName().equals("hudson.security.ProjectMatrixAuthorizationStrategy")) {
-            AuthorizationMatrixProperty p = getProperties().get(AuthorizationMatrixProperty.class);
-            if (p != null) {
-                return p.getACL().newInheritingACL(((ProjectMatrixAuthorizationStrategy) as).getACL(getParent()));
-            }
-        }
-        return super.getACL();
     }
 
     /**
@@ -447,31 +195,6 @@ public class Folder extends AbstractItem
     }
 
     /**
-     * Gets the icon used for this folder.
-     */
-    public FolderIcon getIcon() {
-        return icon;
-    }
-
-    public void setIcon(FolderIcon icon) {
-        this.icon = icon;
-        icon.setFolder(this);
-    }
-
-    public FolderIcon getIconColor() {
-        return icon;
-    }
-
-    @Override
-    public Collection<? extends Job> getAllJobs() {
-        Set<Job> jobs = new HashSet<Job>();
-        for (Item i : getItems()) {
-            jobs.addAll(i.getAllJobs());
-        }
-        return jobs;
-    }
-
-    /**
      * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
@@ -480,96 +203,10 @@ public class Folder extends AbstractItem
                 ListViewColumn.createDefaultInitialColumnList());
     }
 
-    /**
-     * Renames this item container.
-     */
-    @Override
-    public void renameTo(String newName) throws IOException {
-        super.renameTo(newName);
-    }
-
-    public DescribableList<FolderProperty<?>, FolderPropertyDescriptor> getProperties() {
-        return properties;
-    }
-
-    public void addProperty(FolderProperty p) throws IOException {
-        p.setOwner(this);
-        properties.add(p);
-    }
-
-    @Exported(name="jobs")
-    public Collection<TopLevelItem> getItems() {
-        List<TopLevelItem> viewableItems = new ArrayList<TopLevelItem>();
-        for (TopLevelItem item : items.values()) {
-            if (item.hasPermission(Item.READ)) {
-                viewableItems.add(item);
-            }
-        }
-
-        return viewableItems;
-    }
-
-    public String getUrlChildPrefix() {
-        return "job";
-    }
-
-    public TopLevelItem getJob(String name) {
-        return getItem(name);
-    }
-
-    public TopLevelItem getItem(String name) {
-        if (items == null) {
-            return null;
-        }
-        TopLevelItem item = items.get(name);
-        if (item == null) {
-            return null;
-        }
-        if (!item.hasPermission(Item.READ)) {
-            if (item.hasPermission(Item.DISCOVER)) {
-                throw new AccessDeniedException("Please login to access job " + name);
-            }
-            return null;
-        }
-        return item;
-    }
-
-    public File getRootDirFor(TopLevelItem child) {
-        return getRootDirFor(child.getName());
-    }
-
-    private File getRootDirFor(String name) {
-        return new File(getJobsDir(), name);
-    }
-
-    private File getJobsDir() {
-        return new File(getRootDir(), "jobs");
-    }
-
-    public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
-        items.remove(oldName);
-        items.put(newName, item);
-        // For compatibility with old views:
-        for (View v : views) {
-            v.onJobRenamed(item, oldName, newName);
-        }
-        save();
-    }
-
-    @Override
-    protected void performDelete() throws IOException, InterruptedException {
-        // delete individual items first
-        for (Item i : new ArrayList<Item>(items.values())) {
-            try {
-                i.delete();
-            } catch (AbortException e) {
-                throw (AbortException) new AbortException(
-                        "Failed to delete " + i.getFullDisplayName() + " : " + e.getMessage()).initCause(e);
-            } catch (IOException e) {
-                throw new IOException2("Failed to delete " + i.getFullDisplayName(), e);
-            }
-        }
-        super.performDelete();
+    /** @deprecated use {@link #addProperty(AbstractFolderProperty)} instead */
+    @Deprecated
+    public void addProperty(FolderProperty<?> p) throws IOException {
+        addProperty((AbstractFolderProperty) p);
     }
 
     /**
@@ -587,16 +224,6 @@ public class Folder extends AbstractItem
         }
     }
 
-    public void onDeleted(TopLevelItem item) throws IOException {
-        ItemListener.fireOnDeleted(item);
-        items.remove(item.getName());
-        // For compatibility with old views:
-        for (View v : views) {
-            v.onJobRenamed(item, item.getName(), null);
-        }
-        save();
-    }
-
     public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         TopLevelItem nue = mixin.createTopLevelItem(req, rsp);
         if (!isAllowedChild(nue)) {
@@ -609,30 +236,6 @@ public class Folder extends AbstractItem
             throw new IOException("forbidden child type");
         }
         return nue;
-    }
-
-    public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
-            throws IOException, ServletException, ParseException, FormException {
-        checkPermission(View.CREATE);
-        addView(View.create(req, rsp, this));
-    }
-
-    /**
-     * Checks if a top-level view with the given name exists.
-     */
-    public FormValidation doViewExistsCheck(@QueryParameter String value) {
-        checkPermission(View.CREATE);
-
-        String view = fixEmpty(value);
-        if (view == null) {
-            return FormValidation.ok();
-        }
-
-        if (getView(view) == null) {
-            return FormValidation.ok();
-        } else {
-            return FormValidation.error(jenkins.model.Messages.Hudson_ViewAlreadyExists(view));
-        }
     }
 
     public FormValidation doCheckJobName(@QueryParameter String value) {
@@ -655,14 +258,6 @@ public class Folder extends AbstractItem
         } catch (Failure e) {
             return FormValidation.error(e.getMessage());
         }
-    }
-
-    public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
-        ContextMenu menu = new ContextMenu();
-        for (View view : getViews()) {
-            menu.add(view.getAbsoluteUrl(),view.getDisplayName());
-        }
-        return menu;
     }
 
     /**
@@ -703,80 +298,9 @@ public class Folder extends AbstractItem
         return mixin.createProject(type, name, notify);
     }
 
-    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp)
-            throws IOException, ServletException, FormException {
-        checkPermission(CONFIGURE);
-
-        req.setCharacterEncoding("UTF-8");
-        JSONObject json = req.getSubmittedForm();
-
-        description = json.getString("description");
-        displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
-        if (json.has("viewsTabBar")) {
-            viewsTabBar = req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar"));
-        }
-
-        if (json.has("primaryView")) {
-            setPrimaryView(viewGroupMixIn.getView(json.getString("primaryView")));
-        }
-
-        properties.rebuild(req, json, getDescriptor().getPropertyDescriptors());
-        for (FolderProperty p : properties) // TODO: push this to the subtype of property descriptors
-        {
-            p.setOwner(this);
-        }
-
-        healthMetrics.replaceBy(req.bindJSONToList(FolderHealthMetric.class, json.get("healthMetrics")));
-
-        icon = req.bindJSON(FolderIcon.class, json.getJSONObject("icon"));
-        icon.setFolder(this);
-
+    @Override
+    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, FormException {
         updateTransientActions();
-
-        save();
-
-        String newName = json.getString("name");
-        if (newName != null && !newName.equals(name)) {
-            // check this error early to avoid HTTP response splitting.
-            Jenkins.checkGoodName(newName);
-            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
-        } else {
-            FormApply.success(".").generateResponse(req, rsp, this);
-        }
-    }
-
-    @Override public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        getPrimaryView().doSubmitDescription(req, rsp);
-    }
-
-    // TODO boilerplate like this should not be necessary: JENKINS-22936
-    @RequirePOST
-    public void doDoRename(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-
-        if (!hasPermission(CONFIGURE)) {
-            // rename is essentially delete followed by a create
-            checkPermission(CREATE);
-            checkPermission(DELETE);
-        }
-
-        String newName = req.getParameter("newName");
-        Jenkins.checkGoodName(newName);
-
-        // wouldn't building job inside folder be impacted here? Shall we then check as Job.doDoRename does
-
-        renameTo(newName);
-        rsp.sendRedirect2("../" + newName);
-    }
-
-    /**
-     * Overrides from job properties.
-     */
-    public Collection<?> getOverrides() {
-        List<Object> r = new ArrayList<Object>();
-        for (FolderProperty<?> p : properties) {
-            r.addAll(p.getItemContainerOverrides());
-        }
-        return r;
     }
 
     /**
@@ -797,7 +321,7 @@ public class Folder extends AbstractItem
      * Returns true if the specified descriptor type is allowed for this container.
      */
     public boolean isAllowedChildDescriptor(TopLevelItemDescriptor tid) {
-        for (FolderProperty<?> p : properties) {
+        for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
             if (!p.allowsParentToCreate(tid)) {
                 return false;
             }
@@ -807,7 +331,7 @@ public class Folder extends AbstractItem
 
     /** Historical synonym for {@link #canAdd}. */
     public boolean isAllowedChild(TopLevelItem tid) {
-        for (FolderProperty<?> p : properties) {
+        for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
             if (!p.allowsParentToHave(tid)) {
                 return false;
             }
@@ -815,87 +339,9 @@ public class Folder extends AbstractItem
         return true;
     }
 
-    /**
-     * Fallback to the primary view.
-     */
-    public View getStaplerFallback() {
-        return getPrimaryView();
-    }
-
-    @Override protected SearchIndexBuilder makeSearchIndex() {
-        return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
-            @Override protected SearchItem get(String key) {
-                return Jenkins.getActiveInstance().getItem(key, grp());
-            }
-            @Override protected Collection<TopLevelItem> all() {
-                return Items.getAllItems(grp(), TopLevelItem.class);
-            }
-            @Override protected String getName(TopLevelItem j) {
-                return j.getRelativeNameFrom(grp());
-            }
-            /** Disambiguates calls that otherwise would match {@link Item} too. */
-            private ItemGroup<?> grp() {
-                return Folder.this;
-            }
-        });
-    }
-
+    @Override
     public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
-    }
-
-    public DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> getHealthMetrics() {
-        return healthMetrics;
-    }
-
-    /**
-     * Get the current health report for a folder.
-     *
-     * @return the health report. Never returns null
-     */
-    public HealthReport getBuildHealth() {
-        List<HealthReport> reports = getBuildHealthReports();
-        return reports.isEmpty() ? new HealthReport() : reports.get(0);
-    }
-
-    @Exported(name = "healthReport")
-    public List<HealthReport> getBuildHealthReports() {
-        if (healthMetrics == null || healthMetrics.isEmpty()) return Collections.<HealthReport>emptyList();
-        List<HealthReport> reports = new ArrayList<HealthReport>();
-        List<FolderHealthMetric.Reporter> reporters = new ArrayList<FolderHealthMetric.Reporter>(healthMetrics.size());
-        for (FolderHealthMetric metric: healthMetrics) {
-            reporters.add(metric.reporter());
-        }
-        for (FolderProperty<?> p: getProperties()) {
-            for (FolderHealthMetric metric: p.getHealthMetrics()) {
-                reporters.add(metric.reporter());
-            }
-        }
-        Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
-        stack.push(getItems());
-        while (!stack.isEmpty()) {
-            for (Item item : stack.pop()) {
-                for (FolderHealthMetric.Reporter reporter: reporters) {
-                    reporter.observe(item);
-                }
-                if (item instanceof Folder) {
-                    stack.push(((Folder) item).getItems());
-                }
-            }
-        }
-        for (FolderHealthMetric.Reporter reporter: reporters) {
-            reports.addAll(reporter.report());
-        }
-        for (FolderProperty<?> p: getProperties()) {
-            reports.addAll(p.getHealthReports());
-        }
-
-        Collections.sort(reports);
-        return reports;
-    }
-
-    public HttpResponse doLastBuild(StaplerRequest req) {
-        return HttpResponses.redirectToDot();
+        return (DescriptorImpl) super.getDescriptor();
     }
 
     @Override public boolean canAdd(TopLevelItem item) {
@@ -918,41 +364,11 @@ public class Folder extends AbstractItem
     }
 
     @Extension
-    public static class DescriptorImpl extends TopLevelItemDescriptor {
-        @Override
-        public String getDisplayName() {
-            return Messages.Folder_DisplayName();
-        }
+    public static class DescriptorImpl extends AbstractFolderDescriptor {
 
         @Override
         public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new Folder(parent, name);
-        }
-
-        /**
-         * Properties that can be configured for this type of {@link Folder} subtype.
-         */
-        public List<FolderPropertyDescriptor> getPropertyDescriptors() {
-            List<FolderPropertyDescriptor> r = new ArrayList<FolderPropertyDescriptor>();
-            for (FolderPropertyDescriptor d : FolderPropertyDescriptor.all()) {
-                if (d.isApplicable((Class) clazz)) {
-                    r.add(d);
-                }
-            }
-            return r;
-        }
-
-        /**
-         * Properties that can be configured for this type of {@link Folder} subtype.
-         */
-        public List<FolderHealthMetricDescriptor> getHealthMetricDescriptors() {
-            List<FolderHealthMetricDescriptor> r = new ArrayList<FolderHealthMetricDescriptor>();
-            for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
-                if (d.isApplicable((Class) clazz)) {
-                    r.add(d);
-                }
-            }
-            return r;
         }
 
         /**

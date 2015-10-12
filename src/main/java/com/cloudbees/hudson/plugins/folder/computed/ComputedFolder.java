@@ -24,145 +24,69 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import hudson.BulkChange;
-import hudson.Util;
 import hudson.XmlFile;
-import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
-import hudson.model.Descriptor;
 import hudson.model.Item;
-import static hudson.model.Item.CONFIGURE;
-import static hudson.model.Item.CREATE;
-import static hudson.model.Item.DELETE;
 import hudson.model.ItemGroup;
-import hudson.model.ItemGroupMixIn;
-import hudson.model.Items;
-import hudson.model.Job;
 import hudson.model.Label;
-import hudson.model.ListView;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.ResourceList;
-import hudson.model.Saveable;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
-import hudson.model.View;
-import hudson.model.ViewGroup;
-import hudson.model.ViewGroupMixIn;
-import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
-import hudson.search.CollectionSearchIndex;
-import hudson.search.SearchIndexBuilder;
-import hudson.search.SearchItem;
 import hudson.security.ACL;
-import hudson.util.CaseInsensitiveComparator;
-import hudson.util.CopyOnWriteMap;
-import hudson.util.FormApply;
-import hudson.util.Function1;
-import hudson.views.DefaultViewsTabBar;
-import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
 import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import jenkins.model.Jenkins;
-import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.util.TimeDuration;
-import net.sf.json.JSONObject;
-import org.acegisecurity.AccessDeniedException;
 import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerFallback;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * A folder-like item whose children are computed.
  * Users cannot directly add or remove (or rename) children.
  * The children should also not offer {@link Item#CONFIGURE} to anyone.
- * Generalizes some techniques originally written in {@code MultiBranchProject} and {@link Folder}.
  * @param <I> the child item type
  * @since FIXME
  */
-@SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
-public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, Saveable, ViewGroup, StaplerFallback, ModelObjectWithChildren, BuildableItem, Queue.FlyweightTask {
+@SuppressWarnings({"unchecked", "rawtypes", "deprecation"}) // generics mistakes in various places; BuildableItem defines deprecated methods (and @SW on those overrides does not seem to work)
+public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, Queue.FlyweightTask {
 
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
 
-    private transient Map<String,I> items;
-    private transient ViewGroupMixIn viewGroupMixIn;
-    private CopyOnWriteArrayList<View> views;
-    private volatile ViewsTabBar viewsTabBar;
-    private volatile String primaryView;
     private transient @CheckForNull FolderComputation<I> computation;
 
     protected ComputedFolder(ItemGroup parent, String name) {
         super(parent, name);
         init();
-        items = new CopyOnWriteMap.Tree<String,I>(CaseInsensitiveComparator.INSTANCE);
     }
 
-    @Override public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
-        super.onLoad(parent, name);
-        init();
-        items = ItemGroupMixIn.loadChildren(this, getJobsDir(), new Function1<String,I>() {
-            @Override public String call(I child) {
-                // TODO Folder.onLoad prints progress here
-                return child.getName(); // TODO loadChildren does not support decoding folder names
-            }
-        });
-    }
-
-    private void init() {
-        viewGroupMixIn = new ViewGroupMixIn(this) {
-            @Override protected List<View> views() {
-                return views;
-            }
-            @Override protected String primaryView() {
-                return primaryView;
-            }
-            @Override protected void primaryView(String newName) {
-                primaryView = newName;
-            }
-        };
-        if (views == null) {
-            views = new CopyOnWriteArrayList<View>();
-        }
-        if (views.isEmpty()) {
-            ListView lv = new ListView("All", this);
-            views.add(lv);
-            lv.setIncludeRegex(".*");
-        }
-        if (viewsTabBar == null) {
-            viewsTabBar = new DefaultViewsTabBar();
-        }
-        if (primaryView == null) {
-            primaryView = views.get(0).getViewName();
-        }
+    @Override
+    protected final void init() {
+        super.init();
         loadComputation();
     }
 
@@ -219,206 +143,13 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
-        checkPermission(CONFIGURE);
-
-        req.setCharacterEncoding("UTF-8");
-        JSONObject json = req.getSubmittedForm();
-
-        description = json.getString("description");
-        displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
-        if (json.has("viewsTabBar")) {
-            viewsTabBar = req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar"));
-        }
-
-        if (json.has("primaryView")) {
-            primaryView = json.getString("primaryView");
-        }
-
-        BulkChange bc = new BulkChange(this);
-        try {
-            submit(req, rsp);
-            save();
-            bc.commit();
-        } finally {
-            bc.abort();
-        }
-
-        // TODO boilerplate; need to consider ProjectNamingStrategy
-        String newName = json.getString("name");
-        if (newName != null && !newName.equals(name)) {
-            Jenkins.checkGoodName(newName);
-            // TODO need to create rename.jelly
-            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
-        } else {
-            FormApply.success(".").generateResponse(req, rsp, this);
-        }
-    }
-
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
-
-    @Override public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        getPrimaryView().doSubmitDescription(req, rsp);
-    }
-
-    // TODO boilerplate like this should not be necessary: JENKINS-22936
-    @RequirePOST
-    public void doDoRename(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        if (!hasPermission(CONFIGURE)) {
-            checkPermission(CREATE);
-            checkPermission(DELETE);
-        }
-        String newName = req.getParameter("newName");
-        Jenkins.checkGoodName(newName);
-        // TODO reject if isBuilding
-        renameTo(newName);
-        rsp.sendRedirect2("../" + newName);
-    }
-
     @Override public synchronized void save() throws IOException {
         if (BulkChange.contains(this)) {
             return;
         }
         super.save();
-        // TODO should this not just be done in AbstractItem?
-        ItemListener.fireOnUpdated(this);
         scheduleBuild();
     }
-
-    @Override public I getItem(String name) throws AccessDeniedException {
-        if (items == null) {
-            return null;
-        }
-        I item = items.get(name);
-        if (item == null) {
-            return null;
-        }
-        if (!item.hasPermission(Item.READ)) {
-            if (item.hasPermission(Item.DISCOVER)) {
-                throw new AccessDeniedException("Please log in to access " + name);
-            }
-            return null;
-        }
-        return item;
-    }
-
-    @Override public Collection<I> getItems() {
-        List<I> viewableItems = new ArrayList<I>();
-        for (I item : items.values()) {
-            if (item.hasPermission(Item.READ)) {
-                viewableItems.add(item);
-            }
-        }
-        return viewableItems;
-    }
-
-    @Override public Collection<? extends Job> getAllJobs() {
-        Set<Job> jobs = new HashSet<Job>();
-        for (I i : getItems()) {
-            jobs.addAll(i.getAllJobs());
-        }
-        return jobs;
-    }
-
-    protected abstract File getJobsDir();
-
-    @Override public File getRootDirFor(I child) {
-        File dir = new File(getJobsDir(), /* TODO see comment regarding loadChildren and encoding */child.getName());
-        if (!dir.isDirectory() && !dir.mkdirs()) {
-            LOGGER.log(Level.WARNING, "Could not create directory {0}", dir);
-        }
-        return dir;
-    }
-
-    @Override public void onRenamed(I item, String oldName, String newName) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override public void onDeleted(I item) throws IOException {
-        ItemListener.fireOnDeleted(item);
-        items.remove(item.getName());
-    }
-
-    @Override
-    protected void performDelete() throws IOException, InterruptedException {
-        for (I i : new ArrayList<I>(items.values())) {
-            i.delete();
-        }
-        super.performDelete();
-    }
-
-    @Override public boolean canDelete(View view) {
-        return viewGroupMixIn.canDelete(view);
-    }
-
-    @Override public void deleteView(View view) throws IOException {
-        viewGroupMixIn.deleteView(view);
-    }
-
-    @Override public Collection<View> getViews() {
-        return viewGroupMixIn.getViews();
-    }
-
-    @Override public View getView(String name) {
-        return viewGroupMixIn.getView(name);
-    }
-
-    @Override public View getPrimaryView() {
-        return viewGroupMixIn.getPrimaryView();
-    }
-
-    @Override public void onViewRenamed(View view, String oldName, String newName) {
-        viewGroupMixIn.onViewRenamed(view, oldName, newName);
-    }
-
-    // TODO perhaps need doCreateView (+ newView.jelly) etc. to add new views
-
-    @Override public ViewsTabBar getViewsTabBar() {
-        return viewsTabBar;
-    }
-
-    @Override public ItemGroup<? extends TopLevelItem> getItemGroup() {
-        return this;
-    }
-
-    @Override public List<Action> getViewActions() {
-        return Collections.emptyList();
-    }
-
-    @Override public Object getStaplerFallback() {
-        return getPrimaryView();
-    }
-
-    @Override public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
-        ContextMenu menu = new ContextMenu();
-        for (View view : getViews()) {
-            menu.add(view.getAbsoluteUrl(), view.getDisplayName());
-        }
-        return menu;
-    }
-
-    @Override protected SearchIndexBuilder makeSearchIndex() {
-        return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
-            @Override protected SearchItem get(String key) {
-                Jenkins j = Jenkins.getInstance();
-                return j != null ? j.getItem(key, grp()) : null;
-            }
-            @Override protected Collection<TopLevelItem> all() {
-                return Items.getAllItems(grp(), TopLevelItem.class);
-            }
-            @Override protected String getName(TopLevelItem j) {
-                return j.getRelativeNameFrom(grp());
-            }
-            /** Disambiguates calls that otherwise would match {@link Item} too. */
-            private ItemGroup<?> grp() {
-                return ComputedFolder.this;
-            }
-        });
-    }
-
-    // TODO handle rename of this folder (cf. JENKINS-22936)
-
-    // TODO public HealthReport getBuildHealth() & public List<HealthReport> getBuildHealthReports()
 
     // TODO List<Trigger> and Cron
 

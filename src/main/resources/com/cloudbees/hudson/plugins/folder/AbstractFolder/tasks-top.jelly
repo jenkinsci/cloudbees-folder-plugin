@@ -34,4 +34,5 @@ THE SOFTWARE.
       <l:task icon="images/24x24/setting.png" href="${url}/configure" title="${%View Configuration}" />
     </j:when>
   </j:choose>
+  <st:include page="tasks-top-extra" optional="true"/>
 </j:jelly>

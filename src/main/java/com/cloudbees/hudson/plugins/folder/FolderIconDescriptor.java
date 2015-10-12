@@ -32,4 +32,5 @@ public abstract class FolderIconDescriptor extends Descriptor<FolderIcon> {
     public static DescriptorExtensionList<FolderIcon, FolderIconDescriptor> all() {
         return Jenkins.getActiveInstance().<FolderIcon, FolderIconDescriptor>getDescriptorList(FolderIcon.class);
     }
+    // TODO consider adding an isApplicable method
 }

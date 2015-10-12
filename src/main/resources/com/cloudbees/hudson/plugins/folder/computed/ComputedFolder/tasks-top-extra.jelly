@@ -21,20 +21,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
     <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
-    <l:task icon="images/24x24/up.png" href="${url}/../../" title="${%Up}" contextMenu="false"/>
-    <l:task icon="images/24x24/search.png"  href="${url}/" title="${%Status}" contextMenu="false"/>
-    <j:choose>
-        <j:when test="${h.hasPermission(it,it.CONFIGURE)}">
-            <l:task icon="images/24x24/setting.png" href="${url}/configure" title="${%Configure}"/>
-        </j:when>
-        <j:when test="${h.hasPermission(it,it.EXTENDED_READ)}">
-            <l:task icon="images/24x24/setting.png" href="${url}/configure" title="${%View Configuration}"/>
-        </j:when>
-    </j:choose>
     <l:task icon="images/24x24/notepad.png" href="${url}/computation/" title="${%Folder Computation}">
         <j:if test="${h.hasPermission(it,it.BUILD) and it.buildable}">
             <l:task icon="images/24x24/clock.png" href="${url}/build?delay=0" post="true" title="${%Recompute Now}"/>

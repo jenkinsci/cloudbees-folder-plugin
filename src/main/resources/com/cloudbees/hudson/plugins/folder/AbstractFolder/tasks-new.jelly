@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright 2013-2015 CloudBees.
+Copyright 2013 CloudBees.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,21 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-<?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
-  <h1>
-    <img src="${it.iconColor.getImageOf('48x48')}" width="48" height="48" alt="${it.iconColor.description}" tooltip="${it.iconColor.description}"/>
-    ${it.displayName}
-  </h1>
-  <j:if test="${it.name != it.displayName}">
-    ${%Folder name}: ${it.fullName}
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:s="/lib/form">
+  <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
+
+  <st:include page="tasks-create" optional="true"/>
+  <j:if test="${view==it.primaryView}">
+    <!-- avoid showing two delete icons -->
+    <l:task icon="images/24x24/edit-delete.png" href="${url}/delete" title="${%delete(it.pronoun)}" permission="${it.DELETE}" />
   </j:if>
-  <div id="view-message">
-      <div id="systemmessage">
-          <j:out value="${app.systemMessage!=null ? app.markupFormatter.translate(app.systemMessage) : ''}"/>
-      </div>
-      <j:out value="${it.description!=null ? app.markupFormatter.translate(it.description) : ''}"/>
-  </div>
-  <this:description/>
 </j:jelly>
