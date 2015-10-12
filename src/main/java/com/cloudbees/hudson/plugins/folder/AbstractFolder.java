@@ -305,11 +305,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public File getRootDirFor(I child) {
-        File dir = getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
-        if (!dir.isDirectory() && !dir.mkdirs()) {
-            LOGGER.log(Level.WARNING, "Could not create directory {0}", dir);
-        }
-        return dir;
+        return getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
     }
 
     @Override
