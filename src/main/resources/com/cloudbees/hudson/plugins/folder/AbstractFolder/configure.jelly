@@ -43,7 +43,7 @@ THE SOFTWARE.
           <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
         </f:entry>
 
-        <st:include page="configure-entries" optional="true"/>
+        <st:include page="configure-details" optional="true"/>
 
         <j:if test="${it.views.size()>1}">
           <f:entry title="${%Default View}" field="defaultView">

@@ -31,8 +31,10 @@ import hudson.model.Action;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.Items;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Queue;
@@ -43,19 +45,25 @@ import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
 import hudson.security.ACL;
+import hudson.triggers.Trigger;
+import hudson.triggers.TriggerDescriptor;
+import hudson.util.DescribableList;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
@@ -65,6 +73,8 @@ import org.apache.commons.io.FileUtils;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
@@ -79,6 +89,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
 
+    private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
+    // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
+
     private transient @CheckForNull FolderComputation<I> computation;
 
     protected ComputedFolder(ItemGroup parent, String name) {
@@ -89,6 +102,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     protected final void init() {
         super.init();
+        if (triggers == null) {
+            triggers = new DescribableList<Trigger<?>,TriggerDescriptor>(this);
+        } else {
+            triggers.setOwner(this);
+        }
+        for (Trigger t : triggers) {
+            t.start(this, Items.currentlyUpdatingByXml());
+        }
         loadComputation();
     }
 
@@ -197,7 +218,30 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         scheduleBuild();
     }
 
-    // TODO List<Trigger> and Cron
+    @Override
+    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        super.submit(req, rsp);
+        for (Trigger t : triggers) {
+            t.stop();
+        }
+        triggers.rebuild(req, req.getSubmittedForm(), Trigger.for_(this));
+        for (Trigger t : triggers) {
+            t.start(this, true);
+        }
+    }
+
+    public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
+        return triggers.toMap();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override public List<Action> getActions() {
+        List<Action> actions = new ArrayList<Action>(super.getActions());
+        for (Trigger<?> trigger : triggers) {
+            actions.addAll(trigger.getProjectActions());
+        }
+        return actions;
+    }
 
     public boolean isBuildable() {
         return true;
