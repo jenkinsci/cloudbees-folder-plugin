@@ -164,7 +164,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return "computation/";
     }
 
-    @Override public SubTask getParent() {
+    @Override public ComputedFolder<I> getParent() {
         return folder;
     }
 
