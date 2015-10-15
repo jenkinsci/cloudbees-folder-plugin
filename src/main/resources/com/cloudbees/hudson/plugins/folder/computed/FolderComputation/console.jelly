@@ -24,11 +24,11 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <st:compress xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <l:layout title="${it.parent.fullDisplayName} Folder Computation Log" norefresh="true">
+  <l:layout title="${it.parent.fullDisplayName} ${it.displayName} Log" norefresh="true">
     <st:include page="sidepanel.jelly" it="${it.parent}" />
     <l:main-panel>
       <t:buildCaption>
-        ${%Folder Computation Log}
+        ${it.displayName} ${%Log}
       </t:buildCaption>
       <j:set var="threshold" value="${h.getSystemProperty('hudson.consoleTailKB')?:'150'}" />
       <!-- Show at most last 150KB (can override with system property) unless consoleFull is set -->

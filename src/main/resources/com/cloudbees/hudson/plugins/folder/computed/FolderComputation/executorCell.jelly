@@ -28,7 +28,7 @@ THE SOFTWARE.
       <j:choose>
         <j:when test="${h.hasPermission(it.parent,it.parent.READ)}">
           <a href="${rootURL}/${it.parent.url}" class="model-link">${it.parent.fullDisplayName}</a> &#187;
-          <a href="${rootURL}/${it.url}" class="model-link">${%Folder computation}</a>
+          <a href="${rootURL}/${it.url}" class="model-link">${it.displayName}</a>
           <t:buildProgressBar build="${it}" executor="${executor}"/>
         </j:when>
         <j:otherwise>

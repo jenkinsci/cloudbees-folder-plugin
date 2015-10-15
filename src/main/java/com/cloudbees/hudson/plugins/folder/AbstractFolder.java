@@ -86,11 +86,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
+import jenkins.model.ProjectNamingStrategy;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
@@ -607,15 +611,21 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Override
     protected void performDelete() throws IOException, InterruptedException {
         // delete individual items first
-        for (Item i : new ArrayList<Item>(items.values())) {
-            try {
-                i.delete();
-            } catch (AbortException e) {
-                throw (AbortException) new AbortException(
-                        "Failed to delete " + i.getFullDisplayName() + " : " + e.getMessage()).initCause(e);
-            } catch (IOException e) {
-                throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
+        // (disregard whether they would be deletable in isolation)
+        SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
+        try {
+            for (Item i : new ArrayList<Item>(items.values())) {
+                try {
+                    i.delete();
+                } catch (AbortException e) {
+                    throw (AbortException) new AbortException(
+                            "Failed to delete " + i.getFullDisplayName() + " : " + e.getMessage()).initCause(e);
+                } catch (IOException e) {
+                    throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
+                }
             }
+        } finally {
+            SecurityContextHolder.setContext(orig);
         }
         super.performDelete();
     }
@@ -678,13 +688,18 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             bc.abort();
         }
 
-        // TODO boilerplate; need to consider ProjectNamingStrategy
+        // TODO boilerplate
         String newName = json.getString("name");
+        ProjectNamingStrategy namingStrategy = Jenkins.getActiveInstance().getProjectNamingStrategy();
         if (newName != null && !newName.equals(name)) {
             // check this error early to avoid HTTP response splitting.
             Jenkins.checkGoodName(newName);
+            namingStrategy.checkName(newName);
             rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
         } else {
+            if (namingStrategy.isForceExistingJobs()) {
+                namingStrategy.checkName(name);
+            }
             FormApply.success(".").generateResponse(req, rsp, this);
         }
     }
@@ -704,10 +719,27 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         String newName = req.getParameter("newName");
         Jenkins.checkGoodName(newName);
 
-        // wouldn't building job inside Folder (or isBuilding, for ComputedFolder) be impacted here? Shall we then check as Job.doDoRename does
+        String blocker = renameBlocker();
+        if (blocker != null) {
+            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8") + "&blocker=" + URLEncoder.encode(blocker, "UT-8"));
+            return;
+        }
 
         renameTo(newName);
         rsp.sendRedirect2("../" + newName);
+    }
+
+    /**
+     * Allows a subclass to block renames under dynamic conditions.
+     * @return a message if rename should currently be prohibited, or null to allow
+     */
+    protected @CheckForNull String renameBlocker() {
+        for (Job<?,?> job : getAllJobs()) {
+            if (job.isBuilding()) {
+                return "Unable to rename a folder while a job inside it is building.";
+            }
+        }
+        return null;
     }
 
 }

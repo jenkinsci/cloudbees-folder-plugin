@@ -39,6 +39,7 @@ import hudson.model.Queue;
 import hudson.model.ResourceList;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
 import hudson.security.ACL;
@@ -47,6 +48,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -90,38 +92,76 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         loadComputation();
     }
 
-    protected abstract Map<String,I> computeChildren(TaskListener listener) throws IOException, InterruptedException;
+    /**
+     * Called to (re-)compute the set of children of this folder.
+     * @param observer how to indicate which children should be seen
+     * @param listener a way to report progress
+     */
+    protected abstract void computeChildren(ChildObserver<I> observer, TaskListener listener) throws IOException, InterruptedException;
 
-    protected abstract void afterNewItemCreated(I item);
-
-    protected abstract void updateExistingItem(I existing, I replacement);
+    /**
+     * Hook called when some items are no longer in the list.
+     * Do not call {@link Item#delete} or {@link ItemGroup#onDeleted} or {@link ItemListener#fireOnDeleted} yourself.
+     * @param orphaned a nonempty set of items which no longer are supposed to be here
+     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder now (by default, all of them); items not listed will be left alone for the time being
+     */
+    protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
+        return orphaned;
+    }
 
     /**
      * Recreates children synchronously.
      */
-    final void updateChildren(TaskListener listener) throws IOException, InterruptedException {
-        Set<String> deadItems = new HashSet<String>(items.keySet());
-        for (Map.Entry<String,I> entry : computeChildren(listener).entrySet()) {
-            String childName = entry.getKey();
-            I replacement = entry.getValue();
-            I existing = items.get(childName);
-            if (existing != null) {
-                updateExistingItem(existing, replacement);
-                deadItems.remove(childName);
-            } else {
-                replacement.onCreatedFromScratch();
-                replacement.save();
-                deadItems.remove(childName);
-                items.put(childName, replacement);
-                afterNewItemCreated(replacement);
+    final void updateChildren(final TaskListener listener) throws IOException, InterruptedException {
+        final String fullName = getFullName();
+        LOGGER.log(Level.FINE, "updating {0}", fullName);
+        final Map<String,I> orphaned = new HashMap<String,I>(items);
+        final Set<String> observed = new HashSet<String>();
+        computeChildren(new ChildObserver<I>() {
+            @Override
+            public I shouldUpdate(String name) {
+                I existing = orphaned.remove(name);
+                LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
+                return existing;
+            }
+            @Override
+            public boolean mayCreate(String name) {
+                boolean r = observed.add(name);
+                LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[] {fullName, name, r});
+                return r;
+            }
+            @Override
+            public void created(I child) {
+                LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
+                String name = child.getName();
+                if (!observed.contains(name)) {
+                    throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child);
+                }
+                child.onCreatedFromScratch();
+                try {
+                    child.save();
+                } catch (IOException x) {
+                    LOGGER.log(Level.WARNING, "Failed to save " + child, x);
+                }
+                items.put(name, child);
+                Jenkins.getInstance().rebuildDependencyGraphAsync();
+                ItemListener.fireOnCreated(child);
+            }
+        }, listener);
+        if (!orphaned.isEmpty()) {
+            LOGGER.log(Level.FINE, "{0}: orphaned {1}", new Object[] {fullName, orphaned});
+            BulkChange bc = new BulkChange(this);
+            try {
+                for (I existing : orphanedItems(orphaned.values(), listener)) {
+                    LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
+                    existing.delete();
+                    // super.onDeleted handles removal from items
+                }
+            } finally {
+                bc.abort(); // ignore calls to save from super.onDeleted
             }
         }
-        for (String childName : deadItems) {
-            I existing = items.get(childName);
-            // TODO we probably to define a DeadSourceStrategy and this needs to become a protected method somehow
-            existing.delete();
-            items.remove(childName);
-        }
+        LOGGER.log(Level.FINE, "finished updating {0}", fullName);
     }
 
     private synchronized void loadComputation() {
@@ -130,7 +170,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
         }
-        computation = new FolderComputation<I>(this, null);
+        computation = createComputation(null);
         XmlFile file = computation.getDataFile();
         if (file != null && file.exists()) {
             try {
@@ -148,6 +188,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             return;
         }
         super.save();
+        // TODO this is problematic, especially when called from super.onDeleted.
+        // Would be better to get rid of some BulkChange.abort hacks, and call scheduleBuild explicitly
+        // from various methods which should actually produce changes, like doConfigSubmit.
         scheduleBuild();
     }
 
@@ -275,13 +318,22 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return ResourceList.EMPTY;
     }
 
-    File getComputationDir() {
+    protected File getComputationDir() {
         return new File(getRootDir(), "computation");
     }
 
     /** URL binding and other purposes. */
     public @CheckForNull FolderComputation<I> getComputation() {
         return computation;
+    }
+
+    @Override
+    protected String renameBlocker() {
+        FolderComputation<I> comp = getComputation();
+        if (comp != null && comp.isBuilding()) {
+            return "Recomputation is currently in progress";
+        }
+        return super.renameBlocker();
     }
 
 }

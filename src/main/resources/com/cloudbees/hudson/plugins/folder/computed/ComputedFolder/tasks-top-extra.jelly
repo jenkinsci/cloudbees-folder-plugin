@@ -24,9 +24,14 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
     <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
-    <l:task icon="images/24x24/notepad.png" href="${url}/computation/" title="${%Folder Computation}">
+    <j:set var="title" value="${%Folder Computation}"/> <!-- fallback, usually invisible -->
+    <j:set var="computation" value="${it.computation}"/>
+    <j:if test="${computation != null}">
+        <j:set var="title" value="${computation.displayName}"/>
+    </j:if>
+    <l:task icon="images/24x24/notepad.png" href="${url}/computation/" title="${title}">
         <j:if test="${h.hasPermission(it,it.BUILD) and it.buildable}">
-            <l:task icon="images/24x24/clock.png" href="${url}/build?delay=0" post="true" title="${%Recompute Now}"/>
+            <l:task icon="images/24x24/clock.png" href="${url}/build?delay=0" post="true" title="${%Run Now}"/>
         </j:if>
         <l:task icon="images/24x24/terminal.png" href="${url}/computation/console" title="${%Log}"/>
     </l:task>

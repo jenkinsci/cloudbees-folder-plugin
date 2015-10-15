@@ -144,7 +144,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return new File(folder.getComputationDir(), "computation.log");
     }
 
-    @Nonnull XmlFile getDataFile() {
+    protected @Nonnull XmlFile getDataFile() {
         return new XmlFile(Items.XSTREAM, new File(folder.getComputationDir(), "computation.xml"));
     }
 
@@ -157,7 +157,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     }
 
     @Override public String getDisplayName() {
-        return "Computation";
+        return "Folder Computation";
     }
 
     @Override public String getSearchUrl() {
