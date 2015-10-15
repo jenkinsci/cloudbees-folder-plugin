@@ -144,7 +144,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                     LOGGER.log(Level.WARNING, "Failed to save " + child, x);
                 }
                 items.put(name, child);
-                Jenkins.getInstance().rebuildDependencyGraphAsync();
+                Jenkins j = Jenkins.getInstance();
+                if (j != null) {
+                    j.rebuildDependencyGraphAsync();
+                }
                 ItemListener.fireOnCreated(child);
             }
         }, listener);
