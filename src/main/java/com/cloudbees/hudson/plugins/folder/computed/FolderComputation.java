@@ -88,7 +88,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         this.previous = previous;
     }
 
-    @Override public void run() {
+    @Override
+    public void run() {
         StreamBuildListener listener;
         try {
             listener = new StreamBuildListener(new FileOutputStream(getLogFile()), Charsets.UTF_8);
@@ -131,7 +132,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
-    @Override public void save() throws IOException {
+    @Override
+    public void save() throws IOException {
         if (BulkChange.contains(this)) {
             return;
         }
@@ -156,19 +158,23 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return Collections.unmodifiableList(a.getCauses());
     }
 
-    @Override public String getDisplayName() {
+    @Override
+    public String getDisplayName() {
         return "Folder Computation";
     }
 
-    @Override public String getSearchUrl() {
+    @Override
+    public String getSearchUrl() {
         return "computation/";
     }
 
-    @Override public ComputedFolder<I> getParent() {
+    @Override
+    public ComputedFolder<I> getParent() {
         return folder;
     }
 
-    @Override public long getEstimatedDuration() {
+    @Override
+    public long getEstimatedDuration() {
         if (durations == null || durations.isEmpty()) {
             return -1;
         }

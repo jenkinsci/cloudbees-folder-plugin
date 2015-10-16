@@ -630,7 +630,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         super.performDelete();
     }
 
-    @Override public synchronized void save() throws IOException {
+    @Override
+    public synchronized void save() throws IOException {
         if (BulkChange.contains(this)) {
             return;
         }

@@ -218,7 +218,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }
     }
 
-    @Override public synchronized void save() throws IOException {
+    @Override
+    public synchronized void save() throws IOException {
         if (BulkChange.contains(this)) {
             return;
         }
@@ -248,7 +249,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     @SuppressWarnings("deprecation")
-    @Override public List<Action> getActions() {
+    @Override
+    public List<Action> getActions() {
         List<Action> actions = new ArrayList<Action>(super.getActions());
         for (Trigger<?> trigger : triggers) {
             actions.addAll(trigger.getProjectActions());
@@ -282,33 +284,40 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return j.getQueue().schedule2(this, quietPeriod, Arrays.asList(actions)).getItem();
     }
 
-    @Override public boolean scheduleBuild() {
+    @Override
+    public boolean scheduleBuild() {
         return scheduleBuild2(0) != null;
     }
 
-    @Override public boolean scheduleBuild(Cause c) {
+    @Override
+    public boolean scheduleBuild(Cause c) {
         return scheduleBuild2(0, new CauseAction(c)) != null;
     }
 
-    @Override public boolean scheduleBuild(int quietPeriod) {
+    @Override
+    public boolean scheduleBuild(int quietPeriod) {
         return scheduleBuild2(quietPeriod) != null;
     }
 
-    @Override public boolean scheduleBuild(int quietPeriod, Cause c) {
+    @Override
+    public boolean scheduleBuild(int quietPeriod, Cause c) {
         return scheduleBuild2(quietPeriod, new CauseAction(c)) != null;
     }
 
-    @Override public boolean isBuildBlocked() {
+    @Override
+    public boolean isBuildBlocked() {
         return getCauseOfBlockage() != null;
     }
 
     @Deprecated
-    @Override public String getWhyBlocked() {
+    @Override
+    public String getWhyBlocked() {
         CauseOfBlockage causeOfBlockage = getCauseOfBlockage();
         return causeOfBlockage == null ? null : causeOfBlockage.getShortDescription();
     }
 
-    @Override public CauseOfBlockage getCauseOfBlockage() {
+    @Override
+    public CauseOfBlockage getCauseOfBlockage() {
         final FolderComputation<I> c = computation;
         if (c != null && c.isBuilding()) {
             return CauseOfBlockage.fromMessage(Messages._ComputedFolder_already_computing());
@@ -316,31 +325,38 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return null;
     }
 
-    @Override public void checkAbortPermission() {
+    @Override
+    public void checkAbortPermission() {
         checkPermission(CANCEL);
     }
 
-    @Override public boolean hasAbortPermission() {
+    @Override
+    public boolean hasAbortPermission() {
         return hasPermission(CANCEL);
     }
 
-    @Override public boolean isConcurrentBuild() {
+    @Override
+    public boolean isConcurrentBuild() {
         return false;
     }
 
-    @Override public Collection<? extends SubTask> getSubTasks() {
+    @Override
+    public Collection<? extends SubTask> getSubTasks() {
         return Collections.singleton(this);
     }
 
-    @Override public Authentication getDefaultAuthentication() {
+    @Override
+    public Authentication getDefaultAuthentication() {
         return ACL.SYSTEM;
     }
 
-    @Override public Authentication getDefaultAuthentication(Queue.Item item) {
+    @Override
+    public Authentication getDefaultAuthentication(Queue.Item item) {
         return getDefaultAuthentication();
     }
 
-    @Override public Label getAssignedLabel() {
+    @Override
+    public Label getAssignedLabel() {
         Jenkins j = Jenkins.getInstance();
         if (j == null) {
             return null;
@@ -348,15 +364,18 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return j.getSelfLabel();
     }
 
-    @Override public Node getLastBuiltOn() {
+    @Override
+    public Node getLastBuiltOn() {
         return Jenkins.getInstance();
     }
 
-    @Override public long getEstimatedDuration() {
+    @Override
+    public long getEstimatedDuration() {
         return computation == null ? -1 : computation.getEstimatedDuration();
     }
 
-    @Override public final FolderComputation<I> createExecutable() throws IOException {
+    @Override
+    public final FolderComputation<I> createExecutable() throws IOException {
         FolderComputation<I> c = createComputation(computation);
         computation = c;
         return c;
@@ -366,15 +385,18 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return new FolderComputation<I>(this, previous);
     }
 
-    @Override public Queue.Task getOwnerTask() {
+    @Override
+    public Queue.Task getOwnerTask() {
         return this;
     }
 
-    @Override public Object getSameNodeConstraint() {
+    @Override
+    public Object getSameNodeConstraint() {
         return null;
     }
 
-    @Override public ResourceList getResourceList() {
+    @Override
+    public ResourceList getResourceList() {
         return ResourceList.EMPTY;
     }
 
