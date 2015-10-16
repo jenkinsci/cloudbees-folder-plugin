@@ -396,7 +396,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return super.renameBlocker();
     }
 
-    public synchronized @NonNull OrphanedItemStrategy getOrphanedItemStrategy() {
+    public @NonNull OrphanedItemStrategy getOrphanedItemStrategy() {
         return orphanedItemStrategy;
     }
 
