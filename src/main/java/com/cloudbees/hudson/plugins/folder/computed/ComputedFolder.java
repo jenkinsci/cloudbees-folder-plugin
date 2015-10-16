@@ -25,7 +25,9 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
+import hudson.ExtensionList;
 import hudson.XmlFile;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
@@ -68,8 +70,11 @@ import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.util.TimeDuration;
+import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
@@ -89,6 +94,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
 
+    private /*almost final*/ OrphanedItemStrategy orphanedItemStrategy;
+
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
     // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
@@ -102,6 +109,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     protected final void init() {
         super.init();
+        if (orphanedItemStrategy == null) {
+            orphanedItemStrategy = new DefaultOrphanedItemStrategy(true, "0", "0");
+        }
         if (triggers == null) {
             triggers = new DescribableList<Trigger<?>,TriggerDescriptor>(this);
         } else {
@@ -123,11 +133,12 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     /**
      * Hook called when some items are no longer in the list.
      * Do not call {@link Item#delete} or {@link ItemGroup#onDeleted} or {@link ItemListener#fireOnDeleted} yourself.
+     * By default, uses {@link #getOrphanedItemStrategy}.
      * @param orphaned a nonempty set of items which no longer are supposed to be here
-     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder now (by default, all of them); items not listed will be left alone for the time being
+     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder now; items not listed will be left alone for the time being
      */
     protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
-        return orphaned;
+        return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
     }
 
     /**
@@ -221,10 +232,12 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         super.submit(req, rsp);
+        JSONObject json = req.getSubmittedForm();
+        orphanedItemStrategy = req.bindJSON(OrphanedItemStrategy.class, json.getJSONObject("orphanedItemStrategy"));
         for (Trigger t : triggers) {
             t.stop();
         }
-        triggers.rebuild(req, req.getSubmittedForm(), Trigger.for_(this));
+        triggers.rebuild(req, json, Trigger.for_(this));
         for (Trigger t : triggers) {
             t.start(this, true);
         }
@@ -381,6 +394,24 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             return "Recomputation is currently in progress";
         }
         return super.renameBlocker();
+    }
+
+    public synchronized @NonNull OrphanedItemStrategy getOrphanedItemStrategy() {
+        return orphanedItemStrategy;
+    }
+
+    /**
+     * Gets the {@link OrphanedItemStrategyDescriptor}s applicable to this folder.
+     */
+    @Restricted(DoNotUse.class) // used by Jelly
+    public @NonNull List<OrphanedItemStrategyDescriptor> getOrphanedItemStrategyDescriptors() {
+        List<OrphanedItemStrategyDescriptor> result = new ArrayList<OrphanedItemStrategyDescriptor>();
+        for (OrphanedItemStrategyDescriptor descriptor : ExtensionList.lookup(OrphanedItemStrategyDescriptor.class)) {
+            if (descriptor.isApplicable(getClass())) {
+                result.add(descriptor);
+            }
+        }
+        return result;
     }
 
 }

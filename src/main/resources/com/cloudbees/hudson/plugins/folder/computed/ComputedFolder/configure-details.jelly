@@ -24,7 +24,27 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:p="/lib/hudson/project">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:p="/lib/hudson/project">
     <p:config-trigger/>
     <st:include page="configure-entries" optional="true"/>
+    <f:section title="${%Orphaned Item Strategy}">
+        <j:set var="orphanedItemStrategyDescriptors" value="${instance.orphanedItemStrategyDescriptors}"/>
+        <f:block>
+            <j:choose>
+                <j:when test="${orphanedItemStrategyDescriptors.size() == 1}">
+                    <j:scope>
+                        <table name="orphanedItemStrategy" width="100%">
+                            <j:set var="descriptor" value="${orphanedItemStrategyDescriptors.get(0)}"/>
+                            <j:set var="instance" value="${it.orphanedItemStrategy}"/>
+                            <f:class-entry descriptor="${descriptor}"/>
+                            <st:include from="${descriptor}" page="${descriptor.configPage}" optional="true"/>
+                        </table>
+                    </j:scope>
+                </j:when>
+                <j:otherwise>
+                    <f:hetero-radio field="orphanedItemStrategy" descriptors="${orphanedItemStrategyDescriptors}"/>
+                </j:otherwise>
+            </j:choose>
+        </f:block>
+    </f:section>
 </j:jelly>
