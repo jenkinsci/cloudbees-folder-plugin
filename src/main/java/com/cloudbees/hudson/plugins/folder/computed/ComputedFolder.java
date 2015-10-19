@@ -258,6 +258,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return actions;
     }
 
+    /** Whether it is permissible to recompute this folder at this time. */
     public boolean isBuildable() {
         return true;
     }
