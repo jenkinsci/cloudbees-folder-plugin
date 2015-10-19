@@ -46,7 +46,7 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
 
     /**
      * The {@link AbstractFolder} object that owns this property.
-     * This value will be set by the Hudson code.
+     * This value will be set by the folder.
      * Derived classes can expect this value to be always set.
      */
     protected transient C owner;

@@ -48,7 +48,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * The default {@link OrphanedItemStrategy}.
- * Trims dead items by the # of days or the # of jobs much like {@link LogRotator}.
+ * Trims dead items by the # of days or the # of builds much like {@link LogRotator}.
  *
  * @author Stephen Connolly
  */

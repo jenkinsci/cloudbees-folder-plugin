@@ -95,6 +95,8 @@ import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
@@ -243,12 +245,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         final Thread t = Thread.currentThread();
         String n = t.getName();
         try {
-            if (items ==null) {
-                // when Jenkins is getting reloaed, we want children being loaded to be able to find
-                // existing items that they will be overriding. This is necessary for  them to correctly
-                // keep the running builds, for example. See ZD-13067
+            if (items == null) {
+                // When Jenkins is getting reloaded, we want children being loaded to be able to find existing items that they will be overriding.
+                // This is necessary for them to correctly keep the running builds, for example.
+                // ItemGroupMixIn.loadChildren handles the rest of this logic.
                 Item current = parent.getItem(name);
-                if (current!=null && current.getClass()==getClass()) {
+                if (current != null && current.getClass() == getClass()) {
                     this.items = ((AbstractFolder) current).items;
                 }
             }
@@ -653,6 +655,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
+    @Restricted(DoNotUse.class)
+    @RequirePOST
     public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         checkPermission(CONFIGURE);
 
@@ -708,6 +712,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
 
     // TODO boilerplate like this should not be necessary: JENKINS-22936
+    @Restricted(DoNotUse.class)
     @RequirePOST
     public void doDoRename(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
 
