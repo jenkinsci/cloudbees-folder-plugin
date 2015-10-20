@@ -59,7 +59,7 @@ import org.apache.commons.jelly.XMLOutput;
 
 /**
  * A particular “run” of {@link ComputedFolder}.
- * @since FIXME
+ * @since 4.11-beta-1
  */
 public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
 

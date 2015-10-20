@@ -36,7 +36,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Category of {@link AbstractFolderProperty}.
- * @since FIXME
+ * @since 4.11-beta-1
  */
 public abstract class AbstractFolderPropertyDescriptor extends Descriptor<AbstractFolderProperty<?>> {
 

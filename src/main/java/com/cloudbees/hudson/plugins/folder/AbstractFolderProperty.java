@@ -40,7 +40,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Property potentially applicable to any {@link AbstractFolder}.
- * @since FIXME
+ * @since 4.11-beta-1
  */
 public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extends AbstractDescribableImpl<AbstractFolderProperty<?>> implements ExtensionPoint, ReconfigurableDescribable<AbstractFolderProperty<?>> {
 

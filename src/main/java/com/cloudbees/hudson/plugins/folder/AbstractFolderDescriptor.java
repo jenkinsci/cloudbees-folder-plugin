@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * Category of {@link AbstractFolder}.
- * @since FIXME
+ * @since 4.11-beta-1
  */
 public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
     

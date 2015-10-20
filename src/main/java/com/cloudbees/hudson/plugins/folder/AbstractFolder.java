@@ -110,7 +110,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * A general-purpose {@link ItemGroup}.
  * Base for {@link Folder} and {@link ComputedFolder}.
- * @since FIXME
+ * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {

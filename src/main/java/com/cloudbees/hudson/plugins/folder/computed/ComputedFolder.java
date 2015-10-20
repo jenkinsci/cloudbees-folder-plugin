@@ -87,7 +87,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * Users cannot directly add or remove (or rename) children.
  * The children should also not offer {@link Item#CONFIGURE} to anyone.
  * @param <I> the child item type
- * @since FIXME
+ * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes", "deprecation"}) // generics mistakes in various places; BuildableItem defines deprecated methods (and @SW on those overrides does not seem to work)
 public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, Queue.FlyweightTask {
