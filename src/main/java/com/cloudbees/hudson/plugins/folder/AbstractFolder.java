@@ -48,6 +48,7 @@ import hudson.model.ItemGroup;
 import static hudson.model.ItemGroupMixIn.loadChildren;
 import hudson.model.Items;
 import hudson.model.Job;
+import hudson.model.ModifiableViewGroup;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroup;
@@ -112,7 +113,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * @since FIXME
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
-public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
+public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
 
@@ -344,6 +345,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return r;
     }
 
+    @Override
     public void addView(View v) throws IOException {
         viewGroupMixIn.addView(v);
     }
