@@ -24,6 +24,7 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
   <l:layout title="${it.displayName} Config" norefresh="true" permission="${it.EXTENDED_READ}">
     <st:include page="sidepanel.jelly" />
+    <!-- TODO <f:breadcrumb-config-outline/> gives ReferenceError: "section" is not defined -->
     <l:main-panel>
       <div class="behavior-loading">${%LOADING}</div>
       <f:form method="post" action="configSubmit" name="config">
@@ -41,6 +42,8 @@ THE SOFTWARE.
         <f:entry title="${%Description}" field="description">
           <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
         </f:entry>
+
+        <st:include page="configure-details" optional="true"/>
 
         <j:if test="${it.views.size()>1}">
           <f:entry title="${%Default View}" field="defaultView">

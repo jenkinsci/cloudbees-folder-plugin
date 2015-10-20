@@ -21,17 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:s="/lib/form">
   <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
-  <l:task icon="images/24x24/up.png" href="${url}/../../" title="${%Up}" contextMenu="false"/>
-  <l:task icon="images/24x24/search.png"  href="${url}/" title="${%Status}" contextMenu="false" />
-  <j:choose>
-    <j:when test="${h.hasPermission(it,it.CONFIGURE)}">
-      <l:task icon="images/24x24/setting.png" href="${url}/configure" title="${%Configure}" />
-    </j:when>
-    <j:when test="${h.hasPermission(it,it.EXTENDED_READ)}">
-      <l:task icon="images/24x24/setting.png" href="${url}/configure" title="${%View Configuration}" />
-    </j:when>
-  </j:choose>
+
+  <st:include page="tasks-create" optional="true"/>
+  <j:if test="${view==it.primaryView}">
+    <!-- avoid showing two delete icons -->
+    <l:task icon="images/24x24/edit-delete.png" href="${url}/delete" title="${%delete(it.pronoun)}" permission="${it.DELETE}" />
+  </j:if>
 </j:jelly>

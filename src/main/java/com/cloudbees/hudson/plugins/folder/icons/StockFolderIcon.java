@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.icons;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.FolderIcon;
 import com.cloudbees.hudson.plugins.folder.FolderIconDescriptor;
 import hudson.Extension;
@@ -42,10 +41,6 @@ public class StockFolderIcon extends FolderIcon {
 
     public String getImageOf(String size) {
         return Stapler.getCurrentRequest().getContextPath()+ Hudson.RESOURCE_PATH+"/images/"+size+"/folder.png";
-    }
-
-    @Override
-    protected void setFolder(Folder folder) {
     }
 
     public String getDescription() {

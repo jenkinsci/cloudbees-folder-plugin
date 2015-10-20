@@ -27,8 +27,8 @@ package com.cloudbees.hudson.plugins.folder;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractStatusIcon;
 import hudson.model.Describable;
-import hudson.model.Hudson;
 import hudson.model.StatusIcon;
+import jenkins.model.Jenkins;
 
 /**
  * Renders {@link StatusIcon} for a folder.
@@ -39,14 +39,22 @@ import hudson.model.StatusIcon;
  */
 public abstract class FolderIcon extends AbstractStatusIcon implements Describable<FolderIcon>, ExtensionPoint {
     /**
-     * Called by {@link Folder} to set the owner that this icon is used for.
+     * Called by {@link AbstractFolder} to set the owner that this icon is used for.
      * <p>
      * If you are implementing {@link FolderIcon} that changes the behaviour based on the contents/properties
      * of the folder, store the folder object to a field and use that. 
      */
-    protected abstract void setFolder(Folder folder);
+    protected void setOwner(AbstractFolder<?> folder) {
+        if (folder instanceof Folder) {
+            setFolder((Folder) folder);
+        }
+    }
 
+    /** @deprecated */
+    protected void setFolder(Folder folder) {}
+
+    @Override
     public FolderIconDescriptor getDescriptor() {
-        return (FolderIconDescriptor)Hudson.getInstance().getDescriptorOrDie(getClass());
+        return (FolderIconDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }
 }

@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 The MIT License
 
-Copyright 2014 Jesse Glick.
+Copyright 2013-2015 CloudBees.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +21,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
-    <st:include page="/com/cloudbees/hudson/plugins/folder/AbstractFolder/_api.jelly"/>
-    <st:include page="/hudson/model/ModifiableItemGroup/_api.jelly"/>
-</j:jelly>
+<st:include it="${it.parent.primaryView}" page="sidepanel.jelly" xmlns:st="jelly:stapler"/>

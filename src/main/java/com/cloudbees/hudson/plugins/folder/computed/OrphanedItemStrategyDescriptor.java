@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 CloudBees.
+ * Copyright (c) 2011-2013, CloudBees, Inc., Stephen Connolly.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,16 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package com.cloudbees.hudson.plugins.folder.computed;
 
-package com.cloudbees.hudson.plugins.folder;
-
-import hudson.DescriptorExtensionList;
 import hudson.model.Descriptor;
-import jenkins.model.Jenkins;
 
-public abstract class FolderIconDescriptor extends Descriptor<FolderIcon> {
-    public static DescriptorExtensionList<FolderIcon, FolderIconDescriptor> all() {
-        return Jenkins.getActiveInstance().<FolderIcon, FolderIconDescriptor>getDescriptorList(FolderIcon.class);
+/**
+ * A kind of {@link OrphanedItemStrategy}.
+ */
+public abstract class OrphanedItemStrategyDescriptor extends Descriptor<OrphanedItemStrategy> {
+
+    /**
+     * Checks if this strategy is applicable to a given kind of folder.
+     *
+     * @param folderType the type of folder.
+     * @return true to allow user to select and configure this build source.
+     */
+    @SuppressWarnings("rawtypes") // erasure
+    public boolean isApplicable(Class<? extends ComputedFolder> folderType) {
+        return true;
     }
-    // TODO consider adding an isApplicable method
+
 }

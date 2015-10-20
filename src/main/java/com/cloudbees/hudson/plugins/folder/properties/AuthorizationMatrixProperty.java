@@ -23,9 +23,9 @@
  */
 package com.cloudbees.hudson.plugins.folder.properties;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
-import com.cloudbees.hudson.plugins.folder.FolderProperty;
-import com.cloudbees.hudson.plugins.folder.FolderPropertyDescriptor;
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
+import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -33,7 +33,7 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
+import hudson.model.Descriptor.FormException;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
@@ -61,11 +61,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 
 /**
  * Holds ACL for {@link ProjectMatrixAuthorizationStrategy}.
  */
-public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
+public class AuthorizationMatrixProperty extends AbstractFolderProperty<AbstractFolder<?>> {
 
     private transient SidACL acl = new AclImpl();
 
@@ -132,9 +133,9 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
     }
 
     @Extension
-    public static class DescriptorImpl extends FolderPropertyDescriptor {
+    public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
         @Override
-        public FolderProperty newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public AbstractFolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             formData = formData.getJSONObject("useProjectSecurity");
             if (formData.isNullObject())
                 return null;
@@ -155,11 +156,12 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
             return amp;
         }
 
+        @SuppressWarnings("rawtypes") // erasure
         @Override
-        public boolean isApplicable(Class<? extends Folder> containerType) {
+        public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
             // only applicable when ProjectMatrixAuthorizationStrategy is in charge
             try {
-                return Hudson.getInstance().getAuthorizationStrategy() instanceof ProjectMatrixAuthorizationStrategy;
+                return Jenkins.getActiveInstance().getAuthorizationStrategy() instanceof ProjectMatrixAuthorizationStrategy;
             } catch (NoClassDefFoundError x) { // after matrix-auth split?
                 return false;
             }
@@ -184,7 +186,7 @@ public class AuthorizationMatrixProperty extends FolderProperty<Folder> {
             return p.getEnabled() && p.isContainedBy(PermissionScope.ITEM_GROUP);
         }
 
-        public FormValidation doCheckName(@AncestorInPath Folder folder, @QueryParameter String value) throws IOException, ServletException {
+        public FormValidation doCheckName(@AncestorInPath AbstractFolder<?> folder, @QueryParameter String value) throws IOException, ServletException {
             return GlobalMatrixAuthorizationStrategy.DESCRIPTOR.doCheckName_(value, folder, AbstractProject.CONFIGURE);
         }
     }
