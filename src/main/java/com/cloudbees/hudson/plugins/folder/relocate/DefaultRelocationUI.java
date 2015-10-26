@@ -25,11 +25,11 @@
 package com.cloudbees.hudson.plugins.folder.relocate;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.util.HttpResponses;
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -63,7 +63,7 @@ public class DefaultRelocationUI extends RelocationUI {
      */
     @Override
     public boolean isAvailable(Item item) {
-        for (RelocationHandler handler : Jenkins.getInstance().getExtensionList(RelocationHandler.class)) {
+        for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) == RelocationHandler.HandlingMode.HANDLE) {
                 return true;
             }
@@ -80,7 +80,7 @@ public class DefaultRelocationUI extends RelocationUI {
      */
     public Collection<ItemGroup<?>> listDestinations(Item item) {
         Collection<ItemGroup<?>> result = new LinkedHashSet<ItemGroup<?>>();
-        for (RelocationHandler handler : Jenkins.getInstance().getExtensionList(RelocationHandler.class)) {
+        for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) == RelocationHandler.HandlingMode.HANDLE) {
                 result.addAll(handler.validDestinations(item));
             }
@@ -110,7 +110,7 @@ public class DefaultRelocationUI extends RelocationUI {
             return HttpResponses.forwardToPreviousPage();
         }
         List<RelocationHandler> chain = new ArrayList<RelocationHandler>();
-        for (RelocationHandler handler : Jenkins.getInstance().getExtensionList(RelocationHandler.class)) {
+        for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) != RelocationHandler.HandlingMode.SKIP) {
                 chain.add(handler);
             }

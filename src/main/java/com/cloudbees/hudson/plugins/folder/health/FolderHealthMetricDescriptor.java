@@ -24,18 +24,19 @@
 
 package com.cloudbees.hudson.plugins.folder.health;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.DescriptorExtensionList;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
+import jenkins.model.Jenkins;
 
 public abstract class FolderHealthMetricDescriptor extends Descriptor<FolderHealthMetric> {
     /**
      * Returns true if this {@link FolderHealthMetric} type is applicable to the
      * given folder type.
      */
-    public boolean isApplicable(Class<? extends Folder> containerType) {
+    @SuppressWarnings("rawtypes") // erasure
+    public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
         return true;
     }
 
@@ -50,6 +51,6 @@ public abstract class FolderHealthMetricDescriptor extends Descriptor<FolderHeal
 
     @SuppressWarnings({"unchecked"})
     public static DescriptorExtensionList<FolderHealthMetric, FolderHealthMetricDescriptor> all() {
-        return (DescriptorExtensionList) Hudson.getInstance().getDescriptorList(FolderHealthMetric.class);
+        return (DescriptorExtensionList) Jenkins.getActiveInstance().getDescriptorList(FolderHealthMetric.class);
     }
 }

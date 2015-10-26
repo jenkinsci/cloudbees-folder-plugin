@@ -25,12 +25,12 @@
 package com.cloudbees.hudson.plugins.folder.relocate;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.ItemGroup;
 import hudson.model.TopLevelItem;
 import java.io.IOException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
-import jenkins.model.Jenkins;
 
 /** @deprecated Use {@link DirectlyModifiableTopLevelItemGroup} instead. */
 @Deprecated
@@ -91,7 +91,7 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
         public static <G extends ItemGroup<I>, I extends TopLevelItem> ItemGroupModifier<G, I> get(
                 Class<G> targetClass) {
             ItemGroupModifier<G, I> best = null;
-            for (ItemGroupModifier i : Jenkins.getInstance().getExtensionList(ItemGroupModifier.class)) {
+            for (ItemGroupModifier i : ExtensionList.lookup(ItemGroupModifier.class)) {
                 if (i.getTargetClass().isAssignableFrom(targetClass)) {
                     if (best == null) {
                         best = i;

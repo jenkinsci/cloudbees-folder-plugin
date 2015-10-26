@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 CloudBees.
+ * Copyright 2015 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,39 +24,40 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
-import hudson.DescriptorExtensionList;
-import hudson.ExtensionList;
-import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
-
+import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
+import hudson.model.TopLevelItemDescriptor;
 import java.util.ArrayList;
 import java.util.List;
-import jenkins.model.Jenkins;
 
-public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDescriptor {
-
+/**
+ * Category of {@link AbstractFolder}.
+ * @since 4.11-beta-1
+ */
+public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
+    
     @Override
-    public FolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-        return (FolderProperty) super.newInstance(req, formData);
+    public String getDisplayName() {
+        return Messages.Folder_DisplayName();
     }
 
     /**
-     * @deprecated Use {@link AbstractFolderPropertyDescriptor#getApplicableDescriptors} instead.
+     * Properties that can be configured for this type of {@link AbstractFolder} subtype.
      */
-    public static List<FolderPropertyDescriptor> getPropertyDescriptors(Class<? extends Folder> containerType) {
-        List<FolderPropertyDescriptor> r = new ArrayList<FolderPropertyDescriptor>();
-        for (FolderPropertyDescriptor p : ExtensionList.lookup(FolderPropertyDescriptor.class))
-            if(p.isApplicable(containerType))
-                r.add(p);
+    public List<AbstractFolderPropertyDescriptor> getPropertyDescriptors() {
+        return AbstractFolderPropertyDescriptor.getApplicableDescriptors(clazz.asSubclass(AbstractFolder.class));
+    }
+
+    /**
+     * Health metrics that can be configured for this type of {@link AbstractFolder} subtype.
+     */
+    public List<FolderHealthMetricDescriptor> getHealthMetricDescriptors() {
+        List<FolderHealthMetricDescriptor> r = new ArrayList<FolderHealthMetricDescriptor>();
+        for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
+            if (d.isApplicable(clazz.asSubclass(AbstractFolder.class))) {
+                r.add(d);
+            }
+        }
         return r;
     }
 
-    /**
-     * @deprecated Directly look up {@link AbstractFolderPropertyDescriptor}s from {@link ExtensionList#lookup} instead.
-     */
-    @Deprecated
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static DescriptorExtensionList all() {
-        return Jenkins.getActiveInstance().getDescriptorList(FolderProperty.class);
-    }
 }

@@ -5,11 +5,11 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.554.1</version>
+    <version>1.609.1</version>
   </parent>
 
   <artifactId>cloudbees-folder</artifactId>
-  <version>4.10-SNAPSHOT</version>
+  <version>4.11-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>CloudBees Folders Plugin</name>
