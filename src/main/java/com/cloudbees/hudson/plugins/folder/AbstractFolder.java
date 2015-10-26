@@ -191,7 +191,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (icon == null) {
             icon = new StockFolderIcon();
         } else {
-        	icon.setOwner(this);
+            icon.setOwner(this);
         }
         if (views == null) {
             views = new CopyOnWriteArrayList<View>();
