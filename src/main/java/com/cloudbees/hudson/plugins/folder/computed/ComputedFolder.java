@@ -26,7 +26,6 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.BulkChange;
 import hudson.ExtensionList;
 import hudson.XmlFile;
 import hudson.model.Action;
@@ -185,15 +184,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }, listener);
         if (!orphaned.isEmpty()) {
             LOGGER.log(Level.FINE, "{0}: orphaned {1}", new Object[] {fullName, orphaned});
-            BulkChange bc = new BulkChange(this);
-            try {
-                for (I existing : orphanedItems(orphaned.values(), listener)) {
-                    LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
-                    existing.delete();
-                    // super.onDeleted handles removal from items
-                }
-            } finally {
-                bc.abort(); // ignore calls to save from super.onDeleted
+            for (I existing : orphanedItems(orphaned.values(), listener)) {
+                LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
+                existing.delete();
+                // super.onDeleted handles removal from items
             }
         }
         LOGGER.log(Level.FINE, "finished updating {0}", fullName);
@@ -213,20 +207,13 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Failed to load " + file, e);
             }
-        } else if (isBuildable()) { // first time
-            scheduleBuild();
         }
     }
 
+    @RequirePOST
     @Override
-    public synchronized void save() throws IOException {
-        if (BulkChange.contains(this)) {
-            return;
-        }
-        super.save();
-        // TODO this is problematic, especially when called from super.onDeleted.
-        // Would be better to get rid of some BulkChange.abort hacks, and call scheduleBuild explicitly
-        // from various methods which should actually produce changes, like doConfigSubmit.
+    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        super.doConfigSubmit(req, rsp);
         scheduleBuild();
     }
 
