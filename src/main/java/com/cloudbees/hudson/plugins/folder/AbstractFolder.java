@@ -51,7 +51,6 @@ import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
-import hudson.model.ViewGroup;
 import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.search.CollectionSearchIndex;
@@ -98,6 +97,7 @@ import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
@@ -657,7 +657,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
-    @Restricted(DoNotUse.class)
+    @Restricted(NoExternalUse.class)
     @RequirePOST
     public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         checkPermission(CONFIGURE);
