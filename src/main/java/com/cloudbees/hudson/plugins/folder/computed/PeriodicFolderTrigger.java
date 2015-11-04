@@ -54,7 +54,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      * Constructor.
      *
      * @param interval the interval.
-     * @throws ANTLRException if the crontab cannot be parsed.
+     * @throws ANTLRException impossible but we cannot suppress it
      */
     @DataBoundConstructor
     public PeriodicFolderTrigger(String interval) throws ANTLRException {
