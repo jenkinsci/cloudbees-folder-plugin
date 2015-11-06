@@ -166,7 +166,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
                 String name = child.getName();
                 if (!observed.contains(name)) {
-                    throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child);
+                    throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name + " among " + observed);
                 }
                 child.onCreatedFromScratch();
                 try {
