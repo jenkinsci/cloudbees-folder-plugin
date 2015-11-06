@@ -25,8 +25,8 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:p="/lib/hudson/project">
-    <p:config-trigger/>
     <st:include page="configure-entries" optional="true"/>
+    <p:config-trigger/>
     <f:section title="${%Orphaned Item Strategy}">
         <j:set var="orphanedItemStrategyDescriptors" value="${instance.orphanedItemStrategyDescriptors}"/>
         <f:block>
