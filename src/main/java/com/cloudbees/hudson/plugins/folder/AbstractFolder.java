@@ -729,7 +729,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
         String blocker = renameBlocker();
         if (blocker != null) {
-            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8") + "&blocker=" + URLEncoder.encode(blocker, "UT-8"));
+            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8") + "&blocker=" + URLEncoder.encode(blocker, "UTF-8"));
             return;
         }
 
