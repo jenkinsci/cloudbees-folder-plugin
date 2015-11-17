@@ -57,6 +57,8 @@ public class FolderPropertyTest {
         Folder d = r.jenkins.getItemByFullName("d", Folder.class);
         assertNotNull(d);
         assertEquals("[d-liteful]", d.getProperties().toString());
+        Class<?> c = d.getProperties().get(0).getClass();
+        assertEquals(r.jenkins.pluginManager.uberClassLoader.loadClass(c.getName()).getClassLoader(), c.getClassLoader());
     }
 
 }
