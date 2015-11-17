@@ -48,8 +48,20 @@ public class FolderPropertyTest {
     }
 
     @LocalData
+    @WithPlugin("around-5-abstract.hpi")
+    @Test public void around5Abstract() throws Exception {
+        validate();
+    }
+
+    @LocalData
     @WithPlugin("post-5.hpi")
     @Test public void post5() throws Exception {
+        validate();
+    }
+
+    @LocalData
+    @WithPlugin("post-5-abstract.hpi")
+    @Test public void post5Abstract() throws Exception {
         validate();
     }
 
