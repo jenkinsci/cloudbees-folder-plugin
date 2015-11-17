@@ -31,8 +31,16 @@ import hudson.model.TopLevelItemDescriptor;
 import java.util.Collection;
 import java.util.Collections;
 import jenkins.model.TransientActionFactory;
+import org.jenkinsci.bytecode.AdaptField;
 
 public abstract class FolderProperty<C extends Folder> extends AbstractFolderProperty<C> {
+
+    /** {@inheritDoc} */
+    @AdaptField(name="owner", was=Folder.class)
+    @Override
+    protected C getOwner() {
+        return super.getOwner();
+    }
 
     /**
      * Determines if the parent container is allowed to create a new item of the given type, or copy from

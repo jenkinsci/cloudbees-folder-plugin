@@ -6,12 +6,12 @@ import com.cloudbees.hudson.plugins.folder.FolderPropertyDescriptor;
 import hudson.Extension;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class SampleProperty extends FolderProperty<Folder> {
+public class Around5Property extends FolderProperty<Folder> {
     
     private final String suffix;
 
     @DataBoundConstructor
-    public SampleProperty(String suffix) {
+    public Around5Property(String suffix) {
         this.suffix = suffix;
     }
     
@@ -29,7 +29,7 @@ public class SampleProperty extends FolderProperty<Folder> {
 
         @Override
         public String getDisplayName() {
-            return "SampleProperty";
+            return "Around5Property";
         }
 
     }
