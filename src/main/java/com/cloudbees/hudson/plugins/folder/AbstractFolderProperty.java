@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import net.sf.json.JSONObject;
+import org.jenkinsci.bytecode.AdaptField;
 import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -44,12 +45,17 @@ import org.kohsuke.stapler.StaplerRequest;
  */
 public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extends AbstractDescribableImpl<AbstractFolderProperty<?>> implements ExtensionPoint, ReconfigurableDescribable<AbstractFolderProperty<?>> {
 
+    private transient C owner;
+
     /**
      * The {@link AbstractFolder} object that owns this property.
      * This value will be set by the folder.
      * Derived classes can expect this value to be always set.
      */
-    protected transient C owner;
+    @AdaptField(name="owner", was=AbstractFolder.class)
+    protected C getOwner() {
+        return owner;
+    }
 
     /**
      * Hook for performing post-initialization action.

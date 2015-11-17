@@ -278,7 +278,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             Authentication old = SecurityContextHolder.getContext().getAuthentication();
             SecurityContextHolder.getContext().setAuthentication(ACL.SYSTEM);
             try {
-                owner.save();
+                getOwner().save();
             } finally {
                 SecurityContextHolder.getContext().setAuthentication(old);
             }
@@ -483,12 +483,12 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
             @Override
             public ModelObject getContext() {
-                return owner;
+                return getOwner();
             }
 
             @Override
             public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
-                return owner.getACL().hasPermission(a, permission);
+                return getOwner().getACL().hasPermission(a, permission);
             }
 
             /**
