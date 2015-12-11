@@ -70,6 +70,7 @@ import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.ParseException;
@@ -253,26 +254,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 Item current = parent.getItem(name);
                 if (current != null && current.getClass() == getClass()) {
                     this.items = ((AbstractFolder) current).items;
+                } else {
+                    this.items = new CopyOnWriteMap.Tree<String, I>(CaseInsensitiveComparator.INSTANCE);
                 }
             }
-
-            items = loadChildren(this, getJobsDir(), new Function1<String,I>() {
-                @Override
-                public String call(I item) {
-                    String fullName = item.getFullName();
-                    t.setName("Loading job " + fullName);
-                    float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
-                    long now = System.currentTimeMillis();
-                    if (loadingTick == 0) {
-                        loadingTick = now;
-                    } else if (now - loadingTick > TICK_INTERVAL) {
-                        LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
-                        loadingTick = now;
-                    }
-                    // TODO loadChildren does not support decoding folder names
-                    return item.getName();
+            File[] subdirs = getJobsDir().listFiles(new FileFilter() {
+                public boolean accept(File child) {
+                    return child.isDirectory() && new File(child, "config.xml").exists();
                 }
             });
+            if (subdirs != null) {
+                for (File subdir : subdirs) {
+                    try {
+                        I item = (I) Items.load(this, subdir);
+                        items.put(item.getName(), item);
+                    } catch (Exception e) {
+                        Logger.getLogger(ItemGroup.class.getName()).log(Level.WARNING, "could not load " + subdir, e);
+                    }
+                }
+            }
         } finally {
             t.setName(n);
         }
