@@ -38,6 +38,7 @@ import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.AllView;
+import hudson.model.BallColor;
 import hudson.model.Descriptor;
 import hudson.model.HealthReport;
 import hudson.model.Item;
@@ -87,6 +88,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -191,6 +193,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (icon == null) {
             icon = new StockFolderIcon();
         }
+        icon.setOwner(this);
         if (views == null) {
             views = new CopyOnWriteArrayList<View>();
         }
@@ -547,6 +550,33 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     public FolderIcon getIconColor() {
         return icon;
+    }
+
+    /**
+     * Used as the color of the status ball for {@link com.cloudbees.hudson.plugins.folder.icons.BallColorFolderIcon}.
+     * Determines the color based on the {@link Job#getIconColor()} of all jobs in {@link #getAllJobs()}.
+     *
+     * @return the color of the status ball for {@link com.cloudbees.hudson.plugins.folder.icons.BallColorFolderIcon}.
+     */
+    @Nonnull
+    public BallColor getBallColor() {
+        BallColor c = BallColor.DISABLED;
+        boolean animated = false;
+
+        for (Job job : getAllJobs()) {
+            BallColor d = job.getIconColor();
+            animated |= d.isAnimated();
+            d = d.noAnime();
+            if (d.compareTo(c) < 0) {
+                c = d;
+            }
+        }
+
+        if (animated) {
+            c = c.anime();
+        }
+
+        return c;
     }
 
     @Override
