@@ -280,7 +280,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public AbstractFolderDescriptor getDescriptor() {
-        // Seems to work even though AbstractFolder is not Describable, hmm
         return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }
 
