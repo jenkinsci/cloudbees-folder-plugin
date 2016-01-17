@@ -295,21 +295,12 @@ public class FolderTest {
         // We add a stub property to generate the persisted list
         // Then we ensure owner is being assigned properly.
         folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
-        AbstractFolder<?> ownerFolder = folder.getProperties().get(FolderCredentialsProvider.FolderCredentialsProperty.class).getOwner();
-        assertThat("The property owner should be instance of Folder", 
-                ownerFolder, instanceOf(Folder.class));
-        assertThat("The injected property should point to the owner folder", 
-                (Folder)ownerFolder, equalTo(folder));
-        
+        assertPropertyOwner("After property add", folder, FolderCredentialsProvider.FolderCredentialsProperty.class);
+    
         // Reload and ensure that the property owner is set
         r.jenkins.reload();
         Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
-        AbstractFolder<?> reloadedOwner = reloadedFolder.getProperties().get(
-                FolderCredentialsProvider.FolderCredentialsProperty.class).getOwner();
-        assertThat("The property owner should be instance of Folder", 
-                reloadedOwner, instanceOf(Folder.class));
-        assertThat("The injected property should point to the owner folder", 
-                (Folder)reloadedOwner, equalTo(reloadedFolder));
+        assertPropertyOwner("After reload", reloadedFolder, FolderCredentialsProvider.FolderCredentialsProperty.class);
     }
     
     @Issue("JENKINS-32359")
@@ -338,6 +329,23 @@ public class FolderTest {
             notNullValue());
     }
 
+    /**
+     * Ensures that the specified property points to the folder.
+     * @param <T> Property type
+     * @param folder Folder
+     * @param propertyClass Property class
+     * @param step Failure message prefix
+     */
+    private <T extends AbstractFolderProperty<AbstractFolder<?>>> void assertPropertyOwner
+            (String step, Folder folder, Class<T> propertyClass) {
+        AbstractFolder<?> propertyOwner = folder.getProperties().get(propertyClass).getOwner();
+        assertThat(step + ": The property owner should be instance of Folder", 
+                propertyOwner, instanceOf(Folder.class));
+        assertThat(step + ": The owner field of the " + propertyClass + 
+                " property should point to the owner folder " + folder, 
+                (Folder)propertyOwner, equalTo(folder));
+    }
+    
     private Folder createFolder() throws IOException {
         return r.jenkins.createProject(Folder.class, "folder" + r.jenkins.getItems().size());
     }
