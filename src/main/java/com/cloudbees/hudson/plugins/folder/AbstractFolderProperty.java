@@ -54,10 +54,21 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
     /**
      * Hook for performing post-initialization action.
      */
-    protected void setOwner(C owner) {
+    protected void setOwner(@NonNull C owner) {
         this.owner = owner;
     }
 
+    /**
+     * Gets an owner of the property.
+     * @return Owner of the property.
+     *         It should be always non-null if the property initialized correctly.
+     * @since TODO
+     */
+    @NonNull
+    public C getOwner() {
+        return owner;
+    }
+    
     @Override
     public AbstractFolderPropertyDescriptor getDescriptor() {
         return (AbstractFolderPropertyDescriptor) super.getDescriptor();

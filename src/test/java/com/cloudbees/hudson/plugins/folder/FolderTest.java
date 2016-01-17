@@ -287,6 +287,31 @@ public class FolderTest {
         });
     }
     
+    @Issue("JENKINS-32487")
+    @Test public void shouldAssignPropertyOwnerOnCreationAndReload() throws Exception {
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
+        r.jenkins.setAuthorizationStrategy(new ProjectMatrixAuthorizationStrategy());
+        
+        // We add a stub property to generate the persisted list
+        // Then we ensure owner is being assigned properly.
+        folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
+        AbstractFolder<?> ownerFolder = folder.getProperties().get(FolderCredentialsProvider.FolderCredentialsProperty.class).getOwner();
+        assertThat("The property owner should be instance of Folder", 
+                ownerFolder, instanceOf(Folder.class));
+        assertThat("The injected property should point to the owner folder", 
+                (Folder)ownerFolder, equalTo(folder));
+        
+        // Reload and ensure that the property owner is set
+        r.jenkins.reload();
+        Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
+        AbstractFolder<?> reloadedOwner = reloadedFolder.getProperties().get(
+                FolderCredentialsProvider.FolderCredentialsProperty.class).getOwner();
+        assertThat("The property owner should be instance of Folder", 
+                reloadedOwner, instanceOf(Folder.class));
+        assertThat("The injected property should point to the owner folder", 
+                (Folder)reloadedOwner, equalTo(reloadedFolder));
+    }
+    
     @Issue("JENKINS-32359")
     @Test public void shouldProperlyPersistFolderPropertiesOnMultipleReloads() throws Exception {
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
