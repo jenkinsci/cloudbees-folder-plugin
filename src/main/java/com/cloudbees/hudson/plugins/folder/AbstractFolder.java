@@ -28,7 +28,6 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
-import com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -57,8 +56,6 @@ import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
-import hudson.security.AuthorizationStrategy;
-import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.CaseInsensitiveComparator;
 import hudson.util.CopyOnWriteMap;
@@ -517,19 +514,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     public HttpResponse doLastBuild(StaplerRequest req) {
         return HttpResponses.redirectToDot();
-    }
-
-    @Override
-    public ACL getACL() {
-        AuthorizationStrategy as = Jenkins.getActiveInstance().getAuthorizationStrategy();
-        // TODO this should be an extension point, or ideally matrix-auth would have an optional dependency on cloudbees-folder
-        if (as.getClass().getName().equals("hudson.security.ProjectMatrixAuthorizationStrategy")) {
-            AuthorizationMatrixProperty p = getProperties().get(AuthorizationMatrixProperty.class);
-            if (p != null) {
-                return p.getACL().newInheritingACL(((ProjectMatrixAuthorizationStrategy) as).getACL(getParent()));
-            }
-        }
-        return super.getACL();
     }
 
     /**

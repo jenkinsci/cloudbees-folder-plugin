@@ -51,8 +51,7 @@ public abstract class FolderProperty<C extends Folder> extends AbstractFolderPro
 
     /**
      * {@link hudson.model.Action}s to be displayed in the folder page.
-     * <p/>
-     * <p/>
+     * <p>
      * Returning actions from this method allows a folder property to add them
      * to the left navigation bar in the folder page.
      *

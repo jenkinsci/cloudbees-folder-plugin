@@ -1,3 +1,4 @@
+<?jelly escape-by-default='true'?>
 <div>
 This plugin allows users to create "folders" to organize jobs. Users can define custom taxonomies (like by project type, organization type etc). Folders are nestable and you can define views within folders. 
 </div>
