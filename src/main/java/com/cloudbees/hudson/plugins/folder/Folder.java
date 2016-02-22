@@ -94,7 +94,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     /**
      * {@link Action}s contributed from subsidiary objects associated with
      * {@link Folder}, such as from properties.
-     * <p/>
+     * <p>
      * We don't want to persist them separately, and these actions
      * come and go as configuration change, so it's kept separate.
      */
@@ -147,8 +147,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <p/>
+     * <p>
      * Note that this method returns a read-only view of {@link Action}s.
      *
      * @see TransientFolderActionFactory
