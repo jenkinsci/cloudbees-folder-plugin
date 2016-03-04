@@ -237,6 +237,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @Override
+    public void addAction(Action a) {
+        super.getActions().add(a);
+    }
+
+    @Override
+    public void replaceAction(Action a) {
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        List<Action> old = new ArrayList<Action>(1);
+        List<Action> current = super.getActions();
+        for (Action a2 : current) {
+            if (a2.getClass() == a.getClass()) {
+                old.add(a2);
+            }
+        }
+        current.removeAll(old);
+        addAction(a);
+    }
+
+    @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
         init();

@@ -36,6 +36,7 @@ import hudson.model.ListView;
 import hudson.model.User;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
+import hudson.security.WhoAmI;
 import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
@@ -272,6 +273,13 @@ public class FolderTest {
                 }
             }
         });
+    }
+
+    @Test public void addAction() throws Exception {
+        Folder f = createFolder();
+        WhoAmI a = new WhoAmI();
+        f.addAction(a);
+        assertNotNull(f.getAction(WhoAmI.class));
     }
 
     private Folder createFolder() throws IOException {
