@@ -28,6 +28,7 @@ import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
+import hudson.model.AbstractItem;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -54,6 +55,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import hudson.util.AlternativeUiTextProvider;
+import hudson.util.AlternativeUiTextProvider.Message;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.jelly.XMLOutput;
 
@@ -160,7 +164,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @Override
     public String getDisplayName() {
-        return "Folder Computation";
+        return AlternativeUiTextProvider.get(DISPLAY_NAME, this, "Folder Computation");
     }
 
     @Override
@@ -256,4 +260,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         Items.XSTREAM.alias("folder-computation", FolderComputation.class);
     }
 
+    /**
+     * Allow other code to override the display name for {@link FolderComputation}.
+     */
+    public static final Message<FolderComputation> DISPLAY_NAME = new Message<FolderComputation>();
 }
