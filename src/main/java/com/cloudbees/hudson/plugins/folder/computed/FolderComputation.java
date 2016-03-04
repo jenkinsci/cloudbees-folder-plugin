@@ -164,7 +164,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @Override
     public String getDisplayName() {
-        return AlternativeUiTextProvider.get(DISPLAY_NAME, this, "Folder Computation");
+        return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
     }
 
     @Override
