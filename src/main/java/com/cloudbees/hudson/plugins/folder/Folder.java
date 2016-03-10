@@ -325,6 +325,9 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
                 return false;
             }
         }
+        if (!getACL().hasCreatePermission(Jenkins.getAuthentication(), this, tid)) {
+            return false;
+        }
         return tid.isApplicableIn(this);
     }
 
