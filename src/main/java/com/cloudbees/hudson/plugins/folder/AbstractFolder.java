@@ -191,18 +191,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (views == null) {
             views = new CopyOnWriteArrayList<View>();
         }
-        if (views.isEmpty()) {
-            try {
-                initViews(views);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
-            }
-        }
         if (viewsTabBar == null) {
             viewsTabBar = new DefaultViewsTabBar();
-        }
-        if (primaryView == null) {
-            primaryView = views.get(0).getViewName();
         }
         viewGroupMixIn = new ViewGroupMixIn(this) {
             @Override
@@ -211,13 +201,20 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
             @Override
             protected String primaryView() {
-                return primaryView;
+                return primaryView == null ? views.get(0).getViewName() : primaryView;
             }
             @Override
             protected void primaryView(String name) {
                 primaryView = name;
             }
         };
+        if (views.isEmpty()) {
+            try {
+                initViews(views);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
+            }
+        }
         if (healthMetrics == null) {
             List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
             for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
