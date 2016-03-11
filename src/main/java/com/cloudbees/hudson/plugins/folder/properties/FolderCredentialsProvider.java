@@ -415,7 +415,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"}) // erasure
-        @Extension
+        @Extension(optional = true)
         public static class ActionFactory extends TransientActionFactory<AbstractFolder> {
             @Override
             public Class<AbstractFolder> type() {
@@ -439,7 +439,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
         }
 
-        @Extension
+        @Extension(optional = true)
         public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
             @Override
