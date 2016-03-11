@@ -54,6 +54,7 @@ import hudson.security.Permission;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
+import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -275,12 +276,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          */
         private void checkedSave(Permission p) throws IOException {
             checkPermission(p);
-            Authentication old = SecurityContextHolder.getContext().getAuthentication();
-            SecurityContextHolder.getContext().setAuthentication(ACL.SYSTEM);
+            SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
             try {
                 owner.save();
             } finally {
-                SecurityContextHolder.getContext().setAuthentication(old);
+                SecurityContextHolder.setContext(orig);
             }
         }
 
