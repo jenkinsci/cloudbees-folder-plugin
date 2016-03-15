@@ -30,11 +30,8 @@ import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.util.HttpResponses;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -95,9 +92,13 @@ public class DefaultRelocationUI extends RelocationUI {
      * @param destination the destination.
      * @return the response.
      */
-    @RequirePOST
-    public HttpResponse doMove(StaplerRequest req, @AncestorInPath Item item, @QueryParameter String destination) throws
+    public HttpResponse doMove(StaplerRequest req) throws
             IOException, InterruptedException {
+        if (!req.getMethod().equals("POST")) {
+            throw new SecurityException();
+        }
+        Item item = req.findAncestorObject(Item.class);
+        String destination = req.getParameter("destination");
         item.checkPermission(RelocationAction.RELOCATE);
         ItemGroup dest = null;
         for (ItemGroup itemGroup : listDestinations(item)) {
