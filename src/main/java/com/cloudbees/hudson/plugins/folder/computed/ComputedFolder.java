@@ -152,6 +152,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             @Override
             public I shouldUpdate(String name) {
                 I existing = orphaned.remove(name);
+                if (existing != null) {
+                    observed.add(name);
+                }
                 LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
                 return existing;
             }
