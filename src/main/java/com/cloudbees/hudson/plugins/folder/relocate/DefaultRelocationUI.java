@@ -89,7 +89,6 @@ public class DefaultRelocationUI extends RelocationUI {
      * Does the move.
      *
      * @param req         the request.
-     * @param destination the destination.
      * @return the response.
      */
     public HttpResponse doMove(StaplerRequest req) throws
