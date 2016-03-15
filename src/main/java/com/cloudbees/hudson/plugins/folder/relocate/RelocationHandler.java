@@ -43,39 +43,39 @@ import org.kohsuke.stapler.HttpResponse;
 public abstract class RelocationHandler implements ExtensionPoint {
 
     public enum HandlingMode {
-        /** Can in general handle the actual move.  and  may both be called. */
+        /** Can in general handle the actual move. {@link #handle} and {@link #validDestinations} may both be called. */
         HANDLE,
-        /** May only delegate to another handler.  may be called, but not . */
+        /** May only delegate to another handler. {@link #handle} may be called, but not {@link #validDestinations}. */
         DELEGATE,
-        /** Skips this item entirely. Neither  nor  should be called. */
+        /** Skips this item entirely. Neither {@link #handle} nor {@link #validDestinations} should be called. */
         SKIP
     }
 
     /**
      * Checks quickly whether this handler might be able to move a given item.
-     
-     *
+     * @param item an item which the user wishes to move
+     * @return how this handler might handle the given item
      */
-    public abstract HandlingMode applicability(Item item);
+    public abstract @NonNull HandlingMode applicability(@NonNull Item item);
 
     /**
      * Possibly handles redirecting an item.
-     
-     
-     
-     
-     *
-     
-     
+     * @param item an item which the user wishes to move
+     * @param destination the location the user wishes to move it to
+     * @param newItem if moving succeeds, set this to the new item (typically same object as {@code item})
+     * @param chain zero or more remaining handlers which could be delegated to (may call this method on the first and pass in the rest of the chain)
+     * @return {@link Failure} if the move is known to not be able to proceed, or a custom response such as a redirect, or a delegated response from the first handler in the chain, or null if no HTTP response is warranted or possible
+     * @throws IOException if the move was attempted but failed
+     * @throws InterruptedException if the move was attempted but was interrupted
      */
-    public abstract HttpResponse handle(Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<? extends RelocationHandler> chain) throws IOException, InterruptedException;
+    public abstract @CheckForNull HttpResponse handle(@NonNull Item item, @NonNull ItemGroup<?> destination, @NonNull AtomicReference<Item> newItem, @NonNull List<? extends RelocationHandler> chain) throws IOException, InterruptedException;
 
     /**
      * Gathers a list of possible destinations to which an item may be moved.
      * The union of all destinations from various handlers is used.
-     
-     *
+     * @param item an item which the user wishes to move
+     * @return potential destinations (may be empty if this handler does not need to add new kinds of destinations)
      */
-    public abstract List<? extends ItemGroup<?>> validDestinations(Item item);
+    public abstract @NonNull List<? extends ItemGroup<?>> validDestinations(@NonNull Item item);
 
 }

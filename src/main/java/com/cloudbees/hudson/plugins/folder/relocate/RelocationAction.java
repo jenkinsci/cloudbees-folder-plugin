@@ -45,7 +45,7 @@ import java.util.Collections;
 /**
  * Does the actual work of relocating an item.
  */
-
+@Restricted(NoExternalUse.class)
 public class RelocationAction implements Action, StaplerFallback {
 
     /**
@@ -61,47 +61,47 @@ public class RelocationAction implements Action, StaplerFallback {
     /**
      * The UI to use for the relocation action.
      *
-     
+     * @since 4.9
      */
-    
+    @CheckForNull
     private final RelocationUI ui;
 
     /**
      * Creates an instance of this action.
      *
-     
+     * @param item the item that would be moved.
      */
-    public RelocationAction(Item item) {
+    public RelocationAction(@Nonnull Item item) {
         this.item = item;
         this.ui = RelocationUI.for_(item);
     }
 
-    public RelocationAction(Item item, RelocationUI ui) {
+    public RelocationAction(@Nonnull Item item, @Nonnull RelocationUI ui) {
         this.item = item;
         this.ui = ui;
     }
 
 
     /**
-     * 
+     * {@inheritDoc}
      */
-     
+    @Override 
     public String getIconFileName() {
         return !item.hasPermission(RELOCATE) || ui == null || !ui.isAvailable(item) ? null : ui.getIconFileName();
     }
 
     /**
-     * 
+     * {@inheritDoc}
      */
-     
+    @Override 
     public String getDisplayName() {
         return ui == null ? null : ui.getDisplayName();
     }
 
     /**
-     * 
+     * {@inheritDoc}
      */
-     
+    @Override 
     public String getUrlName() {
         return ui == null ? null : ui.getUrlName();
     }
@@ -109,7 +109,7 @@ public class RelocationAction implements Action, StaplerFallback {
     /**
      * Gets the item that would be moved.
      *
-     *
+     * @return the item that would be moved.
      */
     public Item getItem() {
         return item;
@@ -118,47 +118,47 @@ public class RelocationAction implements Action, StaplerFallback {
     /**
      * Getter for the UI to display in this action.
      *
-     *
-     
+     * @return the UI to display in this action or {@code null} if not supported.
+     * @since 4.9
      */
-    
+    @CheckForNull
     public RelocationUI getUi() {
         return ui;
     }
 
     /**
-     * 
+     * {@inheritDoc}
      */
-    
+    @Override
     public Object getStaplerFallback() {
         return ui;
     }
 
     /**
      * Avoids a CCE caused by return type ambiguity in script access.
-     *
+     * @return {@link Item#getParent} of {@link #getItem}
      */
     public ItemGroup<?> getItemParent() {
         return item.getParent();
     }
 
     /**
-     * Makes sure that s have the action.
+     * Makes sure that {@link Item}s have the action.
      */
-    
-    
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT", justification = "ensure loaded eagerly")
+    @Extension
     public static class TransientActionFactoryImpl extends TransientActionFactory<Item> {
 
         static {
             RELOCATE.getId(); // ensure loaded eagerly
         }
 
-         public Class<Item> type() {
+        @Override public Class<Item> type() {
             return Item.class;
         }
 
-        
-        public Collection<? extends Action> createFor(Item target) {
+        @Override
+        public Collection<? extends Action> createFor(@Nonnull Item target) {
             return Collections.singleton(new RelocationAction(target));
         }
     }

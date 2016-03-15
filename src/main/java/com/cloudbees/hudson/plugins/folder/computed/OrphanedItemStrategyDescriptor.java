@@ -26,17 +26,17 @@ package com.cloudbees.hudson.plugins.folder.computed;
 import hudson.model.Descriptor;
 
 /**
- * A kind of .
+ * A kind of {@link OrphanedItemStrategy}.
  */
 public abstract class OrphanedItemStrategyDescriptor extends Descriptor<OrphanedItemStrategy> {
 
     /**
      * Checks if this strategy is applicable to a given kind of folder.
      *
-     
-     *
+     * @param folderType the type of folder.
+     * @return true to allow user to select and configure this build source.
      */
-     // erasure
+    @SuppressWarnings("rawtypes") // erasure
     public boolean isApplicable(Class<? extends ComputedFolder> folderType) {
         return true;
     }

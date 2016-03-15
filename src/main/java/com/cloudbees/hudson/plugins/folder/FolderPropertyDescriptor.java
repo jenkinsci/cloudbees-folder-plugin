@@ -35,13 +35,13 @@ import jenkins.model.Jenkins;
 
 public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDescriptor {
 
-    
+    @Override
     public FolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
         return (FolderProperty) super.newInstance(req, formData);
     }
 
     /**
-     
+     * @deprecated Use {@link AbstractFolderPropertyDescriptor#getApplicableDescriptors} instead.
      */
     public static List<FolderPropertyDescriptor> getPropertyDescriptors(Class<? extends Folder> containerType) {
         List<FolderPropertyDescriptor> r = new ArrayList<FolderPropertyDescriptor>();
@@ -52,10 +52,10 @@ public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDes
     }
 
     /**
-     
+     * @deprecated Directly look up {@link AbstractFolderPropertyDescriptor}s from {@link ExtensionList#lookup} instead.
      */
-    
-    
+    @Deprecated
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static DescriptorExtensionList all() {
         return Jenkins.getActiveInstance().getDescriptorList(FolderProperty.class);
     }

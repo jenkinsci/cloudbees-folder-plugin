@@ -30,8 +30,11 @@ import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.util.HttpResponses;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,24 +44,24 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Default implementation of 
+ * Default implementation of {@link RelocationUI}
  * 
- 
+ * @since 4.9
  */
-
+@Extension(ordinal = -1000.0)
 public class DefaultRelocationUI extends RelocationUI {
     /**
-     * 
+     * {@inheritDoc}
      */
-    
+    @Override
     public boolean isApplicableTo(Class<? extends Item> itemClass) {
         return true;
     }
     
     /**
-     * 
+     * {@inheritDoc}
      */
-    
+    @Override
     public boolean isAvailable(Item item) {
         for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) == RelocationHandler.HandlingMode.HANDLE) {
@@ -72,8 +75,8 @@ public class DefaultRelocationUI extends RelocationUI {
     /**
      * List of destinations that the item can be moved to by the current user.
      *
-     
-     *
+     * @param item the item.
+     * @return the list of destinations that the item can be moved to by the current user.
      */
     public Collection<ItemGroup<?>> listDestinations(Item item) {
         Collection<ItemGroup<?>> result = new LinkedHashSet<ItemGroup<?>>();
@@ -88,16 +91,13 @@ public class DefaultRelocationUI extends RelocationUI {
     /**
      * Does the move.
      *
-     
-     *
+     * @param req         the request.
+     * @param destination the destination.
+     * @return the response.
      */
-    public HttpResponse doMove(StaplerRequest req) throws
+    @RequirePOST
+    public HttpResponse doMove(StaplerRequest req, @AncestorInPath Item item, @QueryParameter String destination) throws
             IOException, InterruptedException {
-        if (!req.getMethod().equals("POST")) {
-            throw new SecurityException();
-        }
-        Item item = req.findAncestorObject(Item.class);
-        String destination = req.getParameter("destination");
         item.checkPermission(RelocationAction.RELOCATE);
         ItemGroup dest = null;
         for (ItemGroup itemGroup : listDestinations(item)) {

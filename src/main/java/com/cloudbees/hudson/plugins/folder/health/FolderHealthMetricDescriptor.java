@@ -32,24 +32,24 @@ import jenkins.model.Jenkins;
 
 public abstract class FolderHealthMetricDescriptor extends Descriptor<FolderHealthMetric> {
     /**
-     * Returns true if this  type is applicable to the
+     * Returns true if this {@link FolderHealthMetric} type is applicable to the
      * given folder type.
      */
-     // erasure
+    @SuppressWarnings("rawtypes") // erasure
     public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
         return true;
     }
 
     /**
      * Optionally create a default health metric to be used in new folders.
-     *
-     
+     * @return a default configuration of the associated metric, or null to not include by default
+     * @since 4.0
      */
-    public FolderHealthMetric createDefault() {
+    @CheckForNull public FolderHealthMetric createDefault() {
         return null;
     }
 
-    
+    @SuppressWarnings({"unchecked"})
     public static DescriptorExtensionList<FolderHealthMetric, FolderHealthMetricDescriptor> all() {
         return (DescriptorExtensionList) Jenkins.getActiveInstance().getDescriptorList(FolderHealthMetric.class);
     }

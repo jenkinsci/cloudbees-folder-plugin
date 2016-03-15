@@ -44,10 +44,10 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 
 /**
- * Handler which can move items which are both  and  into a .
+ * Handler which can move items which are both {@link AbstractItem} and {@link TopLevelItem} into a {@link DirectlyModifiableTopLevelItemGroup}.
  */
-
- public final class StandardHandler extends RelocationHandler {
+@Restricted(NoExternalUse.class)
+@Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
 
     public HandlingMode applicability(Item item) {
         if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup) {
@@ -57,7 +57,7 @@ import org.kohsuke.stapler.HttpResponses;
         }
     }
 
-     public HttpResponse handle(Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<? extends RelocationHandler> chain) throws IOException, InterruptedException {
+    @Override public HttpResponse handle(Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<? extends RelocationHandler> chain) throws IOException, InterruptedException {
         if (!(destination instanceof DirectlyModifiableTopLevelItemGroup)) {
             return chain.isEmpty() ? null : chain.get(0).handle(item, destination, newItem, chain.subList(1, chain.size()));
         }
@@ -67,12 +67,12 @@ import org.kohsuke.stapler.HttpResponses;
         return HttpResponses.redirectViaContextPath(result.getParent().getUrl() + result.getShortUrl());
     }
 
-    
+    @SuppressWarnings("unchecked")
     private static <I extends AbstractItem & TopLevelItem> I doMove(Item item, DirectlyModifiableTopLevelItemGroup destination) throws IOException {
         return Items.move((I) item, destination);
     }
 
-     public List<? extends ItemGroup<?>> validDestinations(Item item) {
+    @Override public List<? extends ItemGroup<?>> validDestinations(Item item) {
         List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<DirectlyModifiableTopLevelItemGroup>();
         Jenkins instance = Jenkins.getActiveInstance();
         if (permitted(item, instance)) {

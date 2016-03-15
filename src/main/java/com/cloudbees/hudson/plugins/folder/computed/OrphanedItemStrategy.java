@@ -33,17 +33,17 @@ import java.io.IOException;
 import java.util.Collection;
 
 /**
- * A strategy for removing children after they are no longer indexed by an owning .
+ * A strategy for removing children after they are no longer indexed by an owning {@link ComputedFolder}.
  */
 public abstract class OrphanedItemStrategy extends AbstractDescribableImpl<OrphanedItemStrategy> implements ExtensionPoint {
 
-    /** parameters and return value as in  */
+    /** parameters and return value as in {@link ComputedFolder#orphanedItems} */
     public abstract <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException,  InterruptedException;
 
     /**
-     * 
+     * {@inheritDoc}
      */
-    
+    @Override
     public OrphanedItemStrategyDescriptor getDescriptor() {
         return (OrphanedItemStrategyDescriptor) super.getDescriptor();
     }

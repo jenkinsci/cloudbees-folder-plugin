@@ -32,6 +32,8 @@ import hudson.model.TopLevelItem;
 import java.io.IOException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 
+/** @deprecated Use {@link DirectlyModifiableTopLevelItemGroup} instead. */
+@Deprecated
 public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelItem> extends ExtensionPoint {
 
     /**
@@ -40,22 +42,22 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
     Class<G> getTargetClass();
 
     /**
-     * Returns  if the target can take the item.
+     * Returns {@code true} if the target can take the item.
      *
-     
-     
-     
-     *
+     * @param target the target.
+     * @param item   the item.
+     * @param <II>   the type of the item.
+     * @return {@code true} if the target can take the item.
      */
     <II extends I> boolean canAdd(G target, II item);
 
     /**
      * Adds an item to the target.
      *
-     
-     
-     
-     *
+     * @param target the target.
+     * @param item   the item
+     * @param <II>   the type of the item.
+     * @return the item instance within the target, may be the same instance as the passed in parameter or may be a
      *         new instance, depending on the target container.
      */
     <II extends I> II add(G target, II item) throws IOException;
@@ -63,13 +65,13 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
     /**
      * Removes an item from the target.
      *
-     
-     
+     * @param target the target.
+     * @param item   the item
      */
     void remove(G target, I item) throws IOException;
 
     /**
-     * A factory for creating  instances.
+     * A factory for creating {@link ItemGroupModifier} instances.
      */
     public static final class Factory {
         /**
@@ -80,11 +82,11 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
         }
 
         /**
-         * Returns the most appropriate  for the supplied type of .
+         * Returns the most appropriate {@link ItemGroupModifier} for the supplied type of {@link ItemGroup}.
          *
-         
-         *
-         *          if no injector is available.
+         * @param targetClass the {@link ItemGroup} to get the injector for.
+         * @return the most appropriate {@link ItemGroupModifier} for the supplied {@link ItemGroup} or
+         *         {@code null} if no injector is available.
          */
         public static <G extends ItemGroup<I>, I extends TopLevelItem> ItemGroupModifier<G, I> get(
                 Class<G> targetClass) {
@@ -105,23 +107,23 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
         }
     }
 
-    final class StandardModifier implements ItemGroupModifier<DirectlyModifiableTopLevelItemGroup,TopLevelItem> {
+    @Extension final class StandardModifier implements ItemGroupModifier<DirectlyModifiableTopLevelItemGroup,TopLevelItem> {
 
-         public Class<DirectlyModifiableTopLevelItemGroup> getTargetClass() {
+        @Override public Class<DirectlyModifiableTopLevelItemGroup> getTargetClass() {
             return DirectlyModifiableTopLevelItemGroup.class;
         }
 
-         public <II extends TopLevelItem> boolean canAdd(DirectlyModifiableTopLevelItemGroup target, II item) {
+        @Override public <II extends TopLevelItem> boolean canAdd(DirectlyModifiableTopLevelItemGroup target, II item) {
             return target.canAdd(item);
         }
 
-         public <II extends TopLevelItem> II add(DirectlyModifiableTopLevelItemGroup target, II item) throws IOException {
+        @Override public <II extends TopLevelItem> II add(DirectlyModifiableTopLevelItemGroup target, II item) throws IOException {
             II _item = target.add(item, item.getName());
             _item.onLoad(target, item.getName());
             return _item;
         }
 
-         public void remove(DirectlyModifiableTopLevelItemGroup target, TopLevelItem item) throws IOException {
+        @Override public void remove(DirectlyModifiableTopLevelItemGroup target, TopLevelItem item) throws IOException {
             target.remove(item);
         }
 
