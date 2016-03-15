@@ -35,18 +35,18 @@ import org.jvnet.tiger_types.Types;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * Category of {@link AbstractFolderProperty}.
- * @since 4.11-beta-1
+ * Category of .
+ 
  */
 public abstract class AbstractFolderPropertyDescriptor extends Descriptor<AbstractFolderProperty<?>> {
 
     /**
-     * {@inheritDoc}
+     * 
      *
-     * @return
-     *      null to avoid setting an instance of {@link AbstractFolderProperty} to the target folder.
+     
+     *      null to avoid setting an instance of  to the target folder.
      */
-    @Override
+    
     public AbstractFolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
         // Analogous to hack in JobPropertyDescriptor.
         if (formData.isNullObject()) {
@@ -56,18 +56,18 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
     }
 
     /**
-     * Returns true if this {@link AbstractFolderProperty} type is applicable to the
+     * Returns true if this  type is applicable to the
      * given folder type.
      *
      * <p>
      * The default implementation of this method checks if the given folder type is assignable to the type parameter of
-     * {@link AbstractFolderProperty}, but subtypes can extend this to change this behavior.
+     * , but subtypes can extend this to change this behavior.
      *
-     * @return
+     
      *      true to indicate applicable, in which case the property will be
      *      displayed in the configuration screen of this folder.
      */
-    @SuppressWarnings("rawtypes") // erasure
+     // erasure
     public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
         Type parameterization = Types.getBaseClass(clazz, AbstractFolderProperty.class);
         if (parameterization instanceof ParameterizedType) {
@@ -80,9 +80,9 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
     }
 
     /**
-     * Gets the {@link FolderPropertyDescriptor}s applicable for a given folder type.
+     * Gets the s applicable for a given folder type.
      */
-    @SuppressWarnings("rawtypes") // erasure
+     // erasure
     public static List<AbstractFolderPropertyDescriptor> getApplicableDescriptors(Class<? extends AbstractFolder> containerType) {
         List<AbstractFolderPropertyDescriptor> r = new ArrayList<AbstractFolderPropertyDescriptor>();
         for (AbstractFolderPropertyDescriptor p : ExtensionList.lookup(AbstractFolderPropertyDescriptor.class)) {

@@ -62,8 +62,8 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
     public static interface Reporter {
         /**
          * Called during recursive traversal of the tree from the folder on which this metric is specified.
-         * May be called on intermediate {@code Folder}s, so implementations should not call {@link #getHealthReport} in this case.
-         * @param item a {@link Folder} or any other {@link TopLevelItem}
+         * May be called on intermediate s, so implementations should not call  in this case.
+         
          */
         void observe(Item item);
         List<HealthReport> report();

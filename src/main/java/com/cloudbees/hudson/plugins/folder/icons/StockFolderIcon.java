@@ -35,7 +35,7 @@ import org.kohsuke.stapler.Stapler;
  * Default folder icon.
  */
 public class StockFolderIcon extends FolderIcon {
-    @DataBoundConstructor
+    
     public StockFolderIcon() {
     }
 
@@ -47,9 +47,9 @@ public class StockFolderIcon extends FolderIcon {
         return "Folder";
     }
 
-    @Extension(ordinal=100)
+    
     public static class DescriptorImpl extends FolderIconDescriptor {
-        @Override
+        
         public String getDisplayName() {
             return "Default Icon";
         }

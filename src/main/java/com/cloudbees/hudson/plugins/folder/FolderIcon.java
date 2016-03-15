@@ -31,7 +31,7 @@ import hudson.model.StatusIcon;
 import jenkins.model.Jenkins;
 
 /**
- * Renders {@link StatusIcon} for a folder.
+ * Renders  for a folder.
  *
  * <p>
  * Possible subtypes can range from dumb icons that always render the same thing to smarter icons
@@ -39,9 +39,9 @@ import jenkins.model.Jenkins;
  */
 public abstract class FolderIcon extends AbstractStatusIcon implements Describable<FolderIcon>, ExtensionPoint {
     /**
-     * Called by {@link AbstractFolder} to set the owner that this icon is used for.
+     * Called by  to set the owner that this icon is used for.
      * <p>
-     * If you are implementing {@link FolderIcon} that changes the behaviour based on the contents/properties
+     * If you are implementing  that changes the behaviour based on the contents/properties
      * of the folder, store the folder object to a field and use that. 
      */
     protected void setOwner(AbstractFolder<?> folder) {
@@ -50,10 +50,9 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
         }
     }
 
-    /** @deprecated */
     protected void setFolder(Folder folder) {}
 
-    @Override
+    
     public FolderIconDescriptor getDescriptor() {
         return (FolderIconDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }

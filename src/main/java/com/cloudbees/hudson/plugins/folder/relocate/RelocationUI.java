@@ -36,71 +36,71 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
- * Extension point to provide a plugable UI for moving {@link Item} instances.
+ * Extension point to provide a plugable UI for moving  instances.
  *
- * @since 4.9
+ 
  */
 public abstract class RelocationUI implements ExtensionPoint {
 
     /**
-     * The {@link Action#getDisplayName()} to present for this UI.
+     * The  to present for this UI.
      *
-     * @return the {@link Action#getDisplayName()} to present for this UI, never {@code null}
-     * @see Action#getDisplayName()
+     *
+     
      */
-    @Nonnull
+    
     public String getDisplayName() {
         return Messages.RelocateAction_displayName();
     }
 
     /**
-     * The {@link Action#getUrlName()} to present for this UI.
+     * The  to present for this UI.
      *
-     * @return the {@link Action#getUrlName()} to present for this UI, never {@code null}
-     * @see Action#getUrlName()
+     *
+     
      */
-    @Nonnull
+    
     public String getUrlName() {
         return "move";
     }
 
     /**
-     * The {@link Action#getIconFileName()} to present for this UI.
+     * The  to present for this UI.
      *
-     * @return the {@link Action#getIconFileName()} to present for this UI, never {@code null}
-     * @see Action#getIconFileName()
+     *
+     
      */
-    @Nonnull
+    
     public String getIconFileName() {
         return "/plugin/cloudbees-folder/images/24x24/move.png";
     }
 
     /**
      * Checks if the relocation operation is currently available for the specific item 
-     * (as {@link Jenkins#getAuthentication()} if the user is a factor). You can assume that the current user
-     * has {@link RelocationAction#RELOCATE} permission.
+     * (as  if the user is a factor). You can assume that the current user
+     * has  permission.
      * 
-     * @param item the item being checked.
-     * @return {@code true} if the UI is available for the current user on the specified item.
+     
+     *
      */
     public abstract boolean isAvailable(Item item);
 
     /**
-     * Checks if this {@link RelocationUI} is applicable to the specified type of item.
-     * @param itemClass the type of item.
-     * @return {@code true} if this UI is applicable to the specified type of item.
-     * @see ExtensionList
-     * @see Extension#ordinal()
+     * Checks if this  is applicable to the specified type of item.
+     
+     *
+     
+     
      */
     public abstract boolean isApplicableTo(Class<? extends Item> itemClass);
 
     /**
-     * Retrieves the {@link RelocationUI} to use for the specified item.
-     * @param item the item.
-     * @return the {@link RelocationUI} to use or {@code null}
+     * Retrieves the  to use for the specified item.
+     
+     *
      */
-    @CheckForNull
-    public static RelocationUI for_(@Nonnull Item item) {
+    
+    public static RelocationUI for_(Item item) {
         final Class<? extends Item> itemClass = item.getClass();
         for (final RelocationUI ui : ExtensionList.lookup(RelocationUI.class)) {
             if (ui.isApplicableTo(itemClass)) {

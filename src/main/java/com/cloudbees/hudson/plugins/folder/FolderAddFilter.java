@@ -33,12 +33,12 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * Restricts additions to a folder via {@code View/newJob.jelly}.
- * @see Folder#getItemDescriptors
+ * Restricts additions to a folder via .
+ 
  */
-@Extension public class FolderAddFilter extends DescriptorVisibilityFilter {
+public class FolderAddFilter extends DescriptorVisibilityFilter {
 
-    @Override public boolean filter(Object context, Descriptor descriptor) {
+     public boolean filter(Object context, Descriptor descriptor) {
         StaplerRequest req = Stapler.getCurrentRequest();
         if (req == null || !req.getRequestURI().endsWith("/newJob")) {
             return true;

@@ -41,24 +41,24 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Default implementation of {@link RelocationUI}
+ * Default implementation of 
  * 
- * @since 4.9
+ 
  */
-@Extension(ordinal = -1000.0)
+
 public class DefaultRelocationUI extends RelocationUI {
     /**
-     * {@inheritDoc}
+     * 
      */
-    @Override
+    
     public boolean isApplicableTo(Class<? extends Item> itemClass) {
         return true;
     }
     
     /**
-     * {@inheritDoc}
+     * 
      */
-    @Override
+    
     public boolean isAvailable(Item item) {
         for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) == RelocationHandler.HandlingMode.HANDLE) {
@@ -72,8 +72,8 @@ public class DefaultRelocationUI extends RelocationUI {
     /**
      * List of destinations that the item can be moved to by the current user.
      *
-     * @param item the item.
-     * @return the list of destinations that the item can be moved to by the current user.
+     
+     *
      */
     public Collection<ItemGroup<?>> listDestinations(Item item) {
         Collection<ItemGroup<?>> result = new LinkedHashSet<ItemGroup<?>>();
@@ -88,8 +88,8 @@ public class DefaultRelocationUI extends RelocationUI {
     /**
      * Does the move.
      *
-     * @param req         the request.
-     * @return the response.
+     
+     *
      */
     public HttpResponse doMove(StaplerRequest req) throws
             IOException, InterruptedException {

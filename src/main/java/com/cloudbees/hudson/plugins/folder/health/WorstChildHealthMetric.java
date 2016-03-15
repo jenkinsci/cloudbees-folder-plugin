@@ -34,24 +34,24 @@ import java.util.Collections;
 import java.util.List;
 
 public class WorstChildHealthMetric extends FolderHealthMetric {
-    @DataBoundConstructor
+    
     public WorstChildHealthMetric() {
     }
 
-    @Override
+    
     public Reporter reporter() {
         return new ReporterImpl();
     }
 
-    @Extension(ordinal=400)
+    
     public static class DescriptorImpl extends FolderHealthMetricDescriptor {
 
-        @Override
+        
         public String getDisplayName() {
             return "Child item with worst health";
         }
 
-        @Override public FolderHealthMetric createDefault() {
+         public FolderHealthMetric createDefault() {
             return new WorstChildHealthMetric();
         }
 

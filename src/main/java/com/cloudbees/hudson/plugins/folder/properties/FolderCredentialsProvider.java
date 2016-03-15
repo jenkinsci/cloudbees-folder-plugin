@@ -72,13 +72,13 @@ import jenkins.model.TransientActionFactory;
 /**
  * A store of credentials that can be used as a Stapler opbject.
  */
-@Extension(optional = true)
+
 public class FolderCredentialsProvider extends CredentialsProvider {
 
     private static final Set<CredentialsScope> SCOPES =
             Collections.<CredentialsScope>singleton(CredentialsScope.GLOBAL);
 
-    @Override
+    
     public Set<CredentialsScope> getScopes(ModelObject object) {
         if (object instanceof AbstractFolder) {
             return SCOPES;
@@ -86,18 +86,18 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return super.getScopes(object);
     }
 
-    @NonNull
-    @Override
-    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
-                                                          @Nullable Authentication authentication) {
+    
+    
+    public <C extends Credentials> List<C> getCredentials(Class<C> type, ItemGroup itemGroup,
+                                                          Authentication authentication) {
         return getCredentials(type, itemGroup, authentication, Collections.<DomainRequirement>emptyList());
     }
 
-    @NonNull
-    @Override
-    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
-                                                          @Nullable Authentication authentication,
-                                                          @NonNull List<DomainRequirement> domainRequirements) {
+    
+    
+    public <C extends Credentials> List<C> getCredentials(Class<C> type, ItemGroup itemGroup,
+                                                          Authentication authentication,
+                                                          List<DomainRequirement> domainRequirements) {
         if (authentication == null) {
             authentication = ACL.SYSTEM;
         }
@@ -125,8 +125,8 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return result;
     }
 
-    @Override
-    public CredentialsStore getStore(@CheckForNull ModelObject object) {
+    
+    public CredentialsStore getStore(ModelObject object) {
         if (object instanceof AbstractFolder) {
             final AbstractFolder<?> folder = AbstractFolder.class.cast(object);
             FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
@@ -142,15 +142,15 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Old store of credentials
          *
-         * @deprecated
+         
          */
-        @Deprecated
+        
         private transient List<Credentials> credentials;
 
         /**
          * Our credentials.
          *
-         * @since 3.10
+         
          */
         private Map<Domain, List<Credentials>> domainCredentialsMap =
                 new CopyOnWriteMap.Hash<Domain, List<Credentials>>();
@@ -163,10 +163,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Backwards compatibility.
          *
-         * @param credentials the credentials.
-         * @deprecated
+         
+         
          */
-        @Deprecated
+        
         public FolderCredentialsProperty(List<Credentials> credentials) {
             domainCredentialsMap = DomainCredentials.migrateListToMap(domainCredentialsMap, credentials);
         }
@@ -174,10 +174,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Constructor for stapler.
          *
-         * @param domainCredentials the credentials.
-         * @since 1.5
+         
+         
          */
-        @DataBoundConstructor
+        
         public FolderCredentialsProperty(DomainCredentials[] domainCredentials) {
             domainCredentialsMap = DomainCredentials.asMap(Arrays.asList(domainCredentials));
         }
@@ -185,10 +185,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Resolve old data store into new data store.
          *
-         * @since 1.5
+         
          */
-        @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Only unprotected during deserialization")
-        @SuppressWarnings("deprecation")
+        
+        
         private Object readResolve() throws ObjectStreamException {
             if (domainCredentialsMap == null) {
                 domainCredentialsMap = DomainCredentials.migrateListToMap(domainCredentialsMap, credentials);
@@ -210,20 +210,20 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Gets all the folder's credentials.
          *
-         * @return all the folder's credentials.
+         *
          */
-        @SuppressWarnings("unused") // used by stapler
+         // used by stapler
         public List<Credentials> getCredentials() {
             return getDomainCredentialsMap().get(Domain.global());
         }
 
         /**
-         * Returns the {@link com.cloudbees.plugins.credentials.domains.DomainCredentials}
+         * Returns the 
          *
-         * @return the {@link com.cloudbees.plugins.credentials.domains.DomainCredentials}
-         * @since 3.10
+         *
+         
          */
-        @SuppressWarnings("unused") // used by stapler
+         // used by stapler
         public List<DomainCredentials> getDomainCredentials() {
             return DomainCredentials.asList(getDomainCredentialsMap());
         }
@@ -231,10 +231,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * The Map of domain credentials.
          *
-         * @since 3.10
+         
          */
-        @SuppressWarnings("deprecation")
-        @NonNull
+        
+        
         public synchronized Map<Domain, List<Credentials>> getDomainCredentialsMap() {
             return domainCredentialsMap = DomainCredentials.migrateListToMap(domainCredentialsMap, credentials);
         }
@@ -242,8 +242,8 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Sets the map of domain credentials.
          *
-         * @param domainCredentialsMap the map of domain credentials.
-         * @since 3.10
+         
+         
          */
         public synchronized void setDomainCredentialsMap(Map<Domain, List<Credentials>> domainCredentialsMap) {
             this.domainCredentialsMap = DomainCredentials.toCopyOnWriteMap(domainCredentialsMap);
@@ -257,9 +257,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Short-cut method for checking {@link CredentialsStore#hasPermission(hudson.security.Permission)}
+         * Short-cut method for checking 
          *
-         * @param p the permission to check.
+         
          */
         private void checkPermission(Permission p) {
             if (!store.hasPermission(p)) {
@@ -269,10 +269,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
         /**
          * Short-cut method that redundantly checks the specified permission (to catch any typos) and then escalates
-         * authentication in order to save the {@link CredentialsStore}.
+         * authentication in order to save the .
          *
-         * @param p the permissions of the operation being performed.
-         * @throws IOException if something goes wrong.
+         
+         
          */
         private void checkedSave(Permission p) throws IOException {
             checkPermission(p);
@@ -285,9 +285,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean addDomain(@NonNull Domain domain, List<Credentials> credentials)
+        private synchronized boolean addDomain(Domain domain, List<Credentials> credentials)
                 throws IOException {
             checkPermission(CredentialsProvider.MANAGE_DOMAINS);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
@@ -313,9 +313,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean removeDomain(@NonNull Domain domain) throws IOException {
+        private synchronized boolean removeDomain(Domain domain) throws IOException {
             checkPermission(CredentialsProvider.MANAGE_DOMAINS);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
             if (domainCredentialsMap.containsKey(domain)) {
@@ -327,9 +327,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean updateDomain(@NonNull Domain current, @NonNull Domain replacement)
+        private synchronized boolean updateDomain(Domain current, Domain replacement)
                 throws IOException {
             checkPermission(CredentialsProvider.MANAGE_DOMAINS);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
@@ -342,9 +342,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean addCredentials(@NonNull Domain domain, @NonNull Credentials credentials)
+        private synchronized boolean addCredentials(Domain domain, Credentials credentials)
                 throws IOException {
             checkPermission(CredentialsProvider.CREATE);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
@@ -361,10 +361,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        @NonNull
-        private synchronized List<Credentials> getCredentials(@NonNull Domain domain) {
+        
+        private synchronized List<Credentials> getCredentials(Domain domain) {
             if (store.hasPermission(CredentialsProvider.VIEW)) {
                 List<Credentials> list = getDomainCredentialsMap().get(domain);
                 if (list == null || list.isEmpty()) {
@@ -376,9 +376,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean removeCredentials(@NonNull Domain domain, @NonNull Credentials credentials)
+        private synchronized boolean removeCredentials(Domain domain, Credentials credentials)
                 throws IOException {
             checkPermission(CredentialsProvider.DELETE);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
@@ -395,10 +395,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         /**
-         * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
+         * Implementation for  to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean updateCredentials(@NonNull Domain domain, @NonNull Credentials current,
-                                                       @NonNull Credentials replacement) throws IOException {
+        private synchronized boolean updateCredentials(Domain domain, Credentials current,
+                                                       Credentials replacement) throws IOException {
             checkPermission(CredentialsProvider.UPDATE);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
             if (domainCredentialsMap.containsKey(domain)) {
@@ -414,20 +414,20 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             return false;
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"}) // erasure
-        @Extension(optional = true)
+         // erasure
+        
         public static class ActionFactory extends TransientActionFactory<AbstractFolder> {
-            @Override
+            
             public Class<AbstractFolder> type() {
                 return AbstractFolder.class;
             }
-            @Override
+            
             public Collection<? extends Action> createFor(AbstractFolder target) {
                 final FolderCredentialsProperty prop = ((AbstractFolder<?>) target).getProperties().get(FolderCredentialsProperty.class);
                 if (prop != null) {
                     return Collections.singleton(new CredentialsStoreAction() {
-                        @NonNull
-                        @Override
+                        
+                        
                         public CredentialsStore getStore() {
                             return prop.getStore();
                         }
@@ -439,10 +439,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
         }
 
-        @Extension(optional = true)
+        
         public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
-            @Override
+            
             public String getDisplayName() {
                 return Messages.FolderCredentialsProvider_DisplayName();
             }
@@ -458,21 +458,21 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             /**
              * Gets all the credentials descriptors.
              *
-             * @return all the credentials descriptors.
-             * @since 3.10
+             *
+             
              */
-            @SuppressWarnings("unused") // used by stapler
+             // used by stapler
             public DescriptorExtensionList<Credentials, Descriptor<Credentials>> getCredentialDescriptors() {
                 return CredentialsProvider.allCredentialsDescriptors();
             }
 
             /**
-             * Gets all the {@link com.cloudbees.plugins.credentials.domains.DomainSpecification} descriptors.
+             * Gets all the  descriptors.
              *
-             * @return all the {@link com.cloudbees.plugins.credentials.domains.DomainSpecification} descriptors.
-             * @since 3.10
+             *
+             
              */
-            @SuppressWarnings("unused") // used by stapler
+             // used by stapler
             public DescriptorExtensionList<DomainSpecification, Descriptor<DomainSpecification>>
             getSpecificationDescriptors() {
                 return Jenkins.getActiveInstance().getDescriptorList(DomainSpecification.class);
@@ -481,21 +481,21 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
         private class StoreImpl extends CredentialsStore {
 
-            @Override
+            
             public ModelObject getContext() {
                 return owner;
             }
 
-            @Override
-            public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
+            
+            public boolean hasPermission(Authentication a, Permission permission) {
                 return owner.getACL().hasPermission(a, permission);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @NonNull
-            @Override
+            
+            
             public List<Domain> getDomains() {
                 return Collections.unmodifiableList(new ArrayList<Domain>(
                         getDomainCredentialsMap().keySet()
@@ -503,61 +503,61 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @Override
-            public boolean addDomain(@NonNull Domain domain, List<Credentials> credentials) throws IOException {
+            
+            public boolean addDomain(Domain domain, List<Credentials> credentials) throws IOException {
                 return FolderCredentialsProperty.this.addDomain(domain, credentials);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @Override
-            public boolean removeDomain(@NonNull Domain domain) throws IOException {
+            
+            public boolean removeDomain(Domain domain) throws IOException {
                 return FolderCredentialsProperty.this.removeDomain(domain);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @Override
-            public boolean updateDomain(@NonNull Domain current, @NonNull Domain replacement) throws IOException {
+            
+            public boolean updateDomain(Domain current, Domain replacement) throws IOException {
                 return FolderCredentialsProperty.this.updateDomain(current, replacement);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @Override
-            public boolean addCredentials(@NonNull Domain domain, @NonNull Credentials credentials) throws IOException {
+            
+            public boolean addCredentials(Domain domain, Credentials credentials) throws IOException {
                 return FolderCredentialsProperty.this.addCredentials(domain, credentials);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @NonNull
-            @Override
-            public List<Credentials> getCredentials(@NonNull Domain domain) {
+            
+            
+            public List<Credentials> getCredentials(Domain domain) {
                 return FolderCredentialsProperty.this.getCredentials(domain);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @Override
-            public boolean removeCredentials(@NonNull Domain domain, @NonNull Credentials credentials)
+            
+            public boolean removeCredentials(Domain domain, Credentials credentials)
                     throws IOException {
                 return FolderCredentialsProperty.this.removeCredentials(domain, credentials);
             }
 
             /**
-             * {@inheritDoc}
+             * 
              */
-            @Override
-            public boolean updateCredentials(@NonNull Domain domain, @NonNull Credentials current,
-                                             @NonNull Credentials replacement) throws IOException {
+            
+            public boolean updateCredentials(Domain domain, Credentials current,
+                                             Credentials replacement) throws IOException {
                 return FolderCredentialsProperty.this.updateCredentials(domain, current, replacement);
             }
         }

@@ -84,11 +84,11 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * A folder-like item whose children are computed.
  * Users cannot directly add or remove (or rename) children.
- * The children should also not offer {@link Item#CONFIGURE} to anyone.
- * @param <I> the child item type
- * @since 4.11-beta-1
+ * The children should also not offer  to anyone.
+ 
+ 
  */
-@SuppressWarnings({"unchecked", "rawtypes", "deprecation"}) // generics mistakes in various places; BuildableItem defines deprecated methods (and @SW on those overrides does not seem to work)
+ // generics mistakes in various places; BuildableItem defines deprecated methods (and on those overrides does not seem to work)
 public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, Queue.FlyweightTask {
 
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
@@ -98,14 +98,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
     // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
-    private transient @CheckForNull FolderComputation<I> computation;
+    private transient FolderComputation<I> computation;
 
     protected ComputedFolder(ItemGroup parent, String name) {
         super(parent, name);
         init();
     }
 
-    @Override
+    
     protected final void init() {
         super.init();
         if (orphanedItemStrategy == null) {
@@ -124,17 +124,17 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     /**
      * Called to (re-)compute the set of children of this folder.
-     * @param observer how to indicate which children should be seen
-     * @param listener a way to report progress
+     
+     
      */
     protected abstract void computeChildren(ChildObserver<I> observer, TaskListener listener) throws IOException, InterruptedException;
 
     /**
      * Hook called when some items are no longer in the list.
-     * Do not call {@link Item#delete} or {@link ItemGroup#onDeleted} or {@link ItemListener#fireOnDeleted} yourself.
-     * By default, uses {@link #getOrphanedItemStrategy}.
-     * @param orphaned a nonempty set of items which no longer are supposed to be here
-     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder now; items not listed will be left alone for the time being
+     * Do not call  or  or  yourself.
+     * By default, uses .
+     
+     *
      */
     protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
@@ -149,19 +149,19 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         final Map<String,I> orphaned = new HashMap<String,I>(items);
         final Set<String> observed = new HashSet<String>();
         computeChildren(new ChildObserver<I>() {
-            @Override
+            
             public I shouldUpdate(String name) {
                 I existing = orphaned.remove(name);
                 LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
                 return existing;
             }
-            @Override
+            
             public boolean mayCreate(String name) {
                 boolean r = observed.add(name);
                 LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[] {fullName, name, r});
                 return r;
             }
-            @Override
+            
             public void created(I child) {
                 LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
                 String name = child.getName();
@@ -210,14 +210,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }
     }
 
-    @RequirePOST
-    @Override
+    
+    
     public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         super.doConfigSubmit(req, rsp);
         scheduleBuild();
     }
 
-    @Override
+    
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         super.submit(req, rsp);
         JSONObject json = req.getSubmittedForm();
@@ -245,8 +245,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         trigger.start(this, true);
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
+    
+    
     public List<Action> getActions() {
         List<Action> actions = new ArrayList<Action>(super.getActions());
         for (Trigger<?> trigger : triggers) {
@@ -260,8 +260,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return true;
     }
 
-    @RequirePOST
-    public HttpResponse doBuild(@QueryParameter TimeDuration delay) {
+    
+    public HttpResponse doBuild(TimeDuration delay) {
         checkPermission(BUILD);
         if (!isBuildable()) {
             throw HttpResponses.error(SC_INTERNAL_SERVER_ERROR, new IOException(getFullName() + " cannot be recomputed"));
@@ -270,8 +270,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return HttpResponses.forwardToPreviousPage();
     }
 
-    /** Duck-types {@link ParameterizedJobMixIn#scheduleBuild2(int, Action...)}. */
-    public @CheckForNull Queue.Item scheduleBuild2(int quietPeriod, Action... actions) {
+    /** Duck-types . */
+    public Queue.Item scheduleBuild2(int quietPeriod, Action... actions) {
         if (!isBuildable()) {
             return null;
         }
@@ -282,39 +282,39 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return j.getQueue().schedule2(this, quietPeriod, Arrays.asList(actions)).getItem();
     }
 
-    @Override
+    
     public boolean scheduleBuild() {
         return scheduleBuild2(0) != null;
     }
 
-    @Override
+    
     public boolean scheduleBuild(Cause c) {
         return scheduleBuild2(0, new CauseAction(c)) != null;
     }
 
-    @Override
+    
     public boolean scheduleBuild(int quietPeriod) {
         return scheduleBuild2(quietPeriod) != null;
     }
 
-    @Override
+    
     public boolean scheduleBuild(int quietPeriod, Cause c) {
         return scheduleBuild2(quietPeriod, new CauseAction(c)) != null;
     }
 
-    @Override
+    
     public boolean isBuildBlocked() {
         return getCauseOfBlockage() != null;
     }
 
-    @Deprecated
-    @Override
+    
+    
     public String getWhyBlocked() {
         CauseOfBlockage causeOfBlockage = getCauseOfBlockage();
         return causeOfBlockage == null ? null : causeOfBlockage.getShortDescription();
     }
 
-    @Override
+    
     public CauseOfBlockage getCauseOfBlockage() {
         final FolderComputation<I> c = computation;
         if (c != null && c.isBuilding()) {
@@ -323,37 +323,37 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return null;
     }
 
-    @Override
+    
     public void checkAbortPermission() {
         checkPermission(CANCEL);
     }
 
-    @Override
+    
     public boolean hasAbortPermission() {
         return hasPermission(CANCEL);
     }
 
-    @Override
+    
     public boolean isConcurrentBuild() {
         return false;
     }
 
-    @Override
+    
     public Collection<? extends SubTask> getSubTasks() {
         return Collections.singleton(this);
     }
 
-    @Override
+    
     public Authentication getDefaultAuthentication() {
         return ACL.SYSTEM;
     }
 
-    @Override
+    
     public Authentication getDefaultAuthentication(Queue.Item item) {
         return getDefaultAuthentication();
     }
 
-    @Override
+    
     public Label getAssignedLabel() {
         Jenkins j = Jenkins.getInstance();
         if (j == null) {
@@ -362,38 +362,38 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return j.getSelfLabel();
     }
 
-    @Override
+    
     public Node getLastBuiltOn() {
         return Jenkins.getInstance();
     }
 
-    @Override
+    
     public long getEstimatedDuration() {
         return computation == null ? -1 : computation.getEstimatedDuration();
     }
 
-    @Override
+    
     public final FolderComputation<I> createExecutable() throws IOException {
         FolderComputation<I> c = createComputation(computation);
         computation = c;
         return c;
     }
 
-    protected @Nonnull FolderComputation<I> createComputation(@CheckForNull FolderComputation<I> previous) {
+    protected FolderComputation<I> createComputation(FolderComputation<I> previous) {
         return new FolderComputation<I>(this, previous);
     }
 
-    @Override
+    
     public Queue.Task getOwnerTask() {
         return this;
     }
 
-    @Override
+    
     public Object getSameNodeConstraint() {
         return null;
     }
 
-    @Override
+    
     public ResourceList getResourceList() {
         return ResourceList.EMPTY;
     }
@@ -403,11 +403,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /** URL binding and other purposes. */
-    public @CheckForNull FolderComputation<I> getComputation() {
+    public FolderComputation<I> getComputation() {
         return computation;
     }
 
-    @Override
+    
     protected String renameBlocker() {
         FolderComputation<I> comp = getComputation();
         if (comp != null && comp.isBuilding()) {
@@ -416,15 +416,15 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return super.renameBlocker();
     }
 
-    public @NonNull OrphanedItemStrategy getOrphanedItemStrategy() {
+    public OrphanedItemStrategy getOrphanedItemStrategy() {
         return orphanedItemStrategy;
     }
 
     /**
-     * Gets the {@link OrphanedItemStrategyDescriptor}s applicable to this folder.
+     * Gets the s applicable to this folder.
      */
-    @Restricted(DoNotUse.class) // used by Jelly
-    public @NonNull List<OrphanedItemStrategyDescriptor> getOrphanedItemStrategyDescriptors() {
+     // used by Jelly
+    public List<OrphanedItemStrategyDescriptor> getOrphanedItemStrategyDescriptors() {
         List<OrphanedItemStrategyDescriptor> result = new ArrayList<OrphanedItemStrategyDescriptor>();
         for (OrphanedItemStrategyDescriptor descriptor : ExtensionList.lookup(OrphanedItemStrategyDescriptor.class)) {
             if (descriptor.isApplicable(getClass())) {

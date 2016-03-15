@@ -38,10 +38,10 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * A {@link Trigger} for {@link ComputedFolder}s that will only trigger a recomputation if none has been
+ * A  for s that will only trigger a recomputation if none has been
  * triggered within a specified timeframe.
  *
- * @author Stephen Connolly
+ 
  */
 public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
@@ -53,10 +53,10 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * Constructor.
      *
-     * @param interval the interval.
-     * @throws ANTLRException impossible but we cannot suppress it
+     
+     
      */
-    @DataBoundConstructor
+    
     public PeriodicFolderTrigger(String interval) throws ANTLRException {
         super(toCrontab(interval));
         long intervalMillis = toIntervalMillis(interval);
@@ -66,8 +66,8 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * Turns an interval into a suitable crontab.
      *
-     * @param interval the interval.
-     * @return the crontab.
+     
+     *
      */
     private static String toCrontab(String interval) {
         long millis = toIntervalMillis(interval);
@@ -92,8 +92,8 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * Turns an interval into milliseconds./
      *
-     * @param interval the interval.
-     * @return the milliseconds.
+     
+     *
      */
     private static long toIntervalMillis(String interval) {
         TimeUnit2 units = TimeUnit2.MINUTES;
@@ -127,9 +127,9 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * Returns the number of milliseconds between indexing.
      *
-     * @return the number of milliseconds between indexing.
+     *
      */
-    @SuppressWarnings("unused") // used by Jelly EL
+     // used by Jelly EL
     public long getIntervalMillis() {
         return interval;
     }
@@ -137,9 +137,9 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * Returns the interval between indexing.
      *
-     * @return the interval between indexing.
+     *
      */
-    @SuppressWarnings("unused") // used by Jelly EL
+     // used by Jelly EL
     public String getInterval() {
         if (interval < TimeUnit2.SECONDS.toMillis(1)) {
             return Long.toString(interval) + "ms";
@@ -157,9 +157,9 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     }
 
     /**
-     * {@inheritDoc}
+     * 
      */
-    @Override
+    
     public void run() {
         FolderComputation<?> computation = job.getComputation();
         if (computation != null) {
@@ -172,20 +172,20 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     }
 
     /**
-     * Our {@link hudson.model.Descriptor}
+     * Our 
      */
-    @Extension
-    @SuppressWarnings("unused") // instantiated by Jenkins
+    
+     // instantiated by Jenkins
     public static class DescriptorImpl extends TriggerDescriptor {
         /**
-         * {@inheritDoc}
+         * 
          */
         public boolean isApplicable(Item item) {
             return item instanceof ComputedFolder;
         }
 
         /**
-         * {@inheritDoc}
+         * 
          */
         public String getDisplayName() {
             return "Periodically if not otherwise run";
@@ -194,9 +194,9 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         /**
          * Fills the interval list box.
          *
-         * @return the interval list box.
+         *
          */
-        @SuppressWarnings("unused") // used by Jelly
+         // used by Jelly
         public ListBoxModel doFillIntervalItems() {
             ListBoxModel model = new ListBoxModel();
             model.add("1 minute", "1m");

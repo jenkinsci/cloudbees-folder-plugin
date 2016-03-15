@@ -37,13 +37,13 @@ import jenkins.model.Jenkins;
 /**
  * We need to be able to limit concurrent indexing.
  */
-@SuppressWarnings("unused") // instantiated by Jenkins
-@Extension
+ // instantiated by Jenkins
+
 public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher {
     /**
-     * {@inheritDoc}
+     * 
      */
-    @Override
+    
     public CauseOfBlockage canRun(Queue.Item item) {
         if (item.task instanceof ComputedFolder) {
             if (indexingCount() > 5) {
@@ -56,7 +56,7 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
     /**
      * Gets the number of current indexing tasks.
      *
-     * @return number of current indexing tasks.
+     *
      */
     public int indexingCount() {
         Jenkins j = Jenkins.getInstance();
@@ -72,12 +72,12 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
     /**
      * Gets the number of current indexing tasks on the specified node.
      *
-     * @param node the node.
-     * @return number of current indexing tasks on the specified node.
+     
+     *
      */
-    public int indexingCount(@CheckForNull Node node) {
+    public int indexingCount(Node node) {
         int result = 0;
-        @CheckForNull
+        
         Computer computer = node == null ? null : node.toComputer();
         if (computer != null) {
             // not all nodes will have a computer

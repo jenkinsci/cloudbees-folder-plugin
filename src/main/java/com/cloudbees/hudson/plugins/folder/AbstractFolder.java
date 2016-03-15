@@ -105,11 +105,11 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
- * A general-purpose {@link ItemGroup}.
- * Base for {@link Folder} and {@link ComputedFolder}.
- * @since 4.11-beta-1
+ * A general-purpose .
+ * Base for  and .
+ 
  */
-@SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
+ // mistakes in various places
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
@@ -120,7 +120,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     private static final AtomicBoolean loadJobTotalRan = new AtomicBoolean();
     private static final int TICK_INTERVAL = 15000;
 
-    @Initializer(before=InitMilestone.JOB_LOADED, fatal=false)
+    
     public static void loadJobTotal() {
         if (!loadJobTotalRan.compareAndSet(false, true)) {
             return; // TODO why does Jenkins run the initializer many times?!
@@ -147,13 +147,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    /** Child items, keyed by {@link Item#getName}. */
+    /** Child items, keyed by . */
     protected transient Map<String,I> items = new CopyOnWriteMap.Tree<String,I>(CaseInsensitiveComparator.INSTANCE);
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
     /**
-     * {@link View}s.
+     * s.
      */
     private /*almost final*/ CopyOnWriteArrayList<View> views;
 
@@ -173,7 +173,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     private FolderIcon icon;
 
-    /** Subclasses should also call {@link #init}. */
+    /** Subclasses should also call . */
     protected AbstractFolder(ItemGroup parent, String name) {
         super(parent, name);
     }
@@ -195,15 +195,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             viewsTabBar = new DefaultViewsTabBar();
         }
         viewGroupMixIn = new ViewGroupMixIn(this) {
-            @Override
+            
             protected List<View> views() {
                 return views;
             }
-            @Override
+            
             protected String primaryView() {
                 return primaryView == null ? views.get(0).getViewName() : primaryView;
             }
-            @Override
+            
             protected void primaryView(String name) {
                 primaryView = name;
             }
@@ -233,12 +233,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         v.save();
     }
 
-    @Override
+    
     public void addAction(Action a) {
         super.getActions().add(a);
     }
 
-    @Override
+    
     public void replaceAction(Action a) {
         // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
         List<Action> old = new ArrayList<Action>(1);
@@ -252,7 +252,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         addAction(a);
     }
 
-    @Override
+    
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
         init();
@@ -270,7 +270,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
 
             items = loadChildren(this, getJobsDir(), new Function1<String,I>() {
-                @Override
+                
                 public String call(I item) {
                     String fullName = item.getFullName();
                     t.setName("Loading job " + fullName);
@@ -291,20 +291,20 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    @Override
+    
     public AbstractFolderDescriptor getDescriptor() {
         return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }
 
     /**
      * May be used to enumerate or remove properties.
-     * To add properties, use {@link #addProperty}.
+     * To add properties, use .
      */
     public DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> getProperties() {
         return properties;
     }
 
-    @SuppressWarnings("rawtypes") // else setOwner will not compile
+     // else setOwner will not compile
     public void addProperty(AbstractFolderProperty p) throws IOException {
         if (!p.getDescriptor().isApplicable(getClass())) {
             throw new IllegalArgumentException(p.getClass().getName() + " cannot be applied to " + getClass().getName());
@@ -313,7 +313,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         properties.add(p);
     }
 
-    /** May be overridden, but {@link #loadJobTotal} will be inaccurate in that case. */
+    /** May be overridden, but  will be inaccurate in that case. */
     protected File getJobsDir() {
         return new File(getRootDir(), "jobs");
     }
@@ -322,25 +322,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return new File(getJobsDir(), name);
     }
 
-    @Override
+    
     public File getRootDirFor(I child) {
         return getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
     }
 
-    @Override
+    
     public String getUrlChildPrefix() {
         return "job";
     }
 
     /**
      * For URL binding.
-     * @see #getUrlChildPrefix
+     
      */
     public I getJob(String name) {
         return getItem(name);
     }
 
-    @Override
+    
     public String getPronoun() {
         return AlternativeUiTextProvider.get(PRONOUN, this, getDescriptor().getDisplayName());
     }
@@ -348,7 +348,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * Overrides from job properties.
      */
-    @Override
+    
     public Collection<?> getOverrides() {
         List<Object> r = new ArrayList<Object>();
         for (AbstractFolderProperty<?> p : properties) {
@@ -357,34 +357,34 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return r;
     }
 
-    @Override
+    
     public void addView(View v) throws IOException {
         viewGroupMixIn.addView(v);
     }
 
-    @Override
+    
     public boolean canDelete(View view) {
         return viewGroupMixIn.canDelete(view);
     }
 
-    @Override
+    
     public void deleteView(View view) throws IOException {
         viewGroupMixIn.deleteView(view);
     }
 
-    @Override
+    
     public View getView(String name) {
         return viewGroupMixIn.getView(name);
     }
 
-    @Exported
-    @Override
+    
+    
     public Collection<View> getViews() {
         return viewGroupMixIn.getViews();
     }
 
-    @Exported
-    @Override
+    
+    
     public View getPrimaryView() {
         return viewGroupMixIn.getPrimaryView();
     }
@@ -393,22 +393,22 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         primaryView = v.getViewName();
     }
 
-    @Override
+    
     public void onViewRenamed(View view, String oldName, String newName) {
         viewGroupMixIn.onViewRenamed(view, oldName, newName);
     }
 
-    @Override
+    
     public ViewsTabBar getViewsTabBar() {
         return viewsTabBar;
     }
 
-    @Override
+    
     public ItemGroup<? extends TopLevelItem> getItemGroup() {
         return this;
     }
 
-    @Override
+    
     public List<Action> getViewActions() {
         return Collections.emptyList();
     }
@@ -416,34 +416,34 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * Fallback to the primary view.
      */
-    @Override
+    
     public View getStaplerFallback() {
         return getPrimaryView();
     }
 
-    @Override
+    
     protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
-            @Override
+            
             protected SearchItem get(String key) {
                 return Jenkins.getActiveInstance().getItem(key, grp());
             }
-            @Override
+            
             protected Collection<TopLevelItem> all() {
                 return Items.getAllItems(grp(), TopLevelItem.class);
             }
-            @Override
+            
             protected String getName(TopLevelItem j) {
                 return j.getRelativeNameFrom(grp());
             }
-            /** Disambiguates calls that otherwise would match {@link Item} too. */
+            /** Disambiguates calls that otherwise would match  too. */
             private ItemGroup<?> grp() {
                 return AbstractFolder.this;
             }
         });
     }
 
-    @Override
+    
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
         ContextMenu menu = new ContextMenu();
         for (View view : getViews()) {
@@ -461,7 +461,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * Checks if a top-level view with the given name exists.
      */
-    public FormValidation doViewExistsCheck(@QueryParameter String value) {
+    public FormValidation doViewExistsCheck(String value) {
         checkPermission(View.CREATE);
 
         String view = fixEmpty(value);
@@ -479,14 +479,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * Get the current health report for a folder.
      *
-     * @return the health report. Never returns null
+     *
      */
     public HealthReport getBuildHealth() {
         List<HealthReport> reports = getBuildHealthReports();
         return reports.isEmpty() ? new HealthReport() : reports.get(0);
     }
 
-    @Exported(name = "healthReport")
+    
     public List<HealthReport> getBuildHealthReports() {
         if (healthMetrics == null || healthMetrics.isEmpty()) {
             return Collections.<HealthReport>emptyList();
@@ -548,7 +548,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return icon;
     }
 
-    @Override
+    
     public Collection<? extends Job> getAllJobs() {
         Set<Job> jobs = new HashSet<Job>();
         for (Item i : getItems()) {
@@ -557,8 +557,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return jobs;
     }
 
-    @Exported(name="jobs")
-    @Override
+    
+    
     public Collection<I> getItems() {
         List<I> viewableItems = new ArrayList<I>();
         for (I item : items.values()) {
@@ -569,7 +569,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return viewableItems;
     }
 
-    @Override
+    
     public I getItem(String name) throws AccessDeniedException {
         if (items == null) {
             return null;
@@ -587,8 +587,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return item;
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
+    
+    
     public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
         items.remove(oldName);
         items.put(newName, (I) item);
@@ -599,8 +599,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         save();
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
+    
+    
     public void onDeleted(TopLevelItem item) throws IOException {
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
@@ -611,7 +611,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         save();
     }
 
-    @Override
+    
     protected void performDelete() throws IOException, InterruptedException {
         // delete individual items first
         // (disregard whether they would be deletable in isolation)
@@ -633,7 +633,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         super.performDelete();
     }
 
-    @Override
+    
     public synchronized void save() throws IOException {
         if (BulkChange.contains(this)) {
             return;
@@ -646,18 +646,18 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * Renames this item container.
      */
-    @Override
+    
     public void renameTo(String newName) throws IOException {
         super.renameTo(newName);
     }
 
-    @Override
+    
     public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
-    @Restricted(NoExternalUse.class)
-    @RequirePOST
+    
+    
     public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         checkPermission(CONFIGURE);
 
@@ -713,8 +713,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
 
     // TODO boilerplate like this should not be necessary: JENKINS-22936
-    @Restricted(DoNotUse.class)
-    @RequirePOST
+    
+    
     public void doDoRename(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
 
         if (!hasPermission(CONFIGURE)) {
@@ -738,9 +738,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Allows a subclass to block renames under dynamic conditions.
-     * @return a message if rename should currently be prohibited, or null to allow
+     *
      */
-    protected @CheckForNull String renameBlocker() {
+    protected String renameBlocker() {
         for (Job<?,?> job : getAllJobs()) {
             if (job.isBuilding()) {
                 return "Unable to rename a folder while a job inside it is building.";

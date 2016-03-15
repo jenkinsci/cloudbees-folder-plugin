@@ -34,33 +34,33 @@ import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
 
 /**
- * Extension point for inserting transient {@link Action}s into {@link Folder}s.
+ * Extension point for inserting transient s into s.
  *
- * Actions contributed to {@link Folder}s by this method are transient &mdash; they will not be persisted,
+ * Actions contributed to s by this method are transient &mdash; they will not be persisted,
  * and each time Nectar starts or the configuration of the job changes, they'll be recreated.
  * Therefore, to maintain persistent data per project, you'll need to do data serialization by yourself.
- * Do so by storing a file under {@link Folder#getRootDir()}.
+ * Do so by storing a file under .
  *
  * <p>
- * To register your implementation, put {@link Extension} on your subtype.
+ * To register your implementation, put  on your subtype.
  *
- * @see Action
- * @deprecated Use {@link TransientActionFactory} on {@link Folder} instead.
+ 
+ 
  */
-@Deprecated
+
 public abstract class TransientFolderActionFactory implements ExtensionPoint {
     /**
      * Creates actions for the given project.
      *
-     * @param target
+     
      *      The project for which the action objects are requested. Never null.
-     * @return
+     
      *      Can be empty but must not be null.
      */
     public abstract Collection<? extends Action> createFor(Folder target);
 
     /**
-     * Returns all the registered {@link TransientFolderActionFactory}s.
+     * Returns all the registered s.
      */
     public static ExtensionList<TransientFolderActionFactory> all() {
         return Jenkins.getActiveInstance().getExtensionList(TransientFolderActionFactory.class);
