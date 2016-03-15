@@ -62,24 +62,24 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.jelly.XMLOutput;
 
 /**
- * A particular “run” of {@link ComputedFolder}.
- * @since 4.11-beta-1
+ * A particular “run” of .
+ 
  */
 public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
 
     private static final Logger LOGGER = Logger.getLogger(FolderComputation.class.getName());
 
     /** The associated folder. */
-    private transient final @Nonnull ComputedFolder<I> folder;
+    private transient final ComputedFolder<I> folder;
 
     /** The previous run, if any. */
-    private transient final @CheckForNull FolderComputation<I> previous;
+    private transient final FolderComputation<I> previous;
 
     /** The result of the build, if finished. */
-    private volatile @CheckForNull Result result;
+    private volatile Result result;
 
     /** The past few durations for purposes of estimation. */
-    private @CheckForNull List<Long> durations;
+    private List<Long> durations;
 
     /** Start time. */
     private long timestamp;
@@ -87,12 +87,12 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     /** Run time. */
     private long duration;
 
-    protected FolderComputation(@Nonnull ComputedFolder<I> folder, @CheckForNull FolderComputation<I> previous) {
+    protected FolderComputation(ComputedFolder<I> folder, FolderComputation<I> previous) {
         this.folder = folder;
         this.previous = previous;
     }
 
-    @Override
+    
     public void run() {
         StreamBuildListener listener;
         try {
@@ -136,7 +136,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
-    @Override
+    
     public void save() throws IOException {
         if (BulkChange.contains(this)) {
             return;
@@ -146,11 +146,11 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         SaveableListener.fireOnChange(this, dataFile);
     }
 
-    public @Nonnull File getLogFile() {
+    public File getLogFile() {
         return new File(folder.getComputationDir(), "computation.log");
     }
 
-    protected @Nonnull XmlFile getDataFile() {
+    protected XmlFile getDataFile() {
         return new XmlFile(Items.XSTREAM, new File(folder.getComputationDir(), "computation.xml"));
     }
 
@@ -162,22 +162,22 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return Collections.unmodifiableList(a.getCauses());
     }
 
-    @Override
+    
     public String getDisplayName() {
         return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
     }
 
-    @Override
+    
     public String getSearchUrl() {
         return "computation/";
     }
 
-    @Override
+    
     public ComputedFolder<I> getParent() {
         return folder;
     }
 
-    @Override
+    
     public long getEstimatedDuration() {
         if (durations == null || durations.isEmpty()) {
             return -1;
@@ -197,7 +197,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return result == null;
     }
 
-    public @Nonnull AnnotatedLargeText<FolderComputation<I>> getLogText() {
+    public AnnotatedLargeText<FolderComputation<I>> getLogText() {
         return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), Charsets.UTF_8, !isLogUpdated(), this);
     }
 
@@ -205,7 +205,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         getLogText().writeHtmlTo(offset, out.asWriter());
     }
 
-    public void writeWholeLogTo(@Nonnull OutputStream out) throws IOException, InterruptedException {
+    public void writeWholeLogTo(OutputStream out) throws IOException, InterruptedException {
         long pos = 0;
         AnnotatedLargeText<?> logText;
         do {
@@ -214,17 +214,17 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         } while (!logText.isComplete());
     }
 
-    public @CheckForNull Result getResult() {
+    public Result getResult() {
         return result;
     }
 
-    public @Nonnull Calendar getTimestamp() {
+    public Calendar getTimestamp() {
         GregorianCalendar c = new GregorianCalendar();
         c.setTimeInMillis(timestamp);
         return c;
     }
 
-    public @Nonnull String getDurationString() {
+    public String getDurationString() {
         if (isBuilding()) {
             return hudson.model.Messages.Run_InProgressDuration(Util.getTimeSpanString(System.currentTimeMillis() - timestamp));
         } else {
@@ -232,15 +232,15 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
-    public @Nonnull String getUrl() {
+    public String getUrl() {
         return folder.getUrl() + "computation/";
     }
 
-    public @CheckForNull Result getPreviousResult() {
+    public Result getPreviousResult() {
         return previous == null ? null : previous.result;
     }
 
-    public @Nonnull BallColor getIconColor() {
+    public BallColor getIconColor() {
         Result _result = result;
         if (_result != null) {
             return _result.color;
@@ -261,7 +261,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     }
 
     /**
-     * Allow other code to override the display name for {@link FolderComputation}.
+     * Allow other code to override the display name for .
      */
     public static final Message<FolderComputation> DISPLAY_NAME = new Message<FolderComputation>();
 }

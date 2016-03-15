@@ -30,8 +30,8 @@ import java.io.IOException;
 import javax.annotation.CheckForNull;
 
 /**
- * Callback for {@link ComputedFolder}.
- * Methods may be called only inside the scope of {@link ComputedFolder#computeChildren}.
+ * Callback for .
+ * Methods may be called only inside the scope of .
  */
 public abstract class ChildObserver<I extends TopLevelItem> {
 
@@ -40,21 +40,21 @@ public abstract class ChildObserver<I extends TopLevelItem> {
 
     /**
      * Checks whether there is an existing child which should be updated.
-     * @param name a proposed {@link Item#getName}
-     * @return the existing child to update, if there is one (in which case go ahead and update it as needed); else null, in which case continue by checking {@link #mayCreate}
+     
+     *
      */
-    public abstract @CheckForNull I shouldUpdate(String name);
+    public abstract I shouldUpdate(String name);
 
     /**
      * Checks whether we may create a new child of the given name.
-     * @param name a proposed {@link Item#getName}
-     * @return true if you may go ahead and call {@link #created} (though you are not obliged to do so); false if you may not
+     
+     *
      */
     public abstract boolean mayCreate(String name);
 
     /**
      * Notify the observer that you did create a new child.
-     * @param child a newly constructed child item; do not call {@link Item#onCreatedFromScratch} and try to avoid calls to {@link Item#save}
+     
      */
     public abstract void created(I child);
 
