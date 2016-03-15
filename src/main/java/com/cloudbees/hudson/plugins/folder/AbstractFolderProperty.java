@@ -39,13 +39,13 @@ import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * Property potentially applicable to any {@link AbstractFolder}.
- * @since 4.11-beta-1
+ * Property potentially applicable to any .
+ 
  */
 public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extends AbstractDescribableImpl<AbstractFolderProperty<?>> implements ExtensionPoint, ReconfigurableDescribable<AbstractFolderProperty<?>> {
 
     /**
-     * The {@link AbstractFolder} object that owns this property.
+     * The  object that owns this property.
      * This value will be set by the folder.
      * Derived classes can expect this value to be always set.
      */
@@ -58,34 +58,34 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
         this.owner = owner;
     }
 
-    @Override
+    
     public AbstractFolderPropertyDescriptor getDescriptor() {
         return (AbstractFolderPropertyDescriptor) super.getDescriptor();
     }
 
     /**
-     * Provides stapler override objects to {@link Folder} so that its URL space can be partially
+     * Provides stapler override objects to  so that its URL space can be partially
      * overridden by properties.
      *
-     * @see StaplerOverridable
+     
      */
     public Collection<?> getItemContainerOverrides() {
         return Collections.emptyList();
     }
 
-    @Override
+    
     public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws Descriptor.FormException {
         return form == null ? null : getDescriptor().newInstance(req, form);
     }
 
     /**
      * Folder properties can optionally contribute health reports for the folder. These should be reports of the folder
-     * directly, where a report requires iteration of the items in the folder use the {@link #getHealthMetrics()}
+     * directly, where a report requires iteration of the items in the folder use the 
      * in order to prevent multiple iterations of the items in the folder.
      *
-     * @return the list of health reports.
+     *
      */
-    @NonNull
+    
     public List<HealthReport> getHealthReports() {
         return Collections.emptyList();
     }
@@ -93,9 +93,9 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
     /**
      * Returns the health metrics contributed by this property.
      *
-     * @return the health metrics contributed by this property.
+     *
      */
-    @NonNull
+    
     public List<FolderHealthMetric> getHealthMetrics() {
         return Collections.emptyList();
     }
