@@ -30,25 +30,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Category of .
- 
+ * Category of {@link AbstractFolder}.
+ * @since 4.11-beta-1
  */
 public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
     
-    
+    @Override
     public String getDisplayName() {
         return Messages.Folder_DisplayName();
     }
 
     /**
-     * Properties that can be configured for this type of  subtype.
+     * Properties that can be configured for this type of {@link AbstractFolder} subtype.
      */
     public List<AbstractFolderPropertyDescriptor> getPropertyDescriptors() {
         return AbstractFolderPropertyDescriptor.getApplicableDescriptors(clazz.asSubclass(AbstractFolder.class));
     }
 
     /**
-     * Health metrics that can be configured for this type of  subtype.
+     * Health metrics that can be configured for this type of {@link AbstractFolder} subtype.
      */
     public List<FolderHealthMetricDescriptor> getHealthMetricDescriptors() {
         List<FolderHealthMetricDescriptor> r = new ArrayList<FolderHealthMetricDescriptor>();

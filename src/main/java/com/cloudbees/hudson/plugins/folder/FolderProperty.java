@@ -38,8 +38,8 @@ public abstract class FolderProperty<C extends Folder> extends AbstractFolderPro
      * Determines if the parent container is allowed to create a new item of the given type, or copy from
      * an existing item of the given type.
      *
-     
-     *
+     * @param candidate The type of the item being considered.
+     * @return false to prevent the container to create the children of the said type.
      */
     public boolean allowsParentToCreate(TopLevelItemDescriptor candidate) {
         return true;
@@ -50,16 +50,16 @@ public abstract class FolderProperty<C extends Folder> extends AbstractFolderPro
     }
 
     /**
-     * s to be displayed in the folder page.
+     * {@link hudson.model.Action}s to be displayed in the folder page.
      * <p>
      * Returning actions from this method allows a folder property to add them
      * to the left navigation bar in the folder page.
      *
-     *
-     
-     
+     * @return can be empty but never null.
+     * @since 3.14
+     * @deprecated Use {@link TransientActionFactory} instead.
      */
-    
+    @NonNull
     public Collection<? extends Action> getFolderActions() {
         return Collections.emptyList();
     }

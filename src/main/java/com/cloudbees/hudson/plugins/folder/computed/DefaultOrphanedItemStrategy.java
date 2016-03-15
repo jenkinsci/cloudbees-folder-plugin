@@ -47,10 +47,10 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * The default .
- * Trims dead items by the # of days or the # of builds much like .
+ * The default {@link OrphanedItemStrategy}.
+ * Trims dead items by the # of days or the # of builds much like {@link LogRotator}.
  *
- 
+ * @author Stephen Connolly
  */
 public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
 
@@ -77,13 +77,13 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     /**
      * Stapler's constructor.
      *
-     
-     
-     
+     * @param pruneDeadBranches remove dead branches.
+     * @param daysToKeepStr     how old a branch must be to remove.
+     * @param numToKeepStr      how many branches to keep.
      */
-    
-    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, String daysToKeepStr,
-                                     String numToKeepStr) {
+    @DataBoundConstructor
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, @CheckForNull String daysToKeepStr,
+                                     @CheckForNull String numToKeepStr) {
         this.pruneDeadBranches = pruneDeadBranches;
         // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
@@ -93,9 +93,9 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     /**
      * Gets the number of days to keep dead branches.
      *
-     *
+     * @return the number of days to keep dead branches.
      */
-     // used by Jelly EL
+    @SuppressWarnings("unused") // used by Jelly EL
     public int getDaysToKeep() {
         return daysToKeep;
     }
@@ -103,19 +103,19 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     /**
      * Gets the number of dead branches to keep.
      *
-     *
+     * @return the number of dead branches to keep.
      */
-     // used by Jelly EL
+    @SuppressWarnings("unused") // used by Jelly EL
     public int getNumToKeep() {
         return numToKeep;
     }
 
     /**
-     * Returns  if dead branches should be removed.
+     * Returns {@code true} if dead branches should be removed.
      *
-     *
+     * @return {@code true} if dead branches should be removed.
      */
-     // used by Jelly EL
+    @SuppressWarnings("unused") // used by Jelly EL
     public boolean isPruneDeadBranches() {
         return pruneDeadBranches;
     }
@@ -123,10 +123,10 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     /**
      * Returns the number of days to keep dead branches.
      *
-     *
+     * @return the number of days to keep dead branches.
      */
-     // used by Jelly EL
-    
+    @SuppressWarnings("unused") // used by Jelly EL
+    @NonNull
     public String getDaysToKeepStr() {
         return toString(daysToKeep);
     }
@@ -134,21 +134,21 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     /**
      * Gets the number of dead branches to keep.
      *
-     *
+     * @return the number of dead branches to keep.
      */
-     // used by Jelly EL
-    
+    @SuppressWarnings("unused") // used by Jelly EL
+    @NonNull
     public String getNumToKeepStr() {
         return toString(numToKeep);
     }
 
     /**
-     * Helper to turn a int into a string where  correspond to the empty string.
+     * Helper to turn a int into a string where {@code -1} correspond to the empty string.
      *
-     
-     *
+     * @param i the possibly {@code null} {@link Integer}
+     * @return the {@link String} representation of the int.
      */
-    
+    @NonNull
     private static String toString(int i) {
         if (i == -1) {
             return "";
@@ -157,12 +157,12 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     }
 
     /**
-     * Inverse of .
+     * Inverse of {@link #toString(int)}.
      *
-     
-     *
+     * @param s the string.
+     * @return the int.
      */
-    private static int fromString(String s) {
+    private static int fromString(@CheckForNull String s) {
         if (StringUtils.isBlank(s)) {
             return -1;
         }
@@ -184,14 +184,14 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         return t;
     }
 
-    
+    @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         List<I> toRemove = new ArrayList<I>();
         LOGGER.log(FINE, "Running the dead item cleanup for {0}", owner.getFullName());
         if (pruneDeadBranches && (numToKeep != -1 || daysToKeep != -1)) {
             List<I> candidates = new ArrayList<I>(orphaned);
             Collections.sort(candidates, new Comparator<I>() {
-                
+                @Override
                 public int compare(I i1, I i2) {
                     // most recent build first
                     long ms1 = lastBuildTime(i1);
@@ -229,16 +229,16 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     }
 
     /**
-     * Our 
+     * Our {@link hudson.model.Descriptor}
      */
-    
-     // instantiated by Jenkins
+    @Extension
+    @SuppressWarnings("unused") // instantiated by Jenkins
     public static class DescriptorImpl extends OrphanedItemStrategyDescriptor {
 
         /**
-         * 
+         * {@inheritDoc}
          */
-        
+        @Override
         public String getDisplayName() {
             return "Default";
         }

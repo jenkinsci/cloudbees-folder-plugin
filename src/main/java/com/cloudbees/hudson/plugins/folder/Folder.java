@@ -72,19 +72,19 @@ import jenkins.model.Jenkins;
 public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModifiableTopLevelItemGroup {
 
     /**
-     
-     
+     * @see #getNewPronoun
+     * @since 4.0
      */
     public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<Folder>();
 
     /**
-     
+     * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
     private transient DescribableList<ListViewColumn, Descriptor<ListViewColumn>> columns;
 
     /**
-     
+     * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
     private transient DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>> filters;
@@ -92,13 +92,13 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     private transient /*final*/ ItemGroupMixIn mixin;
 
     /**
-     * s contributed from subsidiary objects associated with
-     * , such as from properties.
+     * {@link Action}s contributed from subsidiary objects associated with
+     * {@link Folder}, such as from properties.
      * <p>
      * We don't want to persist them separately, and these actions
      * come and go as configuration change, so it's kept separate.
      */
-    
+    @CopyOnWrite
     protected transient volatile List<Action> transientActions = new Vector<Action>();
 
     public Folder(ItemGroup parent, String name) {
@@ -106,19 +106,19 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         init();
     }
 
-    
+    @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
         updateTransientActions();
     }
 
-    
+    @Override
     protected final void init() {
         super.init();
         mixin = new MixInImpl(this);
     }
 
-    
+    @Override
     protected void initViews(List<View> views) throws IOException {
         if (columns != null || filters != null) {
             // we're loading an ancient config
@@ -140,21 +140,21 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
     }
 
-    
+    @Override
     public void onCreatedFromScratch() {
         updateTransientActions();
     }
 
     /**
-     * 
+     * {@inheritDoc}
      * <p>
-     * Note that this method returns a read-only view of s.
+     * Note that this method returns a read-only view of {@link Action}s.
      *
-     
-     
+     * @see TransientFolderActionFactory
+     * @see FolderProperty#getFolderActions
      */
-    
-    
+    @SuppressWarnings("deprecation")
+    @Override
     public synchronized List<Action> getActions() {
         // add all the transient actions, too
         List<Action> actions = new Vector<Action>(super.getActions());
@@ -171,7 +171,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         transientActions = createTransientActions();
     }
 
-    
+    @SuppressWarnings("deprecation")
     protected List<Action> createTransientActions() {
         Vector<Action> ta = new Vector<Action>();
 
@@ -187,14 +187,14 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Used in "New Job" side menu.
-     
+     * @see #NEW_PRONOUN
      */
     public String getNewPronoun() {
         return AlternativeUiTextProvider.get(NEW_PRONOUN, this, Messages.Folder_DefaultPronoun());
     }
 
     /**
-     
+     * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
     public DescribableList<ListViewColumn, Descriptor<ListViewColumn>> getColumns() {
@@ -202,8 +202,8 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
                 ListViewColumn.createDefaultInitialColumnList());
     }
 
-    /*
-    
+    /** @deprecated use {@link #addProperty(AbstractFolderProperty)} instead */
+    @Deprecated
     public void addProperty(FolderProperty<?> p) throws IOException {
         addProperty((AbstractFolderProperty) p);
     }
@@ -211,7 +211,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     /**
      * If copied, copy folder contents.
      */
-    
+    @Override
     public void onCopiedFrom(Item _src) {
         Folder src = (Folder) _src;
         for (TopLevelItem item : src.getItems()) {
@@ -237,7 +237,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return nue;
     }
 
-    public FormValidation doCheckJobName(String value) {
+    public FormValidation doCheckJobName(@QueryParameter String value) {
         // this method can be used to check if a file exists anywhere in the file system,
         // so it should be protected.
         checkPermission(Item.CREATE);
@@ -260,7 +260,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     /**
-     * Copies an existing  to into this folder with a new name.
+     * Copies an existing {@link TopLevelItem} to into this folder with a new name.
      */
     public <T extends TopLevelItem> T copy(T src, String name) throws IOException {
         if (!isAllowedChild(src)) {
@@ -297,14 +297,14 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return mixin.createProject(type, name, notify);
     }
 
-    
+    @Override
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, FormException {
         updateTransientActions();
     }
 
     /**
-     * Items that can be created in this .
-     
+     * Items that can be created in this {@link Folder}.
+     * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
         List<TopLevelItemDescriptor> r = new ArrayList<TopLevelItemDescriptor>();
@@ -331,7 +331,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return tid.isApplicableIn(this);
     }
 
-    /** Historical synonym for . */
+    /** Historical synonym for {@link #canAdd}. */
     public boolean isAllowedChild(TopLevelItem tid) {
         for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
             if (!p.allowsParentToHave(tid)) {
@@ -341,16 +341,16 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return true;
     }
 
-    
+    @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl) super.getDescriptor();
     }
 
-     public boolean canAdd(TopLevelItem item) {
+    @Override public boolean canAdd(TopLevelItem item) {
         return isAllowedChild(item);
     }
 
-     public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
+    @Override public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
         if (!canAdd(item)) {
             throw new IllegalArgumentException();
         }
@@ -361,14 +361,14 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return item;
     }
 
-     public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
+    @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
         items.remove(item.getName());
     }
 
-    
+    @Extension
     public static class DescriptorImpl extends AbstractFolderDescriptor {
 
-        
+        @Override
         public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new Folder(parent, name);
         }
@@ -376,20 +376,20 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         /**
          * Auto-completion for the "copy from" field in the new job page.
          */
-        public AutoCompletionCandidates doAutoCompleteCopyNewItemFrom(final Folder f,
-                                                                      final String value) {
+        public AutoCompletionCandidates doAutoCompleteCopyNewItemFrom(@AncestorInPath final Folder f,
+                                                                      @QueryParameter final String value) {
             // TODO use ofJobNames but filter by isAllowedChild
             final AutoCompletionCandidates r = new AutoCompletionCandidates();
 
             abstract class VisitorImpl extends ItemVisitor {
                 abstract String getPathNameOf(Item i);
 
-                
+                @Override
                 public void onItemGroup(ItemGroup<?> group) {
                     super.onItemGroup(group);
                 }
 
-                
+                @Override
                 public void onItem(Item i) {
                     String name = getPathNameOf(i);
                     if (name.startsWith(value)) {
@@ -433,12 +433,12 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             super(parent, parent);
         }
 
-        
+        @Override
         protected void add(TopLevelItem item) {
             items.put(item.getName(), item);
         }
 
-        
+        @Override
         protected File getRootDirFor(String name) {
             return Folder.this.getRootDirFor(name);
         }

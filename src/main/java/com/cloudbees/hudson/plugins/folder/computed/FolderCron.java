@@ -40,13 +40,13 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- *  analogue for .
- * TODO should introduce a core API defining an  with a  interface
- * (retrofit  and  to extend it, and use it from ).
+ * {@link hudson.triggers.Trigger.Cron} analogue for {@link ComputedFolder}.
+ * TODO should introduce a core API defining an {@link Item} with a {@code public Map<TriggerDescriptor,Trigger<?>> getTriggers()} interface
+ * (retrofit {@link jenkins.model.ParameterizedJobMixIn.ParameterizedJob} and {@link ComputedFolder} to extend it, and use it from {@link hudson.triggers.Trigger.Cron}).
  */
- // instantiated by Jenkins
-
-
+@SuppressWarnings("unused") // instantiated by Jenkins
+@Restricted(NoExternalUse.class)
+@Extension
 public class FolderCron extends PeriodicWork {
 
     private static final Logger LOGGER = Logger.getLogger(FolderCron.class.getName());
@@ -64,10 +64,10 @@ public class FolderCron extends PeriodicWork {
     /**
      * Constructor.
      *
-     
+     * @throws NoSuchFieldException
      */
     // instantiated by Jenkins
-    
+    @SuppressWarnings("unused")
     public FolderCron() throws NoSuchFieldException {
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
@@ -76,22 +76,22 @@ public class FolderCron extends PeriodicWork {
     }
 
     /**
-     * 
+     * {@inheritDoc}
      */
-    
+    @Override
     public long getRecurrencePeriod() {
         return MIN;
     }
 
-    
+    @Override
     public long getInitialDelay() {
         return MIN - (Calendar.getInstance().get(Calendar.SECOND) * 1000);
     }
 
     /**
-     * 
+     * {@inheritDoc}
      */
-    
+    @Override
     public void doRun() {
         while (new Date().getTime() >= cal.getTimeInMillis()) {
             LOGGER.log(Level.FINE, "cron checking {0}", cal.getTime());
