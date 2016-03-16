@@ -24,8 +24,10 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
+import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
+import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.io.IOException;
@@ -42,6 +44,7 @@ import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
 
 public class ComputedFolderTest {
@@ -77,6 +80,34 @@ public class ComputedFolderTest {
             descriptions.put(p.getName(), p.getDescription());
         }
         assertEquals("{A=updated in round #5, B=created in round #5, C=updated in round #5, D=created in round #5}", descriptions.toString());
+    }
+
+    @Issue("JENKINS-25240")
+    @Test
+    public void runningBuild() throws Exception {
+        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        d.kids.addAll(Arrays.asList("A", "B"));
+        d.recompute();
+        d.assertItemNames(1, "A", "B");
+        d.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        FreeStyleBuild b1 = d.getItem("B").scheduleBuild2(0).getStartCondition().get();
+        d.kids.remove("B");
+        d.recompute();
+        d.assertItemNames(2, "A", "B");
+        assertTrue(b1.isBuilding());
+        b1.doStop();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b1));
+        d.recompute();
+        d.assertItemNames(3, "A");
+        FreeStyleBuild a1 = d.getItem("A").scheduleBuild2(0).get();
+        FreeStyleBuild a2 = d.getItem("A").scheduleBuild2(0).get();
+        a1.keepLog(true);
+        d.kids.remove("A");
+        d.recompute();
+        d.assertItemNames(4, "A");
+        a1.keepLog(false);
+        d.recompute();
+        d.assertItemNames(5);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
