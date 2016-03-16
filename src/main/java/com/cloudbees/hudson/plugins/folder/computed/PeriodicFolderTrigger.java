@@ -151,7 +151,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             return Long.toString(TimeUnit2.MILLISECONDS.toMinutes(interval)) + "m";
         }
         if (interval < TimeUnit2.DAYS.toMillis(1)) {
-            return Long.toString(TimeUnit2.MILLISECONDS.toHours(interval)) + "m";
+            return Long.toString(TimeUnit2.MILLISECONDS.toHours(interval)) + "h";
         }
         return Long.toString(TimeUnit2.MILLISECONDS.toDays(interval)) + "d";
     }
