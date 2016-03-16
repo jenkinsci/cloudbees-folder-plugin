@@ -230,7 +230,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     protected void initViews(List<View> views) throws IOException {
         AllView v = new AllView("All", this);
         views.add(v);
-        v.save();
     }
 
     @Override
