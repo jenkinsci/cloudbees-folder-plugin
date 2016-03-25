@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -90,7 +91,7 @@ public class ComputedFolderTest {
         d.recompute();
         d.assertItemNames(1, "A", "B");
         d.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
-        FreeStyleBuild b1 = d.getItem("B").scheduleBuild2(0).getStartCondition().get();
+        FreeStyleBuild b1 = d.getItem("B").scheduleBuild2(0).waitForStart();
         d.kids.remove("B");
         d.recompute();
         d.assertItemNames(2, "A", "B");
@@ -108,6 +109,25 @@ public class ComputedFolderTest {
         a1.keepLog(false);
         d.recompute();
         d.assertItemNames(5);
+    }
+
+    /** Verify that running branch projects are not deleted even after an organization folder reindex. */
+    @Issue("JENKINS-25240")
+    @Test
+    public void runningBuildMeta() throws Exception {
+        SecondOrderComputedFolder org = r.jenkins.createProject(SecondOrderComputedFolder.class, "org");
+        org.metakids.add(Arrays.asList("A", "B"));
+        org.metakids.add(Arrays.asList("C", "D"));
+        org.assertItemNames("A+B", "C+D");
+        FreeStyleProject b = r.jenkins.getItemByFullName("org/A+B/B", FreeStyleProject.class);
+        b.getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        FreeStyleBuild b1 = b.scheduleBuild2(0).waitForStart();
+        org.metakids.remove(0);
+        org.assertItemNames("A+B", "C+D");
+        assertTrue(b1.isBuilding());
+        b1.doStop();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b1));
+        org.assertItemNames("C+D");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -178,6 +198,61 @@ public class ComputedFolderTest {
             @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SampleComputedFolder(parent, name);
+            }
+
+        }
+
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static class SecondOrderComputedFolder extends ComputedFolder<SampleComputedFolder> {
+
+        List<List<String>> metakids = new ArrayList<List<String>>();
+
+        private SecondOrderComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected void computeChildren(ChildObserver<SampleComputedFolder> observer, TaskListener listener) throws IOException, InterruptedException {
+            for (List<String> kids : metakids) {
+                String childName = StringUtils.join(kids, '+');
+                listener.getLogger().println("considering " + childName);
+                SampleComputedFolder d = observer.shouldUpdate(childName);
+                if (d == null) {
+                    if (observer.mayCreate(childName)) {
+                        listener.getLogger().println("creating a child");
+                        d = new SampleComputedFolder(this, childName);
+                        d.kids = kids;
+                        observer.created(d);
+                    } else {
+                        listener.getLogger().println("not allowed to create a child");
+                    }
+                } else {
+                    listener.getLogger().println("left existing child");
+                }
+            }
+
+        }
+
+        void assertItemNames(String... names) throws Exception {
+            scheduleBuild2(0).getFuture().get();
+            getComputation().writeWholeLogTo(System.out);
+            Set<String> actual = new TreeSet<String>();
+            for (SampleComputedFolder d : getItems()) {
+                d.recompute();
+                d.assertItemNames(d.round, d.kids.toArray(new String[0]));
+                actual.add(d.getName());
+            }
+            assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new SecondOrderComputedFolder(parent, name);
             }
 
         }
