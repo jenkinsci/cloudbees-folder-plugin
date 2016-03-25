@@ -102,7 +102,6 @@ public class ComputedFolderTest {
         String log = baos.toString();
         assertTrue(log, log.contains("not adding Z"));
         assertFalse(log, log.contains(SampleComputedFolder.class.getName()));
-        assertTrue(log, log.contains("My Folder"));
     }
 
     @Issue("JENKINS-25240")

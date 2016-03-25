@@ -109,14 +109,15 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             folder.updateChildren(listener);
             _result = Result.SUCCESS;
         } catch (InterruptedException x) {
+            LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " was aborted", x);
             listener.getLogger().println("Aborted");
             _result = Result.ABORTED;
         } catch (Exception x) {
-            String message = "Failed to recompute children of " + folder.getFullDisplayName();
+            LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " failed", x);
             if (x instanceof AbortException) {
-                listener.fatalError(message + ": " + x.getMessage());
+                listener.fatalError(x.getMessage());
             } else {
-                x.printStackTrace(listener.fatalError(message));
+                x.printStackTrace(listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
             }
             _result = Result.FAILURE;
         } finally {
