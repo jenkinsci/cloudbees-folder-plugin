@@ -193,17 +193,17 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             });
             for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
                 I item = iterator.next();
-                if (item instanceof Job) {
+                for (Job<?,?> job : item.getAllJobs()) {
                     // Enumerating all builds is inefficient. But we will most likely delete this job anyway,
                     // which will have a cost proportional to the number of builds just to delete those files.
-                    for (Run<?,?> build : ((Job<?,?>) item).getBuilds()) {
+                    for (Run<?,?> build : job.getBuilds()) {
                         if (build.isBuilding()) {
-                            listener.getLogger().printf("Will not remove %s as build #%d is still in progress%n", item.getDisplayName(), build.getNumber());
+                            listener.getLogger().printf("Will not remove %s as %s is still in progress%n", item.getDisplayName(), build.getFullDisplayName());
                             iterator.remove();
                         }
                         String whyKeepLog = build.getWhyKeepLog();
                         if (whyKeepLog != null) {
-                            listener.getLogger().printf("Will not remove %s as build #%d is marked to not be removed: %s%n", item.getDisplayName(), build.getNumber(), whyKeepLog);
+                            listener.getLogger().printf("Will not remove %s as %s is marked to not be removed: %s%n", item.getDisplayName(), build.getFullDisplayName(), whyKeepLog);
                             iterator.remove();
                         }
                     }
