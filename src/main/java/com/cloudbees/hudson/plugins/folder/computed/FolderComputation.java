@@ -24,11 +24,11 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
-import hudson.model.AbstractItem;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -41,7 +41,6 @@ import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
-import hudson.model.queue.SubTask;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -110,11 +109,16 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             folder.updateChildren(listener);
             _result = Result.SUCCESS;
         } catch (InterruptedException x) {
+            LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " was aborted", x);
             listener.getLogger().println("Aborted");
             _result = Result.ABORTED;
         } catch (Exception x) {
-            // TODO skip stack trace for AbortException
-            x.printStackTrace(listener.fatalError("Failed to recompute children of " + getDisplayName()));
+            LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " failed", x);
+            if (x instanceof AbortException) {
+                listener.fatalError(x.getMessage());
+            } else {
+                x.printStackTrace(listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
+            }
             _result = Result.FAILURE;
         } finally {
             duration = System.currentTimeMillis() - timestamp;

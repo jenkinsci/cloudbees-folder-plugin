@@ -24,12 +24,14 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
+import hudson.AbortException;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,6 +84,26 @@ public class ComputedFolderTest {
         assertEquals("{A=updated in round #5, B=created in round #5, C=updated in round #5, D=created in round #5}", descriptions.toString());
     }
 
+    @Test
+    public void abortException() throws Exception {
+        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        d.setDisplayName("My Folder");
+        d.kids.addAll(Arrays.asList("A", "B"));
+        d.recompute();
+        d.assertItemNames(1, "A", "B");
+        d.kids.add("Z");
+        d.kids.remove("A");
+        d.recompute();
+        d.assertItemNames(2, "A", "B");
+        FolderComputation<FreeStyleProject> computation = d.getComputation();
+        assertEquals(Result.FAILURE, computation.getResult());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        computation.writeWholeLogTo(baos);
+        String log = baos.toString();
+        assertTrue(log, log.contains("not adding Z"));
+        assertFalse(log, log.contains(SampleComputedFolder.class.getName()));
+    }
+
     @Issue("JENKINS-25240")
     @Test
     public void runningBuild() throws Exception {
@@ -127,6 +149,9 @@ public class ComputedFolderTest {
             round++;
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {
+                if (kid.equals("Z")) {
+                    throw new AbortException("not adding Z");
+                }
                 listener.getLogger().println("considering " + kid);
                 FreeStyleProject p = observer.shouldUpdate(kid);
                 if (p == null) {
