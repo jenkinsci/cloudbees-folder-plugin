@@ -130,7 +130,7 @@ public class FolderTest {
     }
 
     private void copyFromGUI(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
-        HtmlPage page = wc.getPage(f, "new");
+        HtmlPage page = wc.getPage(f, "newJob");
         ((HtmlInput)page.getElementById("name")).setValueAttribute(toName);
         HtmlInput fe = (HtmlInput) page.getElementById("from");
         fe.focus();
