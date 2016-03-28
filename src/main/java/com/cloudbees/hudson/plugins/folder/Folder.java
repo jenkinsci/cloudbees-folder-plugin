@@ -28,14 +28,12 @@ import hudson.CopyOnWrite;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Action;
-import hudson.model.AutoCompletionCandidates;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
-import hudson.model.ItemVisitor;
 import hudson.model.Items;
 import hudson.model.ListView;
 import hudson.model.TopLevelItem;
@@ -46,7 +44,6 @@ import hudson.util.DescribableList;
 import hudson.util.FormValidation;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -373,59 +370,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             return new Folder(parent, name);
         }
 
-        /**
-         * Auto-completion for the "copy from" field in the new job page.
-         */
-        public AutoCompletionCandidates doAutoCompleteCopyNewItemFrom(@AncestorInPath final Folder f,
-                                                                      @QueryParameter final String value) {
-            // TODO use ofJobNames but filter by isAllowedChild
-            final AutoCompletionCandidates r = new AutoCompletionCandidates();
-
-            abstract class VisitorImpl extends ItemVisitor {
-                abstract String getPathNameOf(Item i);
-
-                @Override
-                public void onItemGroup(ItemGroup<?> group) {
-                    super.onItemGroup(group);
-                }
-
-                @Override
-                public void onItem(Item i) {
-                    String name = getPathNameOf(i);
-                    if (name.startsWith(value)) {
-                        if (i instanceof TopLevelItem) {
-                            TopLevelItem tli = (TopLevelItem) i;
-                            if (f.isAllowedChild(tli)) {
-                                r.add(name);
-                            }
-                        }
-                    }
-
-                    if (value.startsWith(name)) {
-                        super.onItem(i);
-                    }
-                }
-            }
-
-            // absolute path name "/foo/bar/zot"
-            new VisitorImpl() {
-                String getPathNameOf(Item i) {
-                    return '/' + i.getFullName();
-                }
-            }.walk();
-
-            // relative path name "foo/bar/zot" from this folder
-            // TODO: support ".." notation
-            new VisitorImpl() {
-                String baseName = f.getFullName();
-
-                String getPathNameOf(Item i) {
-                    return i.getFullName().substring(baseName.length() + 1);
-                }
-            }.onItemGroup(f);
-
-            return r;
-        }
     }
 
     private class MixInImpl extends ItemGroupMixIn {
