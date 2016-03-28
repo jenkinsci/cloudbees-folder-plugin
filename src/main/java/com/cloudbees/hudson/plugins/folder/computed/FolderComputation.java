@@ -260,6 +260,11 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return getIconColor().getIconClassName();
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + folder.getFullName() + "]";
+    }
+
     static {
         Items.XSTREAM.alias("folder-computation", FolderComputation.class);
     }
