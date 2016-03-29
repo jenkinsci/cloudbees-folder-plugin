@@ -57,6 +57,7 @@ import javax.annotation.Nonnull;
 
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
+import hudson.util.io.ReopenableRotatingFileOutputStream;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.jelly.XMLOutput;
 
@@ -67,6 +68,10 @@ import org.apache.commons.jelly.XMLOutput;
 public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
 
     private static final Logger LOGGER = Logger.getLogger(FolderComputation.class.getName());
+
+    /** If defined, a number of backup log files to keep. */
+    @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
+    private static @CheckForNull Integer BACKUP_LOG_COUNT = Integer.getInteger(FolderComputation.class.getName() + ".BACKUP_LOG_COUNT");
 
     /** The associated folder. */
     private transient final @Nonnull ComputedFolder<I> folder;
@@ -95,7 +100,15 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     public void run() {
         StreamBuildListener listener;
         try {
-            listener = new StreamBuildListener(new FileOutputStream(getLogFile()), Charsets.UTF_8);
+            File logFile = getLogFile();
+            OutputStream os;
+            if (BACKUP_LOG_COUNT != null) {
+                os = new ReopenableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
+                ((ReopenableRotatingFileOutputStream) os).rewind();
+            } else {
+                os = new FileOutputStream(logFile);
+            }
+            listener = new StreamBuildListener(os, Charsets.UTF_8);
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
             result = Result.FAILURE;
