@@ -30,7 +30,6 @@ import hudson.Util;
 import hudson.model.Action;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
-import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
@@ -41,10 +40,8 @@ import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
-import hudson.util.FormValidation;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -59,7 +56,6 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static hudson.Util.fixEmpty;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 
@@ -232,28 +228,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             throw new IOException("forbidden child type");
         }
         return nue;
-    }
-
-    public FormValidation doCheckJobName(@QueryParameter String value) {
-        // this method can be used to check if a file exists anywhere in the file system,
-        // so it should be protected.
-        checkPermission(Item.CREATE);
-
-        if (fixEmpty(value) == null) {
-            return FormValidation.ok();
-        }
-
-        try {
-            Jenkins.checkGoodName(value);
-            value = value.trim();
-            if (getItem(value) != null) {
-                throw new Failure(hudson.model.Messages.Hudson_JobAlreadyExists(value));
-            }
-
-            return FormValidation.ok();
-        } catch (Failure e) {
-            return FormValidation.error(e.getMessage());
-        }
     }
 
     /**
