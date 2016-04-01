@@ -191,7 +191,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     return (ms2 < ms1) ? -1 : ((ms2 == ms1) ? 0 : 1); // TODO Java 7+: Long.compare(ms2, ms1);
                 }
             });
-            for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
+            CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
                 I item = iterator.next();
                 for (Job<?,?> job : item.getAllJobs()) {
                     // Enumerating all builds is inefficient. But we will most likely delete this job anyway,
@@ -200,11 +200,13 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                         if (build.isBuilding()) {
                             listener.getLogger().printf("Will not remove %s as %s is still in progress%n", item.getDisplayName(), build.getFullDisplayName());
                             iterator.remove();
+                            continue CANDIDATES;
                         }
                         String whyKeepLog = build.getWhyKeepLog();
                         if (whyKeepLog != null) {
                             listener.getLogger().printf("Will not remove %s as %s is marked to not be removed: %s%n", item.getDisplayName(), build.getFullDisplayName(), whyKeepLog);
                             iterator.remove();
+                            continue CANDIDATES;
                         }
                     }
                 }

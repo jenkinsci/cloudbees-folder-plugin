@@ -59,22 +59,22 @@ public class ComputedFolderTest {
     @Test
     public void duplicateEntries() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(1);
         d.kids.addAll(Arrays.asList("A", "B", "A", "C"));
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(2, "A", "B", "C");
         assertEquals("[A, B, C]", d.created.toString());
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(3, "A", "B", "C");
         assertEquals("[A, B, C]", d.created.toString());
         d.kids.remove("B");
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(4, "A", "C");
         assertEquals("[A, B, C]", d.created.toString());
         assertEquals("[B]", d.deleted.toString());
         d.kids.addAll(Arrays.asList("D", "B"));
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(5, "A", "B", "C", "D");
         assertEquals("[A, B, C, D, B]", d.created.toString());
         assertEquals("[B]", d.deleted.toString());
@@ -90,17 +90,13 @@ public class ComputedFolderTest {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.setDisplayName("My Folder");
         d.kids.addAll(Arrays.asList("A", "B"));
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(1, "A", "B");
         d.kids.add("Z");
         d.kids.remove("A");
-        d.recompute();
+        // Despite its name, AbortException is intended to be FAILURE, not ABORTED which would be InterruptedException.
+        String log = d.recompute(Result.FAILURE);
         d.assertItemNames(2, "A", "B");
-        FolderComputation<FreeStyleProject> computation = d.getComputation();
-        assertEquals(Result.FAILURE, computation.getResult());
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        computation.writeWholeLogTo(baos);
-        String log = baos.toString();
         assertTrue(log, log.contains("not adding Z"));
         assertFalse(log, log.contains(SampleComputedFolder.class.getName()));
     }
@@ -110,26 +106,30 @@ public class ComputedFolderTest {
     public void runningBuild() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(1, "A", "B");
         d.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        d.getItem("B").setConcurrentBuild(true);
         FreeStyleBuild b1 = d.getItem("B").scheduleBuild2(0).waitForStart();
+        FreeStyleBuild b2 = d.getItem("B").scheduleBuild2(0).waitForStart();
         d.kids.remove("B");
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(2, "A", "B");
-        assertTrue(b1.isBuilding());
-        b1.doStop();
-        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b1));
-        d.recompute();
+        for (FreeStyleBuild b : new FreeStyleBuild[] {b1, b2}) {
+            assertTrue(b.isBuilding());
+            b.doStop();
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        }
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(3, "A");
         FreeStyleBuild a1 = d.getItem("A").scheduleBuild2(0).get();
         FreeStyleBuild a2 = d.getItem("A").scheduleBuild2(0).get();
         a1.keepLog(true);
         d.kids.remove("A");
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(4, "A");
         a1.keepLog(false);
-        d.recompute();
+        d.recompute(Result.SUCCESS);
         d.assertItemNames(5);
     }
 
@@ -203,9 +203,8 @@ public class ComputedFolderTest {
             return deleting;
         }
 
-        void recompute() throws Exception {
-            scheduleBuild2(0).getFuture().get();
-            getComputation().writeWholeLogTo(System.out);
+        String recompute(Result result) throws Exception {
+            return doRecompute(this, result);
         }
 
         void assertItemNames(int round, String... names) {
@@ -227,6 +226,16 @@ public class ComputedFolderTest {
 
         }
 
+    }
+
+    private static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
+        d.scheduleBuild2(0).getFuture().get();
+        FolderComputation<?> computation = d.getComputation();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        computation.writeWholeLogTo(baos);
+        String log = baos.toString();
+        assertEquals(log, result, computation.getResult());
+        return log;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -260,16 +269,16 @@ public class ComputedFolderTest {
 
         }
 
-        void assertItemNames(String... names) throws Exception {
-            scheduleBuild2(0).getFuture().get();
-            getComputation().writeWholeLogTo(System.out);
+        String assertItemNames(String... names) throws Exception {
+            String log = doRecompute(this, Result.SUCCESS);
             Set<String> actual = new TreeSet<String>();
             for (SampleComputedFolder d : getItems()) {
-                d.recompute();
+                d.recompute(Result.SUCCESS);
                 d.assertItemNames(d.round, d.kids.toArray(new String[0]));
                 actual.add(d.getName());
             }
             assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+            return log;
         }
 
         @TestExtension
