@@ -40,8 +40,8 @@ import org.kohsuke.stapler.StaplerRequest;
 
     @Override public boolean filter(Object context, Descriptor descriptor) {
         StaplerRequest req = Stapler.getCurrentRequest();
-        // View/newJob.jelly for 1.x, View.doCategories for 2.x
-        if (req == null || !req.getRequestURI().matches(".*/(newJob|categories)")) {
+        // View/newJob.jelly for 1.x, View.doItemCategories for 2.x
+        if (req == null || !req.getRequestURI().matches(".*/(newJob|itemCategories)")) {
             return true;
         }
         if (!(descriptor instanceof TopLevelItemDescriptor)) {
