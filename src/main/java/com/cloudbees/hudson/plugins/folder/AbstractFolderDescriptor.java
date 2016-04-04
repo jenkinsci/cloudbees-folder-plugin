@@ -41,6 +41,40 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
     }
 
     /**
+     * Needed if it wants Folders are categorized in Jenkins 2.x.
+     *
+     * TODO: Override when the baseline is upgraded to 2.x
+     * TODO: Replace to {@code NestedProjectsCategory.ID}
+     *
+     * @return A string it represents a ItemCategory identifier.
+     */
+    public String getCategoryId() {
+        return "nestedprojects";
+    }
+
+    /**
+     * Needed if it wants Folders are categorized in Jenkins 2.x.
+     *
+     * TODO: Override when the baseline is upgraded to 2.x
+     *
+     * @return A string with the Item description.
+     */
+    public String getDescription() {
+        return Messages.Folder_Description();
+    }
+
+    /**
+     * Needed if it wants Folder are categorized in Jenkins 2.x.
+     *
+     * TODO: Override when the baseline is upgraded to 2.x
+     *
+     * @return A string it represents a URL pattern to get the Item icon in different sizes.
+     */
+    public String getIconFilePathPattern() {
+        return "plugin/cloudbees-folder/images/:size/folder.png";
+    }
+
+    /**
      * Properties that can be configured for this type of {@link AbstractFolder} subtype.
      */
     public List<AbstractFolderPropertyDescriptor> getPropertyDescriptors() {

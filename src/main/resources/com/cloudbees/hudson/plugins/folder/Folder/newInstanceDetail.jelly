@@ -23,5 +23,5 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <div>
-  ${%body}
+  <j:out value="${it.description}"/>
 </div>
