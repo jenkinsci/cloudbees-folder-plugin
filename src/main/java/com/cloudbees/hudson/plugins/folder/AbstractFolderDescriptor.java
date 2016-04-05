@@ -41,6 +41,18 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
     }
 
     /**
+     * Needed if it wants AbstractFolderDescriptor implementations are categorized in Jenkins 2.x.
+     *
+     * TODO: Override when the baseline is upgraded to 2.x
+     * TODO: Replace to {@code NestedProjectsCategory.ID}
+     *
+     * @return A string it represents a ItemCategory identifier.
+     */
+    public String getCategoryId() {
+        return "nestedprojects";
+    }
+
+    /**
      * Properties that can be configured for this type of {@link AbstractFolder} subtype.
      */
     public List<AbstractFolderPropertyDescriptor> getPropertyDescriptors() {

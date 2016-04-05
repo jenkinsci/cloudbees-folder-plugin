@@ -343,18 +343,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
          * Needed if it wants Folders are categorized in Jenkins 2.x.
          *
          * TODO: Override when the baseline is upgraded to 2.x
-         * TODO: Replace to {@code NestedProjectsCategory.ID}
-         *
-         * @return A string it represents a ItemCategory identifier.
-         */
-        public String getCategoryId() {
-            return "nestedprojects";
-        }
-
-        /**
-         * Needed if it wants Folders are categorized in Jenkins 2.x.
-         *
-         * TODO: Override when the baseline is upgraded to 2.x
          *
          * @return A string with the Item description.
          */
