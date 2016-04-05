@@ -49,7 +49,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
      * @return A string it represents a ItemCategory identifier.
      */
     public String getCategoryId() {
-        return "nestedprojects";
+        return "nested-projects";
     }
 
     /**
