@@ -54,7 +54,7 @@ public class StandardHandlerTest {
             grant(Item.CREATE).onItems(d2).to("joe"));
         SecurityContext sc = ACL.impersonate(User.get("joe").impersonate());
         try {
-            assertEquals(Arrays.asList(/* only because we are already here */d1, d2), new StandardHandler().validDestinations(j));
+            assertEquals(Arrays.asList(d2), new StandardHandler().validDestinations(j));
             assertEquals(Arrays.asList(/* ditto */r.jenkins, d2), new StandardHandler().validDestinations(d1));
         } finally {
             SecurityContextHolder.setContext(sc);

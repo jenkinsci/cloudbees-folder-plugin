@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Item;
@@ -87,9 +88,17 @@ import org.kohsuke.stapler.HttpResponses;
                 ItemGroup<?> p = itemGroup;
                 while (p instanceof Item) {
                     Item i = (Item) p;
-                    if (i == item) {
+                    if (i == item || i == item.getParent()) {
                         // Cannot move a folder into itself or a descendant.
+                        // Cannot move an item into the same path where it is
                         continue ITEM;
+                    }
+                    if (i instanceof Folder) {
+                        Folder folder = (Folder) i;
+                        if (folder.getItem(item.getName()) != null) {
+                            // Cannot move an item into a Folder if there is already an item with the same name
+                            continue ITEM;
+                        }
                     }
                     p = i.getParent();
                 }
