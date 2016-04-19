@@ -81,6 +81,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -707,13 +708,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /**
-     * Where user will be redirected after creating a {@code AbstractFolder}.
+     * Where user will be redirected after creating or reconfiguring a {@code AbstractFolder}.
      *
      * @return A string that represents the redirect location URL.
      *
      * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
      */
-    protected String getSuccessfulDestination() {
+    @Restricted(NoExternalUse.class)
+    protected @Nonnull String getSuccessfulDestination() {
         return ".";
     }
 
