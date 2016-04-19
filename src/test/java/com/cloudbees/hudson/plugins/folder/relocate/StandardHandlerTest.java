@@ -61,4 +61,28 @@ public class StandardHandlerTest {
         }
     }
 
+    @Test public void getDestinationsWithSubfolders() throws Exception {
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1"); // where we start
+        Folder d11 = d1.createProject(Folder.class, "d11"); // where we could go
+        FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
+        Folder d2 = r.jenkins.createProject(Folder.class, "d2"); // where we could go
+        Folder d3 = r.jenkins.createProject(Folder.class, "d3"); // where we could go
+        Folder d31 = d3.createProject(Folder.class, "d31"); // where we could go
+
+        assertEquals(Arrays.asList(r.jenkins, d11, d2, d3, d31), new StandardHandler().validDestinations(j));
+    }
+
+    @Test public void getDestinationsWithJobsWithSameName() throws Exception {
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1"); // where we start
+        Folder d11 = d1.createProject(Folder.class, "d11"); // where we could go
+        FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
+        Folder d2 = r.jenkins.createProject(Folder.class, "d2"); // where we could go
+        FreeStyleProject g = d2.createProject(FreeStyleProject.class, "j");
+        Folder d3 = r.jenkins.createProject(Folder.class, "d3"); // where we cannot
+        Folder d31 = d3.createProject(Folder.class, "d31"); // where we cannot
+
+
+        assertEquals(Arrays.asList(r.jenkins, d11, d3, d31), new StandardHandler().validDestinations(j));
+    }
+
 }
