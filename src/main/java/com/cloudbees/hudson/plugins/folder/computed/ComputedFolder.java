@@ -26,6 +26,7 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.XmlFile;
 import hudson.model.Action;
@@ -100,6 +101,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private transient @Nonnull FolderComputation<I> computation;
 
+    @SuppressFBWarnings(value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     protected ComputedFolder(ItemGroup parent, String name) {
         super(parent, name);
         init();

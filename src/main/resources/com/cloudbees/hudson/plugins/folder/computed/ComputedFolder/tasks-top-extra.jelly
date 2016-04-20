@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright 2013-2015 CloudBees.
+Copyright 2013-2016 CloudBees, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,10 @@ THE SOFTWARE.
 
     <j:set var="computation" value="${it.computation}"/>
 
-    <l:task icon="images/24x24/notepad.png" href="${computation.url}" title="${computation.displayName}">
-        <j:if test="${h.hasPermission(it,it.BUILD) and it.buildable}">
-            <l:task icon="images/24x24/clock.png" href="${computation.url}build?delay=0" post="true" title="${%Run Now}"/>
+    <l:task icon="images/24x24/notepad.png" href="${rootURL}/${computation.url}" title="${computation.displayName}">
+        <j:if test="${h.hasPermission(it, it.BUILD) and it.buildable}">
+            <l:task icon="images/24x24/clock.png" href="${rootURL}/${it.url}build?delay=0" post="true" title="${%Run Now}"/>
         </j:if>
-        <l:task icon="images/24x24/terminal.png" href="${computation.url}console" title="${%Log}"/>
+        <l:task icon="images/24x24/terminal.png" href="${rootURL}/${computation.url}console" title="${%Log}"/>
     </l:task>
 </j:jelly>
