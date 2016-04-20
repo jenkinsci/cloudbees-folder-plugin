@@ -30,10 +30,10 @@ THE SOFTWARE.
     <j:if test="${computation != null}">
         <j:set var="title" value="${computation.displayName}"/>
     </j:if>
-    <l:task icon="images/24x24/notepad.png" href="${url}/computation/" title="${title}">
+    <l:task icon="images/24x24/notepad.png" href="${computation.getUrl()}" title="${title}">
         <j:if test="${h.hasPermission(it,it.BUILD) and it.buildable}">
-            <l:task icon="images/24x24/clock.png" href="${url}/build?delay=0" post="true" title="${%Run Now}"/>
+            <l:task icon="images/24x24/clock.png" href="${computation.getUrl()}build?delay=0" post="true" title="${%Run Now}"/>
         </j:if>
-        <l:task icon="images/24x24/terminal.png" href="${url}/computation/console" title="${%Log}"/>
+        <l:task icon="images/24x24/terminal.png" href="${computation.getUrl()}console" title="${%Log}"/>
     </l:task>
 </j:jelly>
