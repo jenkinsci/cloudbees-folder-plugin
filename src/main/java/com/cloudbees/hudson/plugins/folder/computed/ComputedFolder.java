@@ -98,7 +98,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
     // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
-    private transient @CheckForNull FolderComputation<I> computation;
+    private transient @Nonnull FolderComputation<I> computation;
 
     protected ComputedFolder(ItemGroup parent, String name) {
         super(parent, name);
@@ -319,8 +319,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     @Override
     public CauseOfBlockage getCauseOfBlockage() {
-        final FolderComputation<I> c = computation;
-        if (c != null && c.isBuilding()) {
+        if (computation.isBuilding()) {
             return CauseOfBlockage.fromMessage(Messages._ComputedFolder_already_computing());
         }
         return null;
@@ -372,7 +371,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     @Override
     public long getEstimatedDuration() {
-        return computation == null ? -1 : computation.getEstimatedDuration();
+        return computation.getEstimatedDuration();
     }
 
     @Override
@@ -405,15 +404,17 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return new File(getRootDir(), "computation");
     }
 
-    /** URL binding and other purposes. */
-    public @CheckForNull FolderComputation<I> getComputation() {
+    /**
+     * URL binding and other purposes.
+     * It may be null temporarily inside the constructor, so beware if you extend this class.
+     */
+    public @Nonnull FolderComputation<I> getComputation() {
         return computation;
     }
 
     @Override
     protected String renameBlocker() {
-        FolderComputation<I> comp = getComputation();
-        if (comp != null && comp.isBuilding()) {
+        if (computation.isBuilding()) {
             return "Recomputation is currently in progress";
         }
         return super.renameBlocker();
