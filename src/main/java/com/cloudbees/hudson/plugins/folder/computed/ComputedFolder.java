@@ -239,11 +239,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     @Override
     protected @Nonnull String getSuccessfulDestination() {
-        FolderComputation<I> computation = getComputation();
-        if (computation != null) {
-            return computation.getSearchUrl() + "console";
-        }
-        return super.getSuccessfulDestination();
+        return computation.getSearchUrl() + "console";
     }
 
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
