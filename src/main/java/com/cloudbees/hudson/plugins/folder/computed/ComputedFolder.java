@@ -75,6 +75,7 @@ import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
@@ -234,6 +235,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         for (Trigger t : triggers) {
             t.start(this, true);
         }
+    }
+
+    @Override
+    protected @Nonnull String getSuccessfulDestination() {
+        return computation.getSearchUrl() + "console";
     }
 
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {

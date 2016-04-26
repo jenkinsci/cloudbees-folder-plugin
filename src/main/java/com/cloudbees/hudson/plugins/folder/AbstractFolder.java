@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 CloudBees, Inc.
+ * Copyright 2015-2016 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,9 +40,6 @@ import hudson.model.AllView;
 import hudson.model.Descriptor;
 import hudson.model.HealthReport;
 import hudson.model.Item;
-import static hudson.model.Item.CONFIGURE;
-import static hudson.model.Item.CREATE;
-import static hudson.model.Item.DELETE;
 import hudson.model.ItemGroup;
 import static hudson.model.ItemGroupMixIn.loadChildren;
 import hudson.model.Items;
@@ -84,6 +81,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -705,8 +703,20 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             if (namingStrategy.isForceExistingJobs()) {
                 namingStrategy.checkName(name);
             }
-            FormApply.success(".").generateResponse(req, rsp, this);
+            FormApply.success(getSuccessfulDestination()).generateResponse(req, rsp, this);
         }
+    }
+
+    /**
+     * Where user will be redirected after creating or reconfiguring a {@code AbstractFolder}.
+     *
+     * @return A string that represents the redirect location URL.
+     *
+     * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
+     */
+    @Restricted(NoExternalUse.class)
+    protected @Nonnull String getSuccessfulDestination() {
+        return ".";
     }
 
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
