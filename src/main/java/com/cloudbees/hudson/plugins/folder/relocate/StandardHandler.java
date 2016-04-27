@@ -51,7 +51,7 @@ import org.kohsuke.stapler.HttpResponses;
 @Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
 
     public HandlingMode applicability(Item item) {
-        if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup) {
+        if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup && !validDestinations(item).isEmpty()) {
             return HandlingMode.HANDLE;
         } else {
             return HandlingMode.SKIP;
