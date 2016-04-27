@@ -76,7 +76,7 @@ import org.kohsuke.stapler.HttpResponses;
     @Override public List<? extends ItemGroup<?>> validDestinations(Item item) {
         List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<DirectlyModifiableTopLevelItemGroup>();
         Jenkins instance = Jenkins.getActiveInstance();
-        if (permitted(item, instance)) {
+        if (permitted(item, instance) && instance.getItem(item.getName()) == null) {
             result.add(instance);
         }
         ITEM: for (Item g : instance.getAllItems()) {
@@ -97,6 +97,17 @@ import org.kohsuke.stapler.HttpResponses;
                     if (folder.getItem(item.getName()) != null) {
                         // Cannot move an item into a Folder if there is already an item with the same name
                         continue ITEM;
+                    }
+                }
+                // Cannot move d1/ into say d1/d2/d3/
+                ItemGroup itemGroupSubElement = i.getParent();
+                while (itemGroupSubElement != instance) {
+                    if (itemGroupSubElement instanceof Folder) {
+                        Folder currentFolder = (Folder)itemGroupSubElement;
+                        if (item == currentFolder) {
+                            continue ITEM;
+                        }
+                        itemGroupSubElement = currentFolder.getParent();
                     }
                 }
                 result.add(itemGroup);
