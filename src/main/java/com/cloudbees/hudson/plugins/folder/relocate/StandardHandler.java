@@ -89,7 +89,6 @@ import org.kohsuke.stapler.HttpResponses;
                     continue;
                 }
                 ItemGroup<?> p = itemGroup;
-
                 if (p instanceof Item) {
                     Item i = (Item) p;
                     // Cannot move a folder into itself or a descendant
