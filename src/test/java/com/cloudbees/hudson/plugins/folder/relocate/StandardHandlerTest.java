@@ -54,11 +54,11 @@ public class StandardHandlerTest {
             grant(Item.CREATE).onItems(d2).to("joe"));
         SecurityContext sc = ACL.impersonate(User.get("joe").impersonate());
         try {
-            assertEquals(Arrays.asList(d2), new StandardHandler().validDestinations(j));
-            assertEquals(Arrays.asList(d2), new StandardHandler().validDestinations(d1));
+            assertEquals(Arrays.asList(d1, d2), new StandardHandler().validDestinations(j));
+            assertEquals(Arrays.asList(r.jenkins, d2), new StandardHandler().validDestinations(d1));
 
-            assertNotEquals(Arrays.asList(r.jenkins, j, d1, d3), new StandardHandler().validDestinations(j));
-            assertNotEquals(Arrays.asList(r.jenkins, j, d1, d3), new StandardHandler().validDestinations(d1));
+            assertNotEquals(Arrays.asList(r.jenkins, d3), new StandardHandler().validDestinations(j));
+            assertNotEquals(Arrays.asList(d1, d3), new StandardHandler().validDestinations(d1));
         } finally {
             SecurityContextHolder.setContext(sc);
         }
@@ -72,11 +72,10 @@ public class StandardHandlerTest {
         Folder d3 = r.jenkins.createProject(Folder.class, "d3");
         Folder d31 = d3.createProject(Folder.class, "d31");
 
-        assertEquals(Arrays.asList(r.jenkins, d11, d2, d3, d31), new StandardHandler().validDestinations(j));
-        assertEquals(Arrays.asList(r.jenkins, d2, d3, d31), new StandardHandler().validDestinations(d11));
+        assertEquals(Arrays.asList(r.jenkins, d1, d11, d2, d3, d31), new StandardHandler().validDestinations(j));
+        assertEquals(Arrays.asList(r.jenkins, d1, d2, d3, d31), new StandardHandler().validDestinations(d11));
 
-        assertNotEquals(d1, new StandardHandler().validDestinations(j));
-        assertNotEquals(Arrays.asList(d1, d11), new StandardHandler().validDestinations(d11));
+        assertNotEquals(d11, new StandardHandler().validDestinations(d11));
     }
 
     @Test public void getDestinationsUsingItemsWithSameName() throws Exception {
@@ -88,11 +87,11 @@ public class StandardHandlerTest {
         Folder d3 = r.jenkins.createProject(Folder.class, "d3");
         Folder d31 = d3.createProject(Folder.class, "d11");
 
-        assertEquals(Arrays.asList(r.jenkins, d11, d3, d31), new StandardHandler().validDestinations(j));
-        assertEquals(Arrays.asList(r.jenkins, d2, d31), new StandardHandler().validDestinations(d11));
+        assertEquals(Arrays.asList(r.jenkins, d1, d11, d3, d31), new StandardHandler().validDestinations(j));
+        assertEquals(Arrays.asList(r.jenkins, d1, d2, d31), new StandardHandler().validDestinations(d11));
 
-        assertNotEquals(Arrays.asList(d1, d2), new StandardHandler().validDestinations(j));
-        assertNotEquals(Arrays.asList(d1, d11, j, g, d3), new StandardHandler().validDestinations(d11));
+        assertNotEquals(d2, new StandardHandler().validDestinations(j));
+        assertNotEquals(Arrays.asList(d11, d3), new StandardHandler().validDestinations(d11));
     }
 
     @Test public void getDestinationsUsingItemsWithSameNameOnRootContext() throws Exception {
@@ -104,11 +103,11 @@ public class StandardHandlerTest {
         Folder d3 = r.jenkins.createProject(Folder.class, "d3");
         Folder d31 = d3.createProject(Folder.class, "d11");
 
-        assertEquals(Arrays.asList(d1, d11, d3, d31), new StandardHandler().validDestinations(j));
-        assertEquals(Arrays.asList(r.jenkins, d2, d31), new StandardHandler().validDestinations(d11));
+        assertEquals(Arrays.asList(r.jenkins, d1, d11, d3, d31), new StandardHandler().validDestinations(j));
+        assertEquals(Arrays.asList(r.jenkins, d1, d2, d31), new StandardHandler().validDestinations(d11));
 
-        assertNotEquals(Arrays.asList(g, j, r.jenkins, d2), new StandardHandler().validDestinations(j));
-        assertNotEquals(Arrays.asList(g, j, d1, d3), new StandardHandler().validDestinations(d11));
+        assertNotEquals(d2, new StandardHandler().validDestinations(j));
+        assertNotEquals(d3, new StandardHandler().validDestinations(d11));
     }
 
     @Test public void getDestinationsMovingAParentFolderInToTheTree() throws Exception {
@@ -117,8 +116,8 @@ public class StandardHandlerTest {
         Folder d12 = d11.createProject(Folder.class, "d3");
         Folder d4 = r.jenkins.createProject(Folder.class, "d4");
 
-        assertEquals(Arrays.asList(d4), new StandardHandler().validDestinations(d1));
-        assertNotEquals(Arrays.asList(r.jenkins, d1, d11, d12), new StandardHandler().validDestinations(d1));
+        assertEquals(Arrays.asList(r.jenkins, d4), new StandardHandler().validDestinations(d1));
+        assertNotEquals(Arrays.asList(d11, d12), new StandardHandler().validDestinations(d1));
     }
 
 }
