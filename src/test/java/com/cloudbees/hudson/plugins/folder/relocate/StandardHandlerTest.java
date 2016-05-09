@@ -54,11 +54,70 @@ public class StandardHandlerTest {
             grant(Item.CREATE).onItems(d2).to("joe"));
         SecurityContext sc = ACL.impersonate(User.get("joe").impersonate());
         try {
-            assertEquals(Arrays.asList(/* only because we are already here */d1, d2), new StandardHandler().validDestinations(j));
-            assertEquals(Arrays.asList(/* ditto */r.jenkins, d2), new StandardHandler().validDestinations(d1));
+            assertEquals(Arrays.asList(d1, d2), new StandardHandler().validDestinations(j));
+            assertEquals(Arrays.asList(r.jenkins, d2), new StandardHandler().validDestinations(d1));
+
+            assertNotEquals(Arrays.asList(r.jenkins, d3), new StandardHandler().validDestinations(j));
+            assertNotEquals(Arrays.asList(d1, d3), new StandardHandler().validDestinations(d1));
         } finally {
             SecurityContextHolder.setContext(sc);
         }
+    }
+
+    @Test public void getDestinationsUsingSubfolders() throws Exception {
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1");
+        Folder d11 = d1.createProject(Folder.class, "d11");
+        FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
+        Folder d2 = r.jenkins.createProject(Folder.class, "d2");
+        Folder d3 = r.jenkins.createProject(Folder.class, "d3");
+        Folder d31 = d3.createProject(Folder.class, "d31");
+
+        assertEquals(Arrays.asList(r.jenkins, d1, d11, d2, d3, d31), new StandardHandler().validDestinations(j));
+        assertEquals(Arrays.asList(r.jenkins, d1, d2, d3, d31), new StandardHandler().validDestinations(d11));
+
+        assertNotEquals(d11, new StandardHandler().validDestinations(d11));
+    }
+
+    @Test public void getDestinationsUsingItemsWithSameName() throws Exception {
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1");
+        Folder d11 = d1.createProject(Folder.class, "d11");
+        FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
+        Folder d2 = r.jenkins.createProject(Folder.class, "d2");
+        FreeStyleProject g = d2.createProject(FreeStyleProject.class, "j");
+        Folder d3 = r.jenkins.createProject(Folder.class, "d3");
+        Folder d31 = d3.createProject(Folder.class, "d11");
+
+        assertEquals(Arrays.asList(r.jenkins, d1, d11, d3, d31), new StandardHandler().validDestinations(j));
+        assertEquals(Arrays.asList(r.jenkins, d1, d2, d31), new StandardHandler().validDestinations(d11));
+
+        assertNotEquals(d2, new StandardHandler().validDestinations(j));
+        assertNotEquals(Arrays.asList(d11, d3), new StandardHandler().validDestinations(d11));
+    }
+
+    @Test public void getDestinationsUsingItemsWithSameNameOnRootContext() throws Exception {
+        FreeStyleProject j = r.jenkins.createProject(FreeStyleProject.class, "j");
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1");
+        Folder d11 = d1.createProject(Folder.class, "d11");
+        Folder d2 = r.jenkins.createProject(Folder.class, "d2");
+        FreeStyleProject g = d2.createProject(FreeStyleProject.class, "j");
+        Folder d3 = r.jenkins.createProject(Folder.class, "d3");
+        Folder d31 = d3.createProject(Folder.class, "d11");
+
+        assertEquals(Arrays.asList(r.jenkins, d1, d11, d3, d31), new StandardHandler().validDestinations(j));
+        assertEquals(Arrays.asList(r.jenkins, d1, d2, d31), new StandardHandler().validDestinations(d11));
+
+        assertNotEquals(d2, new StandardHandler().validDestinations(j));
+        assertNotEquals(d3, new StandardHandler().validDestinations(d11));
+    }
+
+    @Test public void getDestinationsMovingAParentFolderInToTheTree() throws Exception {
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1");
+        Folder d11 = d1.createProject(Folder.class, "d2");
+        Folder d12 = d11.createProject(Folder.class, "d3");
+        Folder d4 = r.jenkins.createProject(Folder.class, "d4");
+
+        assertEquals(Arrays.asList(r.jenkins, d4), new StandardHandler().validDestinations(d1));
+        assertNotEquals(Arrays.asList(d11, d12), new StandardHandler().validDestinations(d1));
     }
 
 }
