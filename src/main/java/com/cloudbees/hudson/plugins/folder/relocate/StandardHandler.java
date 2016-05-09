@@ -79,7 +79,7 @@ import org.kohsuke.stapler.HttpResponses;
         // ROOT context is only added in case there is not any item with the same name
         // But we add it in case the one is there is the item itself and not a different job with the same name
         // No-op by default
-        if (permitted(item, instance) && (instance.getItem(item.getName()) == null) || instance.getItem(item.getName())==item) {
+        if (permitted(item, instance) && (instance.getItem(item.getName()) == null) || instance.getItem(item.getName()) == item) {
             result.add(instance);
         }
         ITEM: for (Item g : instance.getAllItems()) {
