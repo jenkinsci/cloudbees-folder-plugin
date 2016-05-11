@@ -75,7 +75,6 @@ import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
@@ -95,7 +94,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
 
-    private /*almost final*/ OrphanedItemStrategy orphanedItemStrategy;
+    private OrphanedItemStrategy orphanedItemStrategy;
 
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
     // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
@@ -141,6 +140,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
+    }
+
+    public void setOrphanedItemStrategy(@Nonnull OrphanedItemStrategy strategy) {
+        this.orphanedItemStrategy = strategy;
     }
 
     /**
