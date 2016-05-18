@@ -137,6 +137,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    //@Override // TODO uncomment once depending on credentials-2.0
+    public String getIconClassName() {
+        return "icon-credentials-folder-store";
+    }
+
     public static class FolderCredentialsProperty extends AbstractFolderProperty<AbstractFolder<?>> {
 
         /**
@@ -415,7 +423,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"}) // erasure
-        @Extension(optional = true)
+        @Extension(optional = true,ordinal = -1001)
         public static class ActionFactory extends TransientActionFactory<AbstractFolder> {
             @Override
             public Class<AbstractFolder> type() {
@@ -430,6 +438,25 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                         @Override
                         public CredentialsStore getStore() {
                             return prop.getStore();
+                        }
+
+                        @Override
+                        public String getIconFileName() {
+                            return isVisible()
+                                    ? "/plugin/credentials/images/48x48/folder-store.png"
+                                    : null;
+                        }
+
+                        //@Override TODO uncomment once credentials 2.0+
+                        public String getIconClassName() {
+                            return isVisible()
+                                    ? "icon-credentials-folder-store"
+                                    : null;
+                        }
+
+                        @Override
+                        public String getDisplayName() {
+                            return "Folder Credentials";
                         }
                     });
                 } else {
