@@ -610,6 +610,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public void delete() throws IOException, InterruptedException {
+        // Some parts copied from AbstractItem.
         checkPermission(DELETE);
         // delete individual items first
         // (disregard whether they would be deletable in isolation)
@@ -634,7 +635,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             performDelete();
         }
         getParent().onDeleted(AbstractFolder.this);
-        Jenkins.getInstance().rebuildDependencyGraphAsync();
+        Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }
 
     @Override
