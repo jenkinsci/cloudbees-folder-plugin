@@ -28,12 +28,14 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlRadioButtonInput;
+import hudson.model.Actionable;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.ListView;
 import hudson.model.User;
+import hudson.model.listeners.ItemListener;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
 import hudson.security.WhoAmI;
@@ -46,14 +48,22 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.acegisecurity.AccessDeniedException;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.SleepBuilder;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 public class FolderTest {
@@ -151,6 +161,40 @@ public class FolderTest {
         assertTrue(f2.getItem("child1") instanceof FreeStyleProject);
         Folder n = (Folder)f2.getItem("nested");
         assertTrue(n.getItem("child2") instanceof FreeStyleProject);
+    }
+
+    @Issue("JENKINS-34939")
+    @Test public void delete() throws Exception {
+        Folder d1 = r.jenkins.createProject(Folder.class, "d1");
+        d1.createProject(FreeStyleProject.class, "p1");
+        d1.createProject(FreeStyleProject.class, "p2");
+        d1.createProject(Folder.class, "d2").createProject(FreeStyleProject.class, "p4");
+        d1.delete();
+        assertEquals("AbstractFolder.items is sorted by name so we can predict deletion order",
+            "{d1=[d1], d1/d2=[d1, d1/d2, d1/p1, d1/p2], d1/d2/p4=[d1, d1/d2, d1/d2/p4, d1/p1, d1/p2], d1/p1=[d1, d1/p1, d1/p2], d1/p2=[d1, d1/p2]}",
+            DeleteListener.whatRemainedWhenDeleted.toString());
+    }
+    @TestExtension("delete") public static class DeleteListener extends ItemListener {
+        static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<String,Set<String>>();
+        @Override public void onDeleted(Item item) {
+            try {
+                // Access metadata from another thread.
+                whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(new Callable<Set<String>>() {
+                    @Override public Set<String> call() throws Exception {
+                        Set<String> remaining = new TreeSet<String>();
+                        for (Item i : Jenkins.getActiveInstance().getAllItems()) {
+                            remaining.add(i.getFullName());
+                            if (i instanceof Actionable) {
+                                ((Actionable) i).getAllActions();
+                            }
+                        }
+                        return remaining;
+                    }
+                }).get());
+            } catch (Exception x) {
+                assert false : x;
+            }
+        }
     }
 
     /**
