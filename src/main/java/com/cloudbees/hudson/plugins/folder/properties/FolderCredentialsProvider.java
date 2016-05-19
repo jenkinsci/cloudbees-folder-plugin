@@ -137,7 +137,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return null;
     }
 
-    @SuppressFBWarnings(value="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS", justification="cannot locally reproduce: Uncallable method com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider$FolderCredentialsProperty$ActionFactory$1.getIconClassName() defined in anonymous class")
+    /**
+     * {@inheritDoc}
+     */
+    //@Override // TODO uncomment once depending on credentials-2.0
+    public String getIconClassName() {
+        return "icon-credentials-folder-store";
+    }
+
     public static class FolderCredentialsProperty extends AbstractFolderProperty<AbstractFolder<?>> {
 
         /**
@@ -416,7 +423,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"}) // erasure
-        @Extension(optional = true)
+        @Extension(optional = true,ordinal = -1001)
         public static class ActionFactory extends TransientActionFactory<AbstractFolder> {
             @Override
             public Class<AbstractFolder> type() {
@@ -431,6 +438,26 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                         @Override
                         public CredentialsStore getStore() {
                             return prop.getStore();
+                        }
+
+                        @Override
+                        public String getIconFileName() {
+                            return isVisible()
+                                    ? "/plugin/credentials/images/48x48/folder-store.png"
+                                    : null;
+                        }
+
+                        @SuppressFBWarnings(value="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS")
+                        //@Override TODO uncomment once credentials 2.0+
+                        public String getIconClassName() {
+                            return isVisible()
+                                    ? "icon-credentials-folder-store"
+                                    : null;
+                        }
+
+                        @Override
+                        public String getDisplayName() {
+                            return "Folder Credentials";
                         }
                     });
                 } else {
