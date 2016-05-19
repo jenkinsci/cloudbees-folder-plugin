@@ -137,6 +137,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return null;
     }
 
+    @SuppressFBWarnings(value="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS", justification="cannot locally reproduce: Uncallable method com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider$FolderCredentialsProperty$ActionFactory$1.getIconClassName() defined in anonymous class")
     public static class FolderCredentialsProperty extends AbstractFolderProperty<AbstractFolder<?>> {
 
         /**
