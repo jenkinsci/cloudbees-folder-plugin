@@ -56,6 +56,8 @@ import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
@@ -257,7 +259,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             this.domainCredentialsMap = DomainCredentials.toCopyOnWriteMap(domainCredentialsMap);
         }
 
-        public synchronized CredentialsStore getStore() {
+        public synchronized StoreImpl getStore() {
             if (store == null) {
                 store = new StoreImpl();
             }
@@ -424,6 +426,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
         @SuppressWarnings({"unchecked", "rawtypes"}) // erasure
         @Extension(optional = true,ordinal = -1001)
+        // TODO remove credentials 2.0+
         public static class ActionFactory extends TransientActionFactory<AbstractFolder> {
             @Override
             public Class<AbstractFolder> type() {
@@ -439,31 +442,41 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                         public CredentialsStore getStore() {
                             return prop.getStore();
                         }
-
-                        @Override
-                        public String getIconFileName() {
-                            return isVisible()
-                                    ? "/plugin/credentials/images/48x48/folder-store.png"
-                                    : null;
-                        }
-
-                        //@Override TODO uncomment once credentials 2.0+
-                        public String getIconClassName() {
-                            return isVisible()
-                                    ? "icon-credentials-folder-store"
-                                    : null;
-                        }
-
-                        @Override
-                        public String getDisplayName() {
-                            return "Folder Credentials";
-                        }
                     });
                 } else {
                     return Collections.emptySet();
                 }
             }
 
+        }
+
+        @Restricted(NoExternalUse.class)
+        public class CredentialsStoreActionImpl extends CredentialsStoreAction {
+
+            @NonNull
+            @Override
+            public StoreImpl getStore() {
+                return FolderCredentialsProperty.this.getStore();
+            }
+
+            @Override
+            public String getIconFileName() {
+                return isVisible()
+                        ? "/plugin/credentials/images/48x48/folder-store.png"
+                        : null;
+            }
+
+            //@Override TODO uncomment once credentials 2.0+
+            public String getIconClassName() {
+                return isVisible()
+                        ? "icon-credentials-folder-store"
+                        : null;
+            }
+
+            @Override
+            public String getDisplayName() {
+                return "Folder";
+            }
         }
 
         @Extension(optional = true)
@@ -508,6 +521,8 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
         private class StoreImpl extends CredentialsStore {
 
+            private final CredentialsStoreAction storeAction = new CredentialsStoreActionImpl();
+
             @Override
             public ModelObject getContext() {
                 return owner;
@@ -516,6 +531,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @Override
             public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
                 return owner.getACL().hasPermission(a, permission);
+            }
+
+            //@Override TODO credentials 2.0+
+            public CredentialsStoreAction getStoreAction() {
+                return storeAction;
             }
 
             /**
