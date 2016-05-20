@@ -23,15 +23,4 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-  <j:if test="${not(descriptor.credentialDescriptors.isEmpty())}">
-    <f:section title="${%Credentials}">
-    <f:advanced title="${%Credentials}" align="left">
-      <f:block>
-        <c:domainCredentials name="domainCredentials" domainCredentials="${descriptor.defaultIfNull(instance.domainCredentials)}"
-                             specificationDescriptors="${descriptor.specificationDescriptors}"
-                             credentialDescriptors="${descriptor.credentialDescriptors}"/>
-      </f:block>
-    </f:advanced>
-    </f:section>
-  </j:if>
 </j:jelly>
