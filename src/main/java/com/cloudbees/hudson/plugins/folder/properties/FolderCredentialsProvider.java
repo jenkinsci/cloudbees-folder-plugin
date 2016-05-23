@@ -61,8 +61,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
+import net.jcip.annotations.GuardedBy;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
@@ -83,6 +85,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     private static final Set<CredentialsScope> SCOPES =
             Collections.<CredentialsScope>singleton(CredentialsScope.GLOBAL);
+
+    @GuardedBy("self")
+    private static final WeakHashMap<AbstractFolder<?>,FolderCredentialsProperty> emptyProperties =
+            new WeakHashMap<AbstractFolder<?>, FolderCredentialsProperty>();
 
     /**
      * {@inheritDoc}
@@ -151,6 +157,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             if (property != null) {
                 return property.getStore();
             }
+            synchronized (emptyProperties) {
+                property = emptyProperties.get(folder);
+                if (property == null) {
+                    property = new FolderCredentialsProperty(folder);
+                    emptyProperties.put(folder, property);
+                }
+            }
+            return property.getStore();
         }
         return null;
     }
@@ -188,6 +202,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          * Our store.
          */
         private transient StoreImpl store = new StoreImpl();
+
+        /*package*/ FolderCredentialsProperty(AbstractFolder<?> owner) {
+            setOwner(owner);
+            domainCredentialsMap = DomainCredentials.migrateListToMap(null, null);
+        }
 
         /**
          * Backwards compatibility.
@@ -312,6 +331,15 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             checkPermission(p);
             SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
             try {
+                FolderCredentialsProperty property =
+                        owner.getProperties().get(FolderCredentialsProperty.class);
+                if (property == null) {
+                    synchronized (emptyProperties) {
+                        owner.getProperties().add(this);
+                        emptyProperties.remove(owner);
+                    }
+                }
+                // we assume it is ourselves
                 owner.save();
             } finally {
                 SecurityContextHolder.setContext(orig);
