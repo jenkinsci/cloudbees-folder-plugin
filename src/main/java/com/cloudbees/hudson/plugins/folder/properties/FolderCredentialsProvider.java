@@ -63,12 +63,14 @@ import java.util.Map;
 import java.util.Set;
 import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
+import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * A store of credentials that can be used as a Stapler opbject.
@@ -444,6 +446,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 return true;
             }
             return false;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws FormException {
+            return this;
         }
 
         /**
