@@ -52,14 +52,6 @@ import hudson.security.ACL;
 import hudson.security.AccessDeniedException2;
 import hudson.security.Permission;
 import hudson.util.CopyOnWriteMap;
-import jenkins.model.Jenkins;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.util.ArrayList;
@@ -69,7 +61,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
+import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
+import net.jcip.annotations.GuardedBy;
+import net.sf.json.JSONObject;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * A store of credentials that can be used as a Stapler opbject.
@@ -77,9 +80,19 @@ import jenkins.model.TransientActionFactory;
 @Extension(optional = true)
 public class FolderCredentialsProvider extends CredentialsProvider {
 
+    /**
+     * The valid scopes for this store.
+     */
     private static final Set<CredentialsScope> SCOPES =
             Collections.<CredentialsScope>singleton(CredentialsScope.GLOBAL);
 
+    @GuardedBy("self")
+    private static final WeakHashMap<AbstractFolder<?>,FolderCredentialsProperty> emptyProperties =
+            new WeakHashMap<AbstractFolder<?>, FolderCredentialsProperty>();
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Set<CredentialsScope> getScopes(ModelObject object) {
         if (object instanceof AbstractFolder) {
@@ -88,6 +101,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return super.getScopes(object);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @NonNull
     @Override
     public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
@@ -95,6 +111,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return getCredentials(type, itemGroup, authentication, Collections.<DomainRequirement>emptyList());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @NonNull
     @Override
     public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
@@ -127,6 +146,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return result;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CredentialsStore getStore(@CheckForNull ModelObject object) {
         if (object instanceof AbstractFolder) {
@@ -135,6 +157,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             if (property != null) {
                 return property.getStore();
             }
+            synchronized (emptyProperties) {
+                property = emptyProperties.get(folder);
+                if (property == null) {
+                    property = new FolderCredentialsProperty(folder);
+                    emptyProperties.put(folder, property);
+                }
+            }
+            return property.getStore();
         }
         return null;
     }
@@ -142,11 +172,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     /**
      * {@inheritDoc}
      */
-    //@Override // TODO uncomment once depending on credentials-2.0
+    @Override
     public String getIconClassName() {
         return "icon-credentials-folder-store";
     }
 
+    /**
+     * Our property.
+     */
     public static class FolderCredentialsProperty extends AbstractFolderProperty<AbstractFolder<?>> {
 
         /**
@@ -169,6 +202,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          * Our store.
          */
         private transient StoreImpl store = new StoreImpl();
+
+        /*package*/ FolderCredentialsProperty(AbstractFolder<?> owner) {
+            setOwner(owner);
+            domainCredentialsMap = DomainCredentials.migrateListToMap(null, null);
+        }
 
         /**
          * Backwards compatibility.
@@ -259,6 +297,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             this.domainCredentialsMap = DomainCredentials.toCopyOnWriteMap(domainCredentialsMap);
         }
 
+        /**
+         * Returns the {@link StoreImpl}.
+         * @return the {@link StoreImpl}.
+         */
+        @NonNull
         public synchronized StoreImpl getStore() {
             if (store == null) {
                 store = new StoreImpl();
@@ -288,6 +331,15 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             checkPermission(p);
             SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
             try {
+                FolderCredentialsProperty property =
+                        owner.getProperties().get(FolderCredentialsProperty.class);
+                if (property == null) {
+                    synchronized (emptyProperties) {
+                        owner.getProperties().add(this);
+                        emptyProperties.remove(owner);
+                    }
+                }
+                // we assume it is ourselves
                 owner.save();
             } finally {
                 SecurityContextHolder.setContext(orig);
@@ -424,41 +476,33 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             return false;
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"}) // erasure
-        @Extension(optional = true,ordinal = -1001)
-        // TODO remove credentials 2.0+
-        public static class ActionFactory extends TransientActionFactory<AbstractFolder> {
-            @Override
-            public Class<AbstractFolder> type() {
-                return AbstractFolder.class;
-            }
-            @Override
-            public Collection<? extends Action> createFor(AbstractFolder target) {
-                final FolderCredentialsProperty prop = ((AbstractFolder<?>) target).getProperties().get(FolderCredentialsProperty.class);
-                if (prop != null) {
-                    return Collections.singleton(new CredentialsStoreAction() {
-                        @NonNull
-                        @Override
-                        public CredentialsStore getStore() {
-                            return prop.getStore();
-                        }
-                    });
-                } else {
-                    return Collections.emptySet();
-                }
-            }
-
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws FormException {
+            return this;
         }
 
+        /**
+         * Our {@link CredentialsStoreAction}.
+         * @since 5.11
+         */
         @Restricted(NoExternalUse.class)
         public class CredentialsStoreActionImpl extends CredentialsStoreAction {
 
+            /**
+             * {@inheritDoc}
+             */
             @NonNull
             @Override
             public StoreImpl getStore() {
                 return FolderCredentialsProperty.this.getStore();
             }
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public String getIconFileName() {
                 return isVisible()
@@ -466,44 +510,37 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                         : null;
             }
 
-            //@Override TODO uncomment once credentials 2.0+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
             public String getIconClassName() {
                 return isVisible()
                         ? "icon-credentials-folder-store"
                         : null;
             }
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public String getDisplayName() {
-                return "Folder";
+                return "Folder"; // TODO i18n
             }
         }
 
+        /**
+         * Our constructor
+         */
         @Extension(optional = true)
         public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public String getDisplayName() {
                 return Messages.FolderCredentialsProvider_DisplayName();
-            }
-
-            public List<DomainCredentials> defaultIfNull(List<DomainCredentials> map) {
-                if (map == null) {
-                    return Collections.singletonList(
-                            new DomainCredentials(Domain.global(), Collections.<Credentials>emptyList()));
-                }
-                return map;
-            }
-
-            /**
-             * Gets all the credentials descriptors.
-             *
-             * @return all the credentials descriptors.
-             * @since 3.10
-             */
-            @SuppressWarnings("unused") // used by stapler
-            public DescriptorExtensionList<Credentials, Descriptor<Credentials>> getCredentialDescriptors() {
-                return CredentialsProvider.allCredentialsDescriptors();
             }
 
             /**
@@ -519,21 +556,36 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             }
         }
 
+        /**
+         * Our actual {@link CredentialsStore}.
+         */
         private class StoreImpl extends CredentialsStore {
 
+            /**
+             * Our action.
+             */
             private final CredentialsStoreAction storeAction = new CredentialsStoreActionImpl();
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public ModelObject getContext() {
                 return owner;
             }
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
                 return owner.getACL().hasPermission(a, permission);
             }
 
-            //@Override TODO credentials 2.0+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
             public CredentialsStoreAction getStoreAction() {
                 return storeAction;
             }
@@ -608,7 +660,5 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 return FolderCredentialsProperty.this.updateCredentials(domain, current, replacement);
             }
         }
-
     }
-
 }
