@@ -609,9 +609,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @Override
-    protected void performDelete() throws IOException, InterruptedException {
+    public void delete() throws IOException, InterruptedException {
+        // Some parts copied from AbstractItem.
+        checkPermission(DELETE);
         // delete individual items first
         // (disregard whether they would be deletable in isolation)
+        // JENKINS-34939: do not hold the monitor on this folder while deleting them
+        // (thus we cannot do this inside performDelete)
         SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
         try {
             for (Item i : new ArrayList<Item>(items.values())) {
@@ -627,7 +631,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         } finally {
             SecurityContextHolder.setContext(orig);
         }
-        super.performDelete();
+        synchronized (this) {
+            performDelete();
+        }
+        getParent().onDeleted(AbstractFolder.this);
+        Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }
 
     @Override
