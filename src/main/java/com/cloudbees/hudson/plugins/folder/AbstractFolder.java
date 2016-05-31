@@ -326,6 +326,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * It is unwise to override this, lest links to children from nondefault {@link View}s break.
+     * TODO remove this warning if and when JENKINS-35243 is fixed in the baseline.
      * {@inheritDoc}
      */
     @Override
