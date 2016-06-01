@@ -324,6 +324,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
     }
 
+    /**
+     * It is unwise to override this, lest links to children from nondefault {@link View}s break.
+     * TODO remove this warning if and when JENKINS-35243 is fixed in the baseline.
+     * {@inheritDoc}
+     */
     @Override
     public String getUrlChildPrefix() {
         return "job";
