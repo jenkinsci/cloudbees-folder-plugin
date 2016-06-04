@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 CloudBees, Inc.
+ * Copyright 2015-2016 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
-import com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -41,9 +40,6 @@ import hudson.model.AllView;
 import hudson.model.Descriptor;
 import hudson.model.HealthReport;
 import hudson.model.Item;
-import static hudson.model.Item.CONFIGURE;
-import static hudson.model.Item.CREATE;
-import static hudson.model.Item.DELETE;
 import hudson.model.ItemGroup;
 import static hudson.model.ItemGroupMixIn.loadChildren;
 import hudson.model.Items;
@@ -57,8 +53,6 @@ import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
-import hudson.security.AuthorizationStrategy;
-import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.CaseInsensitiveComparator;
 import hudson.util.CopyOnWriteMap;
@@ -87,6 +81,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -196,18 +191,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (views == null) {
             views = new CopyOnWriteArrayList<View>();
         }
-        if (views.isEmpty()) {
-            try {
-                initViews(views);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
-            }
-        }
         if (viewsTabBar == null) {
             viewsTabBar = new DefaultViewsTabBar();
-        }
-        if (primaryView == null) {
-            primaryView = views.get(0).getViewName();
         }
         viewGroupMixIn = new ViewGroupMixIn(this) {
             @Override
@@ -216,13 +201,20 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
             @Override
             protected String primaryView() {
-                return primaryView;
+                return primaryView == null ? views.get(0).getViewName() : primaryView;
             }
             @Override
             protected void primaryView(String name) {
                 primaryView = name;
             }
         };
+        if (views.isEmpty()) {
+            try {
+                initViews(views);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
+            }
+        }
         if (healthMetrics == null) {
             List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
             for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
@@ -238,7 +230,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     protected void initViews(List<View> views) throws IOException {
         AllView v = new AllView("All", this);
         views.add(v);
-        v.save();
+    }
+
+    @Override
+    public void addAction(Action a) {
+        super.getActions().add(a);
+    }
+
+    @Override
+    public void replaceAction(Action a) {
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        List<Action> old = new ArrayList<Action>(1);
+        List<Action> current = super.getActions();
+        for (Action a2 : current) {
+            if (a2.getClass() == a.getClass()) {
+                old.add(a2);
+            }
+        }
+        current.removeAll(old);
+        addAction(a);
     }
 
     @Override
@@ -282,7 +292,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public AbstractFolderDescriptor getDescriptor() {
-        // Seems to work even though AbstractFolder is not Describable, hmm
         return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
     }
 
@@ -317,6 +326,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
     }
 
+    /**
+     * It is unwise to override this, lest links to children from nondefault {@link View}s break.
+     * TODO remove this warning if and when JENKINS-35243 is fixed in the baseline.
+     * {@inheritDoc}
+     */
     @Override
     public String getUrlChildPrefix() {
         return "job";
@@ -522,19 +536,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return HttpResponses.redirectToDot();
     }
 
-    @Override
-    public ACL getACL() {
-        AuthorizationStrategy as = Jenkins.getActiveInstance().getAuthorizationStrategy();
-        // TODO this should be an extension point, or ideally matrix-auth would have an optional dependency on cloudbees-folder
-        if (as.getClass().getName().equals("hudson.security.ProjectMatrixAuthorizationStrategy")) {
-            AuthorizationMatrixProperty p = getProperties().get(AuthorizationMatrixProperty.class);
-            if (p != null) {
-                return p.getACL().newInheritingACL(((ProjectMatrixAuthorizationStrategy) as).getACL(getParent()));
-            }
-        }
-        return super.getACL();
-    }
-
     /**
      * Gets the icon used for this folder.
      */
@@ -615,9 +616,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @Override
-    protected void performDelete() throws IOException, InterruptedException {
+    public void delete() throws IOException, InterruptedException {
+        // Some parts copied from AbstractItem.
+        checkPermission(DELETE);
         // delete individual items first
         // (disregard whether they would be deletable in isolation)
+        // JENKINS-34939: do not hold the monitor on this folder while deleting them
+        // (thus we cannot do this inside performDelete)
         SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
         try {
             for (Item i : new ArrayList<Item>(items.values())) {
@@ -633,7 +638,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         } finally {
             SecurityContextHolder.setContext(orig);
         }
-        super.performDelete();
+        synchronized (this) {
+            performDelete();
+        }
+        getParent().onDeleted(AbstractFolder.this);
+        Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }
 
     @Override
@@ -709,8 +718,20 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             if (namingStrategy.isForceExistingJobs()) {
                 namingStrategy.checkName(name);
             }
-            FormApply.success(".").generateResponse(req, rsp, this);
+            FormApply.success(getSuccessfulDestination()).generateResponse(req, rsp, this);
         }
+    }
+
+    /**
+     * Where user will be redirected after creating or reconfiguring a {@code AbstractFolder}.
+     *
+     * @return A string that represents the redirect location URL.
+     *
+     * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
+     */
+    @Restricted(NoExternalUse.class)
+    protected @Nonnull String getSuccessfulDestination() {
+        return ".";
     }
 
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}

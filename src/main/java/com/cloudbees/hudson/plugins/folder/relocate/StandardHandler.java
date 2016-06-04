@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Item;
@@ -50,7 +51,7 @@ import org.kohsuke.stapler.HttpResponses;
 @Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
 
     public HandlingMode applicability(Item item) {
-        if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup) {
+        if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup && !validDestinations(item).isEmpty()) {
             return HandlingMode.HANDLE;
         } else {
             return HandlingMode.SKIP;
@@ -75,7 +76,10 @@ import org.kohsuke.stapler.HttpResponses;
     @Override public List<? extends ItemGroup<?>> validDestinations(Item item) {
         List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<DirectlyModifiableTopLevelItemGroup>();
         Jenkins instance = Jenkins.getActiveInstance();
-        if (permitted(item, instance)) {
+        // ROOT context is only added in case there is not any item with the same name
+        // But we add it in case the one is there is the item itself and not a different job with the same name
+        // No-op by default
+        if (permitted(item, instance) && (instance.getItem(item.getName()) == null) || instance.getItem(item.getName()) == item) {
             result.add(instance);
         }
         ITEM: for (Item g : instance.getAllItems()) {
@@ -85,15 +89,37 @@ import org.kohsuke.stapler.HttpResponses;
                     continue;
                 }
                 ItemGroup<?> p = itemGroup;
-                while (p instanceof Item) {
+                if (p instanceof Item) {
                     Item i = (Item) p;
+                    // Cannot move a folder into itself or a descendant
                     if (i == item) {
-                        // Cannot move a folder into itself or a descendant.
                         continue ITEM;
                     }
-                    p = i.getParent();
+                    // By default the move is a no-op in case you hit it by mistake
+                    if (item.getParent() == i) {
+                        result.add(itemGroup);
+                    }
+                    // Cannot move an item into a Folder if there is already an item with the same name
+                    if (i instanceof Folder) {
+                        Folder folder = (Folder) i;
+                        if (folder.getItem(item.getName()) != null) {
+                            continue ITEM;
+                        }
+                    }
+                    // Cannot move a folder into a descendant
+                    // Cannot move d1/ into say d1/d2/d3/
+                    ItemGroup itemGroupSubElement = i.getParent();
+                    while (itemGroupSubElement != instance) {
+                        if (itemGroupSubElement instanceof Folder) {
+                            Folder currentFolder = (Folder) itemGroupSubElement;
+                            if (item == currentFolder) {
+                                continue ITEM;
+                            }
+                            itemGroupSubElement = currentFolder.getParent();
+                        }
+                    }
+                    result.add(itemGroup);
                 }
-                result.add(itemGroup);
             }
         }
         return result;

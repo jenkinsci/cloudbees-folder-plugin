@@ -21,4 +21,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-<st:include it="${it.primaryView}" page="sidepanel.jelly" xmlns:st="jelly:stapler" />
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
+    <j:if test="${view == null}"> <!-- true when rendering from ModelObjectWithContextMenu.ContextMenu.from -->
+        <j:set var="view" value="${it.primaryView}"/>
+    </j:if>
+    <st:include it="${it.primaryView}" page="sidepanel.jelly"/>
+</j:jelly>
