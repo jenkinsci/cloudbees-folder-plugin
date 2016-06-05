@@ -42,6 +42,7 @@ import hudson.search.SearchItem;
 import hudson.security.ACL;
 import hudson.security.WhoAmI;
 import hudson.security.Permission;
+import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
