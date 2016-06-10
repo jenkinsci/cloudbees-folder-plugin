@@ -35,6 +35,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import net.sf.json.JSONObject;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -62,9 +64,9 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
      * Gets an owner of the property.
      * @return Owner of the property.
      *         It should be always non-null if the property initialized correctly.
-     * @since TODO
      */
     @NonNull
+    @Restricted(NoExternalUse.class)
     public C getOwner() {
         return owner;
     }
