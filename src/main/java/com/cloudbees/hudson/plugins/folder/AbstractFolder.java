@@ -86,6 +86,7 @@ import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
+import jenkins.model.TransientActionFactory;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.acegisecurity.context.SecurityContext;
@@ -105,6 +106,17 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * A general-purpose {@link ItemGroup}.
  * Base for {@link Folder} and {@link ComputedFolder}.
+ * <p/>
+ * <b>Extending Folders UI</b><br/>
+ * As any other {@link Item} type, folder types support extension of UI via {@link Action}s.
+ * These actions can be persisted or added via {@link TransientActionFactory}.
+ * See <a href="https://wiki.jenkins-ci.org/display/JENKINS/Action+and+its+family+of+subtypes">this page</a> 
+ * for more details about actions.
+ * In folders actions provide the following features:
+ * <ul>
+ *  <li>Left sidepanel hyperlink, which opens the page specified by action's {@code index.jelly}.</li>
+ *  <li>Optional summary boxes on the main panel, which may be defined by {@code summary.jelly}.</li>
+ * </ul>
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
