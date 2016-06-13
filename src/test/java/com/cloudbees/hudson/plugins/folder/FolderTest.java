@@ -24,6 +24,8 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -39,6 +41,8 @@ import hudson.model.listeners.ItemListener;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
 import hudson.security.WhoAmI;
+import hudson.security.Permission;
+import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
@@ -46,6 +50,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +61,7 @@ import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
 import jenkins.util.Timer;
 import org.acegisecurity.AccessDeniedException;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -325,7 +331,71 @@ public class FolderTest {
         f.addAction(a);
         assertNotNull(f.getAction(WhoAmI.class));
     }
+    
+    @Issue("JENKINS-32487")
+    @Test public void shouldAssignPropertyOwnerOnCreationAndReload() throws Exception {
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
+        r.jenkins.setAuthorizationStrategy(new ProjectMatrixAuthorizationStrategy());
+        
+        // We add a stub property to generate the persisted list
+        // Then we ensure owner is being assigned properly.
+        folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
+        assertPropertyOwner("After property add", folder, FolderCredentialsProvider.FolderCredentialsProperty.class);
+    
+        // Reload and ensure that the property owner is set
+        r.jenkins.reload();
+        Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
+        assertPropertyOwner("After reload", reloadedFolder, FolderCredentialsProvider.FolderCredentialsProperty.class);
+    }
+    
+    @Issue("JENKINS-32359")
+    @Test public void shouldProperlyPersistFolderPropertiesOnMultipleReloads() throws Exception {
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
 
+        // We add a stub property to generate the persisted list
+        // After that we save and reload the config in order to drop PersistedListOwner according to the JENKINS-32359 scenario
+        folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
+        r.jenkins.reload();
+        
+        // Add another property
+        Map<Permission,Set<String>> grantedPermissions = new HashMap<Permission, Set<String>>();
+        Set<String> sids = new HashSet<String>();
+        sids.add("admin");
+        grantedPermissions.put(Jenkins.ADMINISTER, sids);
+        folder = r.jenkins.getItemByFullName("myFolder", Folder.class); 
+        r.jenkins.setAuthorizationStrategy(new ProjectMatrixAuthorizationStrategy());
+        folder.addProperty(new com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty(grantedPermissions));
+        
+        // Reload folder from disk and check the state
+        r.jenkins.reload();
+        Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
+        assertThat("Folder has not been found after the reloading", reloadedFolder, notNullValue());
+        assertThat("Property has not been reloaded, hence it has not been saved properly",
+            reloadedFolder.getProperties().get(com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class),
+            notNullValue());
+        
+        // Also ensure that both property owners are configured correctly
+        assertPropertyOwner("After reload", reloadedFolder, FolderCredentialsProvider.FolderCredentialsProperty.class);
+        assertPropertyOwner("After reload", reloadedFolder, com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
+    }
+
+    /**
+     * Ensures that the specified property points to the folder.
+     * @param <T> Property type
+     * @param folder Folder
+     * @param propertyClass Property class
+     * @param step Failure message prefix
+     */
+    private <T extends AbstractFolderProperty<AbstractFolder<?>>> void assertPropertyOwner
+            (String step, Folder folder, Class<T> propertyClass) {
+        AbstractFolder<?> propertyOwner = folder.getProperties().get(propertyClass).getOwner();
+        assertThat(step + ": The property owner should be instance of Folder", 
+                propertyOwner, instanceOf(Folder.class));
+        assertThat(step + ": The owner field of the " + propertyClass + 
+                " property should point to the owner folder " + folder, 
+                (Folder)propertyOwner, equalTo(folder));
+    }
+    
     private Folder createFolder() throws IOException {
         return r.jenkins.createProject(Folder.class, "folder" + r.jenkins.getItems().size());
     }

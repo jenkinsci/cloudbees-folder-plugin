@@ -191,6 +191,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     protected void init() {
         if (properties == null) {
             properties = new DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor>(this);
+        } else {
+            properties.setOwner(this);
         }
         for (AbstractFolderProperty p : properties) {
             p.setOwner(this);
