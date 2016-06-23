@@ -149,6 +149,21 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     /**
      * {@inheritDoc}
      */
+    @NonNull
+    @Override
+    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @NonNull Item item,
+                                                          @Nullable Authentication authentication,
+                                                          @NonNull List<DomainRequirement> domainRequirements) {
+        if (item instanceof AbstractFolder) {
+            // credentials defined in the folder should be available in the context of the folder
+            return getCredentials(type, (ItemGroup) item, authentication, domainRequirements);
+        }
+        return super.getCredentials(type, item, authentication, domainRequirements);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CredentialsStore getStore(@CheckForNull ModelObject object) {
         if (object instanceof AbstractFolder) {
