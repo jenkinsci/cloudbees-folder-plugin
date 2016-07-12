@@ -23,72 +23,30 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <l:layout title="${it.displayName} Config" norefresh="true" permission="${it.EXTENDED_READ}">
-    <st:include page="sidepanel.jelly" />
-    <l:main-panel>
-      <div class="behavior-loading">${%LOADING}</div>
-      <f:form method="post" action="configSubmit" name="config">
-        <j:set var="descriptor" value="${it.descriptor}" />
-        <j:set var="instance" value="${it}" />
-
-        <f:entry title="${%Name}" field="name">
-          <f:textbox />
-        </f:entry>
-
-        <f:entry title="${%Display Name}" field="displayNameOrNull">
-          <f:textbox checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
-        </f:entry>
-
-        <f:entry title="${%Description}" field="description">
-          <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
-        </f:entry>
-
-        <st:include page="configure-details" optional="true"/>
-
-        <j:if test="${it.views.size()>1}">
-          <f:entry title="${%Default View}" field="defaultView">
-            <select class="setting-input" name="primaryView">
-              <j:forEach var="v" items="${it.views}">
-                <j:choose>
-                  <j:when test="${it.primaryView==v}">
-                    <option value="${v.viewName}" selected="selected">${v.viewName}</option>
-                  </j:when>
-                  <j:otherwise>
-                    <option value="${v.viewName}">${v.viewName}</option>
-                  </j:otherwise>
-                </j:choose>
-              </j:forEach>
-            </select>
-          </f:entry>
-        </j:if>
-
-        <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
-
-        <!-- TODO tried to hide unless ${it.icon.descriptor.all().size() > 1} using f:invisibleEntry but this did not seem to work: -->
-        <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
-
-        <f:section title="${%Health metrics}">
-          <f:advanced title="${%Health metrics}" align="left">
-            <f:block>
-              <f:hetero-list descriptors="${descriptor.getHealthMetricDescriptors()}"
-                             items="${it.healthMetrics}" name="healthMetrics"
-                             addCaption="${%Add metric}" deleteCaption="${%Remove}"
-                             oneEach="true" hasHeader="true" honorOrder="true"/>
-            </f:block>
-          </f:advanced>
-        </f:section>
-
-        <!-- folder  property configurations -->
-        <f:descriptorList descriptors="${descriptor.getPropertyDescriptors()}" instances="${it.properties}" forceRowSet="true" />
-
-        <j:if test="${h.hasPermission(it,it.CONFIGURE)}">
-          <f:bottomButtonBar>
-               <f:submit value="${%Save}" />
-               <f:apply/>
-          </f:bottomButtonBar>
-        </j:if>
-      </f:form>
-      <st:adjunct includes="lib.form.confirm" />
-    </l:main-panel>
-  </l:layout>
+  <j:choose>
+    <!-- TODO Remove logic and bring configure2 back in when base is upgraded to 2.x. -->
+    <j:when test="${it.useLegacyUi()}">
+      <l:layout norefresh="true" permission="${it.EXTENDED_READ}" title="${it.displayName} Config">
+        <st:include page="sidepanel.jelly"/>
+        <l:main-panel>
+          <st:include page="configure2.jelly"/>
+        </l:main-panel>
+      </l:layout>
+    </j:when>
+    <j:otherwise>
+      <l:layout norefresh="true" type="one-column" permission="${it.EXTENDED_READ}" title="${it.displayName} Config">
+        <l:js src="jsbundles/config-scrollspy.js"/>
+        <l:css src="jsbundles/config-scrollspy.css"/>
+        <l:main-panel>
+          <div class="container">
+            <div class="row">
+              <div class="col-md-offset-2 col-md-20">
+                <st:include page="configure2.jelly"/>
+              </div>
+            </div>
+          </div>
+        </l:main-panel>
+      </l:layout>
+    </j:otherwise>
+  </j:choose>
 </j:jelly>
