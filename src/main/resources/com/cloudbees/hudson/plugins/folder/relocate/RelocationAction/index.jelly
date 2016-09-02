@@ -3,7 +3,7 @@
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <j:choose>
     <j:when test="${it.ui != null}">
-      <l:layout title="${%Move}">
+      <l:layout title="${%Move}" norefresh="true">
         <st:include page="sidepanel.jelly" it="${it.item}"/>
         <l:main-panel>
           <j:set var="item" value="${it.item}"/>
