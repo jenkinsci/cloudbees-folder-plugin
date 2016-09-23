@@ -28,14 +28,11 @@ import hudson.CopyOnWrite;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Action;
-import hudson.model.AutoCompletionCandidates;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
-import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
-import hudson.model.ItemVisitor;
 import hudson.model.Items;
 import hudson.model.ListView;
 import hudson.model.TopLevelItem;
@@ -43,11 +40,8 @@ import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
-import hudson.util.FormValidation;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -62,7 +56,6 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static hudson.Util.fixEmpty;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 
@@ -94,7 +87,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     /**
      * {@link Action}s contributed from subsidiary objects associated with
      * {@link Folder}, such as from properties.
-     * <p/>
+     * <p>
      * We don't want to persist them separately, and these actions
      * come and go as configuration change, so it's kept separate.
      */
@@ -147,8 +140,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <p/>
+     * <p>
      * Note that this method returns a read-only view of {@link Action}s.
      *
      * @see TransientFolderActionFactory
@@ -238,28 +230,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return nue;
     }
 
-    public FormValidation doCheckJobName(@QueryParameter String value) {
-        // this method can be used to check if a file exists anywhere in the file system,
-        // so it should be protected.
-        checkPermission(Item.CREATE);
-
-        if (fixEmpty(value) == null) {
-            return FormValidation.ok();
-        }
-
-        try {
-            Jenkins.checkGoodName(value);
-            value = value.trim();
-            if (getItem(value) != null) {
-                throw new Failure(hudson.model.Messages.Hudson_JobAlreadyExists(value));
-            }
-
-            return FormValidation.ok();
-        } catch (Failure e) {
-            return FormValidation.error(e.getMessage());
-        }
-    }
-
     /**
      * Copies an existing {@link TopLevelItem} to into this folder with a new name.
      */
@@ -326,6 +296,9 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
                 return false;
             }
         }
+        if (!getACL().hasCreatePermission(Jenkins.getAuthentication(), this, tid)) {
+            return false;
+        }
         return tid.isApplicableIn(this);
     }
 
@@ -366,64 +339,33 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     @Extension
     public static class DescriptorImpl extends AbstractFolderDescriptor {
 
+        /**
+         * Needed if it wants Folders are categorized in Jenkins 2.x.
+         *
+         * TODO: Override when the baseline is upgraded to 2.x
+         *
+         * @return A string with the Item description.
+         */
+        public String getDescription() {
+            return Messages.Folder_Description();
+        }
+
+        /**
+         * Needed if it wants Folder are categorized in Jenkins 2.x.
+         *
+         * TODO: Override when the baseline is upgraded to 2.x
+         *
+         * @return A string it represents a URL pattern to get the Item icon in different sizes.
+         */
+        public String getIconFilePathPattern() {
+            return "plugin/cloudbees-folder/images/:size/folder.png";
+        }
+
         @Override
         public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new Folder(parent, name);
         }
 
-        /**
-         * Auto-completion for the "copy from" field in the new job page.
-         */
-        public AutoCompletionCandidates doAutoCompleteCopyNewItemFrom(@AncestorInPath final Folder f,
-                                                                      @QueryParameter final String value) {
-            // TODO use ofJobNames but filter by isAllowedChild
-            final AutoCompletionCandidates r = new AutoCompletionCandidates();
-
-            abstract class VisitorImpl extends ItemVisitor {
-                abstract String getPathNameOf(Item i);
-
-                @Override
-                public void onItemGroup(ItemGroup<?> group) {
-                    super.onItemGroup(group);
-                }
-
-                @Override
-                public void onItem(Item i) {
-                    String name = getPathNameOf(i);
-                    if (name.startsWith(value)) {
-                        if (i instanceof TopLevelItem) {
-                            TopLevelItem tli = (TopLevelItem) i;
-                            if (f.isAllowedChild(tli)) {
-                                r.add(name);
-                            }
-                        }
-                    }
-
-                    if (value.startsWith(name)) {
-                        super.onItem(i);
-                    }
-                }
-            }
-
-            // absolute path name "/foo/bar/zot"
-            new VisitorImpl() {
-                String getPathNameOf(Item i) {
-                    return '/' + i.getFullName();
-                }
-            }.walk();
-
-            // relative path name "foo/bar/zot" from this folder
-            // TODO: support ".." notation
-            new VisitorImpl() {
-                String baseName = f.getFullName();
-
-                String getPathNameOf(Item i) {
-                    return i.getFullName().substring(baseName.length() + 1);
-                }
-            }.onItemGroup(f);
-
-            return r;
-        }
     }
 
     private class MixInImpl extends ItemGroupMixIn {

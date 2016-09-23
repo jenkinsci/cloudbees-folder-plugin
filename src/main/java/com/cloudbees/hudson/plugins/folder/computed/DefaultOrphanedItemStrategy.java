@@ -40,9 +40,6 @@ import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.FINER;
-import java.util.logging.Logger;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -53,11 +50,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @author Stephen Connolly
  */
 public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
-
-    /**
-     * Our logger
-     */
-    private static final Logger LOGGER = Logger.getLogger(DefaultOrphanedItemStrategy.class.getName());
 
     /**
      * Should old branches be removed at all
@@ -187,8 +179,8 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         List<I> toRemove = new ArrayList<I>();
-        LOGGER.log(FINE, "Running the dead item cleanup for {0}", owner.getFullName());
         if (pruneDeadBranches && (numToKeep != -1 || daysToKeep != -1)) {
+            listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
             List<I> candidates = new ArrayList<I>(orphaned);
             Collections.sort(candidates, new Comparator<I>() {
                 @Override
@@ -199,15 +191,36 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     return (ms2 < ms1) ? -1 : ((ms2 == ms1) ? 0 : 1); // TODO Java 7+: Long.compare(ms2, ms1);
                 }
             });
+            CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
+                I item = iterator.next();
+                for (Job<?,?> job : item.getAllJobs()) {
+                    // Enumerating all builds is inefficient. But we will most likely delete this job anyway,
+                    // which will have a cost proportional to the number of builds just to delete those files.
+                    for (Run<?,?> build : job.getBuilds()) {
+                        if (build.isBuilding()) {
+                            listener.getLogger().printf("Will not remove %s as %s is still in progress%n", item.getDisplayName(), build.getFullDisplayName());
+                            iterator.remove();
+                            continue CANDIDATES;
+                        }
+                        String whyKeepLog = build.getWhyKeepLog();
+                        if (whyKeepLog != null) {
+                            listener.getLogger().printf("Will not remove %s as %s is marked to not be removed: %s%n", item.getDisplayName(), build.getFullDisplayName(), whyKeepLog);
+                            iterator.remove();
+                            continue CANDIDATES;
+                        }
+                    }
+                }
+            }
             int count = 0;
             if (numToKeep != -1) {
                 for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext(); ) {
                     I item = iterator.next();
                     count++;
                     if (count <= numToKeep) {
+                        listener.getLogger().printf("Will not remove %s as it is only #%d in the list%n", item.getDisplayName(), count);
                         continue;
                     }
-                    LOGGER.log(FINER, "{0} is to be removed", item.getFullName());
+                    listener.getLogger().printf("Will remove %s as it is #%d in the list%n", item.getDisplayName(), count);
                     toRemove.add(item);
                     iterator.remove();
                 }
@@ -217,10 +230,10 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                 cal.add(Calendar.DAY_OF_YEAR, -daysToKeep);
                 for (I item : candidates) {
                     if (lastBuildTime(item) > cal.getTimeInMillis()) {
-                        LOGGER.log(FINER, "{0} is not GC-ed because it is still new", item.getFullName());
+                        listener.getLogger().printf("Will not remove %s because it is new%n", item.getDisplayName());
                         continue;
                     }
-                    LOGGER.log(FINER, "{0} is to be removed", item.getFullName());
+                    listener.getLogger().printf("Will remove %s as it is too old%n", item.getDisplayName());
                     toRemove.add(item);
                 }
             }

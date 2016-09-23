@@ -26,7 +26,7 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.BulkChange;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.XmlFile;
 import hudson.model.Action;
@@ -94,13 +94,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
 
-    private /*almost final*/ OrphanedItemStrategy orphanedItemStrategy;
+    private OrphanedItemStrategy orphanedItemStrategy;
 
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
     // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
-    private transient @CheckForNull FolderComputation<I> computation;
+    private transient @Nonnull FolderComputation<I> computation;
 
+    @SuppressFBWarnings(value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     protected ComputedFolder(ItemGroup parent, String name) {
         super(parent, name);
         init();
@@ -141,6 +142,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
     }
 
+    public void setOrphanedItemStrategy(@Nonnull OrphanedItemStrategy strategy) {
+        this.orphanedItemStrategy = strategy;
+    }
+
     /**
      * Recreates children synchronously.
      */
@@ -153,6 +158,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             @Override
             public I shouldUpdate(String name) {
                 I existing = orphaned.remove(name);
+                if (existing != null) {
+                    observed.add(name);
+                }
                 LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
                 return existing;
             }
@@ -167,7 +175,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
                 String name = child.getName();
                 if (!observed.contains(name)) {
-                    throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child);
+                    throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name + " among " + observed);
                 }
                 child.onCreatedFromScratch();
                 try {
@@ -185,15 +193,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }, listener);
         if (!orphaned.isEmpty()) {
             LOGGER.log(Level.FINE, "{0}: orphaned {1}", new Object[] {fullName, orphaned});
-            BulkChange bc = new BulkChange(this);
-            try {
-                for (I existing : orphanedItems(orphaned.values(), listener)) {
-                    LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
-                    existing.delete();
-                    // super.onDeleted handles removal from items
-                }
-            } finally {
-                bc.abort(); // ignore calls to save from super.onDeleted
+            for (I existing : orphanedItems(orphaned.values(), listener)) {
+                LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
+                existing.delete();
+                // super.onDeleted handles removal from items
             }
         }
         LOGGER.log(Level.FINE, "finished updating {0}", fullName);
@@ -213,20 +216,13 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Failed to load " + file, e);
             }
-        } else if (isBuildable()) { // first time
-            scheduleBuild();
         }
     }
 
+    @RequirePOST
     @Override
-    public synchronized void save() throws IOException {
-        if (BulkChange.contains(this)) {
-            return;
-        }
-        super.save();
-        // TODO this is problematic, especially when called from super.onDeleted.
-        // Would be better to get rid of some BulkChange.abort hacks, and call scheduleBuild explicitly
-        // from various methods which should actually produce changes, like doConfigSubmit.
+    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        super.doConfigSubmit(req, rsp);
         scheduleBuild();
     }
 
@@ -244,8 +240,23 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }
     }
 
+    @Override
+    protected @Nonnull String getSuccessfulDestination() {
+        return computation.getSearchUrl() + "console";
+    }
+
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
         return triggers.toMap();
+    }
+
+    public void addTrigger(Trigger trigger) {
+        Trigger old = triggers.get(trigger.getDescriptor());
+        if (old != null) {
+            old.stop();
+            triggers.remove(old);
+        }
+        triggers.add(trigger);
+        trigger.start(this, true);
     }
 
     @SuppressWarnings("deprecation")
@@ -319,8 +330,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     @Override
     public CauseOfBlockage getCauseOfBlockage() {
-        final FolderComputation<I> c = computation;
-        if (c != null && c.isBuilding()) {
+        if (computation.isBuilding()) {
             return CauseOfBlockage.fromMessage(Messages._ComputedFolder_already_computing());
         }
         return null;
@@ -372,7 +382,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     @Override
     public long getEstimatedDuration() {
-        return computation == null ? -1 : computation.getEstimatedDuration();
+        return computation.getEstimatedDuration();
     }
 
     @Override
@@ -405,15 +415,17 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return new File(getRootDir(), "computation");
     }
 
-    /** URL binding and other purposes. */
-    public @CheckForNull FolderComputation<I> getComputation() {
+    /**
+     * URL binding and other purposes.
+     * It may be null temporarily inside the constructor, so beware if you extend this class.
+     */
+    public @Nonnull FolderComputation<I> getComputation() {
         return computation;
     }
 
     @Override
     protected String renameBlocker() {
-        FolderComputation<I> comp = getComputation();
-        if (comp != null && comp.isBuilding()) {
+        if (computation.isBuilding()) {
             return "Recomputation is currently in progress";
         }
         return super.renameBlocker();

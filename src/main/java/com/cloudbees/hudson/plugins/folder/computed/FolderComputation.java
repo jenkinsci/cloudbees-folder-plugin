@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
@@ -40,7 +41,6 @@ import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
-import hudson.model.queue.SubTask;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,6 +54,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import hudson.util.AlternativeUiTextProvider;
+import hudson.util.AlternativeUiTextProvider.Message;
+import hudson.util.io.ReopenableRotatingFileOutputStream;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.jelly.XMLOutput;
 
@@ -64,6 +68,10 @@ import org.apache.commons.jelly.XMLOutput;
 public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
 
     private static final Logger LOGGER = Logger.getLogger(FolderComputation.class.getName());
+
+    /** If defined, a number of backup log files to keep. */
+    @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
+    private static @CheckForNull Integer BACKUP_LOG_COUNT = Integer.getInteger(FolderComputation.class.getName() + ".BACKUP_LOG_COUNT");
 
     /** The associated folder. */
     private transient final @Nonnull ComputedFolder<I> folder;
@@ -92,7 +100,15 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     public void run() {
         StreamBuildListener listener;
         try {
-            listener = new StreamBuildListener(new FileOutputStream(getLogFile()), Charsets.UTF_8);
+            File logFile = getLogFile();
+            OutputStream os;
+            if (BACKUP_LOG_COUNT != null) {
+                os = new ReopenableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
+                ((ReopenableRotatingFileOutputStream) os).rewind();
+            } else {
+                os = new FileOutputStream(logFile);
+            }
+            listener = new StreamBuildListener(os, Charsets.UTF_8);
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
             result = Result.FAILURE;
@@ -106,11 +122,16 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             folder.updateChildren(listener);
             _result = Result.SUCCESS;
         } catch (InterruptedException x) {
+            LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " was aborted", x);
             listener.getLogger().println("Aborted");
             _result = Result.ABORTED;
         } catch (Exception x) {
-            // TODO skip stack trace for AbortException
-            x.printStackTrace(listener.fatalError("Failed to recompute children of " + getDisplayName()));
+            LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " failed", x);
+            if (x instanceof AbortException) {
+                listener.fatalError(x.getMessage());
+            } else {
+                x.printStackTrace(listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
+            }
             _result = Result.FAILURE;
         } finally {
             duration = System.currentTimeMillis() - timestamp;
@@ -160,7 +181,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @Override
     public String getDisplayName() {
-        return "Folder Computation";
+        return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
     }
 
     @Override
@@ -252,8 +273,17 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return getIconColor().getIconClassName();
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + folder.getFullName() + "]";
+    }
+
     static {
         Items.XSTREAM.alias("folder-computation", FolderComputation.class);
     }
 
+    /**
+     * Allow other code to override the display name for {@link FolderComputation}.
+     */
+    public static final Message<FolderComputation> DISPLAY_NAME = new Message<FolderComputation>();
 }
