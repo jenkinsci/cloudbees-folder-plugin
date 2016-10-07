@@ -172,6 +172,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             }
             @Override
             public void created(I child) {
+                if (child.getParent() != ComputedFolder.this) {
+                    throw new IllegalStateException("Tried to notify " + ComputedFolder.this + " of creation of " + child + " with a different parent");
+                }
                 LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
                 String name = child.getName();
                 if (!observed.contains(name)) {
