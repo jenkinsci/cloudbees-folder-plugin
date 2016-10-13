@@ -33,6 +33,7 @@ import hudson.model.ItemGroup;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
 import jenkins.model.TransientActionFactory;
+import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerFallback;
@@ -46,7 +47,7 @@ import java.util.Collections;
  * Does the actual work of relocating an item.
  */
 @Restricted(NoExternalUse.class)
-public class RelocationAction implements Action, StaplerFallback {
+public class RelocationAction implements Action, StaplerFallback, IconSpec {
 
     /**
      * The permission required to move an item.
@@ -88,6 +89,14 @@ public class RelocationAction implements Action, StaplerFallback {
     @Override 
     public String getIconFileName() {
         return !item.hasPermission(RELOCATE) || ui == null || !ui.isAvailable(item) ? null : ui.getIconFileName();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getIconClassName() {
+        return !item.hasPermission(RELOCATE) || ui == null || !ui.isAvailable(item) ? null : ui.getIconClassName();
     }
 
     /**
