@@ -29,6 +29,11 @@ import hudson.model.AbstractStatusIcon;
 import hudson.model.Describable;
 import hudson.model.StatusIcon;
 import jenkins.model.Jenkins;
+import org.apache.commons.jelly.JellyContext;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
+import org.jenkins.ui.icon.IconSpec;
+import org.kohsuke.stapler.Stapler;
 
 /**
  * Renders {@link StatusIcon} for a folder.
@@ -37,7 +42,8 @@ import jenkins.model.Jenkins;
  * Possible subtypes can range from dumb icons that always render the same thing to smarter icons
  * that change its icon based on the properties/contents of the folder. 
  */
-public abstract class FolderIcon extends AbstractStatusIcon implements Describable<FolderIcon>, ExtensionPoint {
+public abstract class FolderIcon extends AbstractStatusIcon implements Describable<FolderIcon>, ExtensionPoint,
+        IconSpec {
     /**
      * Called by {@link AbstractFolder} to set the owner that this icon is used for.
      * <p>
@@ -48,6 +54,33 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
         if (folder instanceof Folder) {
             setFolder((Folder) folder);
         }
+    }
+
+    @Override
+    public String getIconClassName() {
+        return null;
+    }
+
+    protected String iconClassNameImageOf(String size) {
+        String spec = null;
+        if ("16x16".equals(size)) {
+            spec = "icon-sm";
+        } else if ("24x24".equals(size)) {
+            spec = "icon-md";
+        } else if ("32x32".equals(size)) {
+            spec = "icon-lg";
+        } else if ("48x48".equals(size)) {
+            spec = "icon-xlg";
+        }
+        if (spec != null) {
+            Icon icon = IconSet.icons.getIconByClassSpec("icon-folder " + spec);
+            if (icon != null) {
+                JellyContext ctx = new JellyContext();
+                ctx.setVariable("resURL", Stapler.getCurrentRequest().getContextPath() + Jenkins.RESOURCE_PATH);
+                return icon.getQualifiedUrl(ctx);
+            }
+        }
+        return null;
     }
 
     /** @deprecated */

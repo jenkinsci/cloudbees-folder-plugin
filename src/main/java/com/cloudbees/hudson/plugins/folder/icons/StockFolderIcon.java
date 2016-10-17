@@ -28,6 +28,10 @@ import com.cloudbees.hudson.plugins.folder.FolderIcon;
 import com.cloudbees.hudson.plugins.folder.FolderIconDescriptor;
 import hudson.Extension;
 import hudson.model.Hudson;
+import jenkins.model.Jenkins;
+import org.apache.commons.jelly.JellyContext;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 
@@ -40,7 +44,11 @@ public class StockFolderIcon extends FolderIcon {
     }
 
     public String getImageOf(String size) {
-        return Stapler.getCurrentRequest().getContextPath()+ Hudson.RESOURCE_PATH+"/images/"+size+"/folder.png";
+        String image = iconClassNameImageOf(size);
+        return image != null
+                ? image
+                : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
+                + "/plugin/cloudbees-folder/images/"+size+"/folder.png");
     }
 
     public String getDescription() {

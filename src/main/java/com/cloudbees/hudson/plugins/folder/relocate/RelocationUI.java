@@ -30,17 +30,17 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;
 import hudson.model.Item;
-import jenkins.model.Jenkins;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import jenkins.model.Jenkins;
+import org.jenkins.ui.icon.IconSpec;
 
 /**
  * Extension point to provide a plugable UI for moving {@link Item} instances.
  *
  * @since 4.9
  */
-public abstract class RelocationUI implements ExtensionPoint {
+public abstract class RelocationUI implements ExtensionPoint, IconSpec {
 
     /**
      * The {@link Action#getDisplayName()} to present for this UI.
@@ -73,6 +73,14 @@ public abstract class RelocationUI implements ExtensionPoint {
     @Nonnull
     public String getIconFileName() {
         return "/plugin/cloudbees-folder/images/24x24/move.png";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getIconClassName() {
+        return "icon-item-move-folder";
     }
 
     /**
