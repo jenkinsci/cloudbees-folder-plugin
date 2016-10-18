@@ -30,6 +30,7 @@ import hudson.model.Describable;
 import hudson.model.StatusIcon;
 import jenkins.model.Jenkins;
 import org.apache.commons.jelly.JellyContext;
+import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
@@ -62,22 +63,25 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
     }
 
     protected String iconClassNameImageOf(String size) {
-        String spec = null;
-        if ("16x16".equals(size)) {
-            spec = "icon-sm";
-        } else if ("24x24".equals(size)) {
-            spec = "icon-md";
-        } else if ("32x32".equals(size)) {
-            spec = "icon-lg";
-        } else if ("48x48".equals(size)) {
-            spec = "icon-xlg";
-        }
-        if (spec != null) {
-            Icon icon = IconSet.icons.getIconByClassSpec("icon-folder " + spec);
-            if (icon != null) {
-                JellyContext ctx = new JellyContext();
-                ctx.setVariable("resURL", Stapler.getCurrentRequest().getContextPath() + Jenkins.RESOURCE_PATH);
-                return icon.getQualifiedUrl(ctx);
+        String iconClassName = getIconClassName();
+        if (StringUtils.isNotBlank(iconClassName)) {
+            String spec = null;
+            if ("16x16".equals(size)) {
+                spec = "icon-sm";
+            } else if ("24x24".equals(size)) {
+                spec = "icon-md";
+            } else if ("32x32".equals(size)) {
+                spec = "icon-lg";
+            } else if ("48x48".equals(size)) {
+                spec = "icon-xlg";
+            }
+            if (spec != null) {
+                Icon icon = IconSet.icons.getIconByClassSpec(iconClassName + " " + spec);
+                if (icon != null) {
+                    JellyContext ctx = new JellyContext();
+                    ctx.setVariable("resURL", Stapler.getCurrentRequest().getContextPath() + Jenkins.RESOURCE_PATH);
+                    return icon.getQualifiedUrl(ctx);
+                }
             }
         }
         return null;
