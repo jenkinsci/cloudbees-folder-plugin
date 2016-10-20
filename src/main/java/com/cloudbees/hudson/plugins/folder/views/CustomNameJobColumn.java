@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.views;
 
 import hudson.Extension;
+import hudson.PluginWrapper;
 import hudson.views.JobColumn;
 import hudson.views.ListViewColumnDescriptor;
 import java.util.logging.Level;
@@ -57,6 +58,8 @@ public class CustomNameJobColumn extends JobColumn {
 
     private transient Localizable loc;
 
+    private transient PluginWrapper origin;
+
     @DataBoundConstructor
     public CustomNameJobColumn(String bundle, String key) {
         this.bundle = bundle;
@@ -73,10 +76,9 @@ public class CustomNameJobColumn extends JobColumn {
     private Object readResolve() {
         if (isPreset()) {
             try {
-                loc = new Localizable(
-                        ResourceBundleHolder
-                                .get(Jenkins.getActiveInstance().pluginManager.uberClassLoader.loadClass(bundle)),
-                        key);
+                Class<?> clazz = Jenkins.getActiveInstance().pluginManager.uberClassLoader.loadClass(bundle);
+                loc = new Localizable(ResourceBundleHolder.get(clazz), key);
+                origin = Jenkins.getInstance().getPluginManager().whichPlugin(clazz);
             } catch (ClassNotFoundException e) {
                 LOGGER.log(Level.WARNING, "No such bundle: " + bundle);
                 loc = new NonLocalizable(bundle + ':' + key);
@@ -89,6 +91,14 @@ public class CustomNameJobColumn extends JobColumn {
 
     public boolean isPreset() {
         return StringUtils.isNotBlank(bundle);
+    }
+
+    public String getFrom() {
+        if (origin != null) {
+            return Messages.CustomNameJobColumn_From(
+                    origin.getLongName().replace("Hudson", "Jenkins").replace("hudson", "jenkins"), origin.getUrl());
+        }
+        return null;
     }
 
     public String getBundle() {

@@ -8,6 +8,14 @@
       </f:invisibleEntry>
       <f:entry title="${%Title}" field="message">
         <f:textbox disabled="true" readonly="true"/>
+        <j:set var="from" value="${instance.from}"/>
+        <j:if test="${from!=null}">
+          <div style="text-align: right">
+            <em>
+              <j:out value="${instance.from}"/>
+            </em>
+          </div>
+        </j:if>
       </f:entry>
     </j:when>
     <j:otherwise>
