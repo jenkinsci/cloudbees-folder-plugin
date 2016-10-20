@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.util.NonLocalizable;
+import org.apache.commons.lang.StringUtils;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -42,9 +43,16 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class CustomNameJobColumn extends JobColumn {
     /**
-     * Resource bundle name.
+     * Our logger.
+     */
+    private static final Logger LOGGER = Logger.getLogger(CustomNameJobColumn.class.getName());
+    /**
+     * Resource bundle name or {@code null}/empty if {@link #key} is the text to display.
      */
     private final String bundle;
+    /**
+     * The key or the text to display if {@link #bundle} is {@code null}/empty.
+     */
     private final String key;
 
     private transient Localizable loc;
@@ -63,17 +71,25 @@ public class CustomNameJobColumn extends JobColumn {
     }
 
     private Object readResolve() {
-        try {
-            loc = new Localizable(
-                ResourceBundleHolder.get(Jenkins.getActiveInstance().pluginManager.uberClassLoader.loadClass(bundle)),
-                key);
-        } catch (ClassNotFoundException e) {
-            LOGGER.log(Level.WARNING, "No such bundle: "+bundle);
-            loc = new NonLocalizable(bundle+':'+key);
+        if (isPreset()) {
+            try {
+                loc = new Localizable(
+                        ResourceBundleHolder
+                                .get(Jenkins.getActiveInstance().pluginManager.uberClassLoader.loadClass(bundle)),
+                        key);
+            } catch (ClassNotFoundException e) {
+                LOGGER.log(Level.WARNING, "No such bundle: " + bundle);
+                loc = new NonLocalizable(bundle + ':' + key);
+            }
+        } else {
+            loc = new NonLocalizable(StringUtils.defaultString(key));
         }
         return this;
     }
 
+    public boolean isPreset() {
+        return StringUtils.isNotBlank(bundle);
+    }
 
     public String getBundle() {
         return bundle;
@@ -100,5 +116,4 @@ public class CustomNameJobColumn extends JobColumn {
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(CustomNameJobColumn.class.getName());
 }
