@@ -78,7 +78,7 @@ public class CustomNameJobColumn extends JobColumn {
             try {
                 Class<?> clazz = Jenkins.getActiveInstance().pluginManager.uberClassLoader.loadClass(bundle);
                 loc = new Localizable(ResourceBundleHolder.get(clazz), key);
-                origin = Jenkins.getInstance().getPluginManager().whichPlugin(clazz);
+                origin = Jenkins.getActiveInstance().getPluginManager().whichPlugin(clazz);
             } catch (ClassNotFoundException e) {
                 LOGGER.log(Level.WARNING, "No such bundle: " + bundle);
                 loc = new NonLocalizable(bundle + ':' + key);
