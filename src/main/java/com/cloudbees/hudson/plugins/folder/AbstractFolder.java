@@ -61,6 +61,7 @@ import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.Function1;
 import hudson.util.HttpResponses;
+import hudson.util.VersionNumber;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
@@ -123,6 +124,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
+
+    private static final VersionNumber VERSION_TWO = new VersionNumber("2.0");
 
     private static long loadingTick;
     private static final AtomicInteger jobTotal = new AtomicInteger();
@@ -785,6 +788,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
         }
         return null;
+    }
+
+    public static boolean useLegacyUi() {
+        return Jenkins.getVersion().isOlderThan(VERSION_TWO);
     }
 
 }
