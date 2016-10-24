@@ -28,6 +28,8 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
+import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
+import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -162,20 +164,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
+    private /*almost final*/ AbstractFolderViewHolder folderViews;
+
     /**
      * {@link View}s.
      */
-    private /*almost final*/ CopyOnWriteArrayList<View> views;
+    @Deprecated
+    private transient /*almost final*/ CopyOnWriteArrayList<View> views;
 
     /**
      * Currently active Views tab bar.
      */
-    private volatile ViewsTabBar viewsTabBar;
+    @Deprecated
+    private transient volatile ViewsTabBar viewsTabBar;
 
     /**
      * Name of the primary view.
      */
-    private volatile String primaryView;
+    @Deprecated
+    private transient volatile String primaryView;
 
     private transient /*almost final*/ ViewGroupMixIn viewGroupMixIn;
 
@@ -198,37 +205,52 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             p.setOwner(this);
         }
         if (icon == null) {
-            icon = new StockFolderIcon();
+            icon = newDefaultFolderIcon();
         } 
         icon.setOwner(this);
-        
-        if (views == null) {
-            views = new CopyOnWriteArrayList<View>();
-        }
-        if (viewsTabBar == null) {
-            viewsTabBar = new DefaultViewsTabBar();
+
+        if (folderViews == null) {
+            if (views != null && !views.isEmpty()) {
+                folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
+                        : viewsTabBar);
+            } else {
+                folderViews = newFolderViewHolder();
+            }
+            views = null;
+            primaryView = null;
+            viewsTabBar = null;
         }
         viewGroupMixIn = new ViewGroupMixIn(this) {
             @Override
             protected List<View> views() {
-                return views;
+                return folderViews.getViews();
             }
             @Override
             protected String primaryView() {
-                return primaryView == null ? views.get(0).getViewName() : primaryView;
+                String primaryView = folderViews.getPrimaryView();
+                return primaryView == null ? folderViews.getViews().get(0).getViewName() : primaryView;
             }
             @Override
             protected void primaryView(String name) {
-                primaryView = name;
+                folderViews.setPrimaryView(name);
+            }
+            @Override
+            public void addView(View v) throws IOException {
+                if (folderViews.isViewsModifiable()) {
+                    super.addView(v);
+                }
+            }
+            @Override
+            public boolean canDelete(View view) {
+                return folderViews.isViewsModifiable() && super.canDelete(view);
+            }
+            @Override
+            public synchronized void deleteView(View view) throws IOException {
+                if (folderViews.isViewsModifiable()) {
+                    super.deleteView(view);
+                }
             }
         };
-        if (views.isEmpty()) {
-            try {
-                initViews(views);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
-            }
-        }
         if (healthMetrics == null) {
             List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
             for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
@@ -239,6 +261,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
             healthMetrics = new DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor>(this, metrics);
         }
+    }
+
+    protected DefaultViewsTabBar newDefaultViewsTabBar() {
+        return new DefaultViewsTabBar();
+    }
+
+    protected AbstractFolderViewHolder newFolderViewHolder() {
+        CopyOnWriteArrayList views = new CopyOnWriteArrayList<View>();
+        try {
+            initViews(views);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
+        }
+        return new DefaultFolderViewHolder(views, null, newDefaultViewsTabBar());
+    }
+
+    protected FolderIcon newDefaultFolderIcon() {
+        return new StockFolderIcon();
     }
 
     protected void initViews(List<View> views) throws IOException {
@@ -401,6 +441,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return viewGroupMixIn.getViews();
     }
 
+    public AbstractFolderViewHolder getFolderViews() {
+        return folderViews;
+    }
+
+    public void resetFolderViews() {
+        folderViews = newFolderViewHolder();
+    }
+
     @Exported
     @Override
     public View getPrimaryView() {
@@ -408,7 +456,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     public void setPrimaryView(View v) {
-        primaryView = v.getViewName();
+        folderViews.setPrimaryView(v.getViewName());
     }
 
     @Override
@@ -418,7 +466,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public ViewsTabBar getViewsTabBar() {
-        return viewsTabBar;
+        return folderViews.getTabBar();
     }
 
     @Override
@@ -493,6 +541,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             return FormValidation.error(jenkins.model.Messages.Hudson_ViewAlreadyExists(view));
         }
     }
+
 
     /**
      * Get the current health report for a folder.
@@ -611,7 +660,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         items.remove(oldName);
         items.put(newName, (I) item);
         // For compatibility with old views:
-        for (View v : views) {
+        for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, oldName, newName);
         }
         save();
@@ -623,7 +672,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
         // For compatibility with old views:
-        for (View v : views) {
+        for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, item.getName(), null);
         }
         save();
@@ -694,12 +743,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         try {
             description = json.getString("description");
             displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
-            if (json.has("viewsTabBar")) {
-                viewsTabBar = req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar"));
+            if (folderViews.isTabBarModifiable() && json.has("viewsTabBar")) {
+                folderViews.setTabBar(req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar")));
             }
 
-            if (json.has("primaryView")) {
-                primaryView = json.getString("primaryView");
+            if (folderViews.isPrimaryModifiable() && json.has("primaryView")) {
+                folderViews.setPrimaryView(json.getString("primaryView"));
             }
 
             properties.rebuild(req, json, getDescriptor().getPropertyDescriptors());

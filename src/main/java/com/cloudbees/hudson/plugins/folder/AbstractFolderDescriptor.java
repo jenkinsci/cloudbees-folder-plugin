@@ -26,8 +26,11 @@ package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import hudson.model.TopLevelItemDescriptor;
+import hudson.views.ViewsTabBar;
+import hudson.views.ViewsTabBarDescriptor;
 import java.util.ArrayList;
 import java.util.List;
+import jenkins.model.Jenkins;
 
 /**
  * Category of {@link AbstractFolder}.
@@ -70,6 +73,18 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor {
             }
         }
         return r;
+    }
+
+    public boolean isIconConfigurable() {
+        return FolderIconDescriptor.all().size() > 1;
+    }
+
+    public boolean isTabBarConfigurable() {
+        return Jenkins.getActiveInstance().getDescriptorList(ViewsTabBar.class).size() > 1;
+    }
+
+    public boolean isLookAndFeelConfigurable(AbstractFolder<?> folder) {
+        return isIconConfigurable() || (isTabBarConfigurable() && folder.getFolderViews().isTabBarModifiable()) || (folder.getViews().size() > 1 && folder.getFolderViews().isPrimaryModifiable());
     }
 
 }

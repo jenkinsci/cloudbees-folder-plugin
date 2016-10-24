@@ -24,18 +24,27 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
+import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
+import hudson.model.AllView;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
+import hudson.model.ListView;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import hudson.model.View;
+import hudson.views.DefaultViewsTabBar;
+import hudson.views.ViewsTabBar;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -222,6 +231,78 @@ public class ComputedFolderTest {
             @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SampleComputedFolder(parent, name);
+            }
+
+        }
+
+    }
+
+    public static class LockedDownSampleComputedFolder extends SampleComputedFolder {
+
+        private LockedDownSampleComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected AbstractFolderViewHolder newFolderViewHolder() {
+            return new AbstractFolderViewHolder() {
+                final List<View> views = new ArrayList<View>(Arrays.asList(new AllView("All"), new ListView("Empty")));
+                final ViewsTabBar tabBar = new DefaultViewsTabBar();
+                @NonNull
+                @Override
+                public List<View> getViews() {
+                    return Collections.unmodifiableList(views);
+                }
+
+                @Override
+                public void setViews(@NonNull List<? extends View> views) {
+                    throw new UnsupportedOperationException("Blow up if called");
+                }
+
+                @Override
+                public boolean isViewsModifiable() {
+                    return false;
+                }
+
+                @Override
+                public boolean isPrimaryModifiable() {
+                    return false;
+                }
+
+                @Override
+                public boolean isTabBarModifiable() {
+                    return false;
+                }
+
+                @Override
+                public String getPrimaryView() {
+                    return "Empty";
+                }
+
+                @Override
+                public void setPrimaryView(@CheckForNull String name) {
+                    throw new UnsupportedOperationException("Blow up if called");
+                }
+
+                @NonNull
+                @Override
+                public ViewsTabBar getTabBar() {
+                    return tabBar;
+                }
+
+                @Override
+                public void setTabBar(@NonNull ViewsTabBar tabBar) {
+                    throw new UnsupportedOperationException("Blow up if called");
+                }
+            };
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new LockedDownSampleComputedFolder(parent, name);
             }
 
         }
