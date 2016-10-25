@@ -456,7 +456,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     public void setPrimaryView(View v) {
-        folderViews.setPrimaryView(v.getViewName());
+        if (folderViews.isPrimaryModifiable()) {
+            folderViews.setPrimaryView(v.getViewName());
+        }
     }
 
     @Override

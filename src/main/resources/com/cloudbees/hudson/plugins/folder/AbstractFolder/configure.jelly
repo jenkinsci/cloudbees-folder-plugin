@@ -48,10 +48,11 @@ THE SOFTWARE.
         <j:choose>
           <j:when test="${descriptor.isLookAndFeelConfigurable(it)}">
             <f:section title="${%Appearance}">
-              <j:if test="${it.folderViews.primaryViewModifiable and it.views.size()>1}">
+              <j:set var="views" value="${it.views}"/>
+              <j:if test="${it.folderViews.primaryModifiable and views.size()>1}">
                 <f:entry title="${%Default View}" field="defaultView">
                   <select class="setting-input" name="primaryView">
-                    <j:forEach var="v" items="${it.views}">
+                    <j:forEach var="v" items="${views}">
                       <j:choose>
                         <j:when test="${it.primaryView==v}">
                           <option value="${v.viewName}" selected="selected">${v.viewName}</option>

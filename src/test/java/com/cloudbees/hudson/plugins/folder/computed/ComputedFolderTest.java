@@ -25,6 +25,9 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
+import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.HtmlInput;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
@@ -33,10 +36,12 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
 import hudson.model.ListView;
+import hudson.model.MyView;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
+import hudson.model.ViewGroup;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.ByteArrayOutputStream;
@@ -51,7 +56,13 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.apache.commons.lang.StringUtils;
+import org.hamcrest.Matcher;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.Issue;
@@ -161,6 +172,44 @@ public class ComputedFolderTest {
         org.assertItemNames("C+D");
     }
 
+    @Test
+    public void viewHolderRestrictions() throws Exception {
+        LockedDownSampleComputedFolder org = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "org");
+        // initial setup is correct
+        assertThat(org.getViews().size(), is(2));
+        assertThat(org.getPrimaryView().getViewName(), is("Empty"));
+        assertThat(org.getView("All"), notNullValue());
+
+        // permissions are as expected
+        assertThat(org.getFolderViews().isPrimaryModifiable(), is(false));
+        assertThat(org.getFolderViews().isViewsModifiable(), is(false));
+        assertThat(org.getFolderViews().isTabBarModifiable(), is(false));
+
+        // trying to set the primary view is a no-op
+        org.setPrimaryView(org.getView("All"));
+        assertThat(org.getPrimaryView().getViewName(), is("Empty"));
+
+        // adding a view is a no-op
+        org.addView(new MyView("mine", org));
+        assertThat(org.getViews().size(), is(2));
+
+        // primary not modifiable, no ability to configure primary view
+        JenkinsRule.WebClient client = r.createWebClient();
+        HtmlPage configure = client.getPage(org, "configure");
+        assertThat(configure.getElementsByName("primaryView"), is(Collections.<DomElement>emptyList()));
+
+        SampleComputedFolder org2 = r.jenkins.createProject(SampleComputedFolder.class, "org2");
+
+        // only one view, no ability to configure primary
+        configure = client.getPage(org, "configure");
+        assertThat(configure.getElementsByName("primaryView"), is(Collections.<DomElement>emptyList()));
+
+        // more than one view and primary is modifiable, so we can configure it
+        org2.addView(new MyView("mine", org2));
+        configure = client.getPage(org2, "configure");
+        assertThat(configure.getElementsByName("primaryView"), not(is(Collections.<DomElement>emptyList())));
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolder extends ComputedFolder<FreeStyleProject> {
 
@@ -245,56 +294,7 @@ public class ComputedFolderTest {
 
         @Override
         protected AbstractFolderViewHolder newFolderViewHolder() {
-            return new AbstractFolderViewHolder() {
-                final List<View> views = new ArrayList<View>(Arrays.asList(new AllView("All"), new ListView("Empty")));
-                final ViewsTabBar tabBar = new DefaultViewsTabBar();
-                @NonNull
-                @Override
-                public List<View> getViews() {
-                    return Collections.unmodifiableList(views);
-                }
-
-                @Override
-                public void setViews(@NonNull List<? extends View> views) {
-                    throw new UnsupportedOperationException("Blow up if called");
-                }
-
-                @Override
-                public boolean isViewsModifiable() {
-                    return false;
-                }
-
-                @Override
-                public boolean isPrimaryModifiable() {
-                    return false;
-                }
-
-                @Override
-                public boolean isTabBarModifiable() {
-                    return false;
-                }
-
-                @Override
-                public String getPrimaryView() {
-                    return "Empty";
-                }
-
-                @Override
-                public void setPrimaryView(@CheckForNull String name) {
-                    throw new UnsupportedOperationException("Blow up if called");
-                }
-
-                @NonNull
-                @Override
-                public ViewsTabBar getTabBar() {
-                    return tabBar;
-                }
-
-                @Override
-                public void setTabBar(@NonNull ViewsTabBar tabBar) {
-                    throw new UnsupportedOperationException("Blow up if called");
-                }
-            };
+            return new FixedViewHolder(this);
         }
 
         @TestExtension
@@ -307,6 +307,61 @@ public class ComputedFolderTest {
 
         }
 
+        private static class FixedViewHolder extends AbstractFolderViewHolder {
+            final List<View> views;
+            final ViewsTabBar tabBar = new DefaultViewsTabBar();
+
+            public FixedViewHolder(ViewGroup owner) {
+                views = new ArrayList<View>(Arrays.asList(new AllView("All", owner), new ListView("Empty", owner)));
+            }
+
+            @NonNull
+            @Override
+            public List<View> getViews() {
+                return Collections.unmodifiableList(views);
+            }
+
+            @Override
+            public void setViews(@NonNull List<? extends View> views) {
+                throw new UnsupportedOperationException("Blow up if called");
+            }
+
+            @Override
+            public boolean isViewsModifiable() {
+                return false;
+            }
+
+            @Override
+            public boolean isPrimaryModifiable() {
+                return false;
+            }
+
+            @Override
+            public boolean isTabBarModifiable() {
+                return false;
+            }
+
+            @Override
+            public String getPrimaryView() {
+                return "Empty";
+            }
+
+            @Override
+            public void setPrimaryView(@CheckForNull String name) {
+                throw new UnsupportedOperationException("Blow up if called");
+            }
+
+            @NonNull
+            @Override
+            public ViewsTabBar getTabBar() {
+                return tabBar;
+            }
+
+            @Override
+            public void setTabBar(@NonNull ViewsTabBar tabBar) {
+                throw new UnsupportedOperationException("Blow up if called");
+            }
+        }
     }
 
     private static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
