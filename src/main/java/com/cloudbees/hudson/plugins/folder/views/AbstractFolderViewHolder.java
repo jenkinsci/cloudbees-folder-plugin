@@ -27,7 +27,6 @@ package com.cloudbees.hudson.plugins.folder.views;
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.ExtensionPoint;
 import hudson.model.View;
 import hudson.views.ViewsTabBar;
 import java.util.List;
@@ -51,7 +50,7 @@ import java.util.List;
  *
  * @since FIXME
  */
-public abstract class AbstractFolderViewHolder implements ExtensionPoint {
+public abstract class AbstractFolderViewHolder {
     /**
      * Returns the list of views. If {@link #isViewsModifiable()} then this list is modifiable.
      *
