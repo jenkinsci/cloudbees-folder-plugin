@@ -712,6 +712,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public synchronized void save() throws IOException {
+        if (folderViews != null) {
+            folderViews.invalidateCaches();
+        }
         if (BulkChange.contains(this)) {
             return;
         }
