@@ -351,6 +351,32 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return current.removeAll(old);
     }
 
+    /**
+     * Replaces any actions of the specified type by the supplied action.
+     *
+     * @param clazz the type of actions to replace
+     * @param a     the action to replace with
+     * @since FIXME
+     */
+    // @Override // TODO uncomment once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public void replaceActions(@Nonnull Class<? extends Action> clazz, Action a) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("Action type must be non-null");
+        }
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        List<Action> old = new ArrayList<Action>();
+        List<Action> current = super.getActions();
+        for (Action a1 : current) {
+            if (clazz.isInstance(a1)) {
+                old.add(a1);
+            }
+        }
+        current.removeAll(old);
+        addAction(a);
+    }
+
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
