@@ -30,6 +30,7 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -84,6 +85,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -287,11 +289,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void addAction(Action a) {
         super.getActions().add(a);
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void replaceAction(Action a) {
         // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
         List<Action> old = new ArrayList<Action>(1);
@@ -303,6 +307,48 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         current.removeAll(old);
         addAction(a);
+    }
+
+    /**
+     * Remove an action.
+     *
+     * @param a an action to remove (if {@code null} then this will be a no-op)
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // @Override // TODO uncomment once baseline has JENKINS-39404
+    @SuppressWarnings("deprecation")
+    public boolean removeAction(@Nullable Action a) {
+        if (a == null) {
+            return false;
+        }
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        return super.getActions().removeAll(Collections.singleton(a));
+    }
+
+    /**
+     * Removes any actions of the specified type.
+     *
+     * @param clazz the type of actions to remove
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // @Override // TODO uncomment once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions","deprecation"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public boolean removeActions(@Nonnull Class<? extends Action> clazz) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("Action type must be non-null");
+        }
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        List<Action> old = new ArrayList<Action>();
+        List<Action> current = super.getActions();
+        for (Action a : current) {
+            if (clazz.isInstance(a)) {
+                old.add(a);
+            }
+        }
+        return current.removeAll(old);
     }
 
     @Override
