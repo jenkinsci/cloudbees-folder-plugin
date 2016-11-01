@@ -30,6 +30,7 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import hudson.AbortException;
 import hudson.BulkChange;
+import hudson.Extension;
 import hudson.Util;
 import static hudson.Util.fixEmpty;
 import hudson.init.InitMilestone;
@@ -45,10 +46,13 @@ import static hudson.model.ItemGroupMixIn.loadChildren;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
+import hudson.model.listeners.RunListener;
 import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
@@ -73,9 +77,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -123,6 +129,10 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
+    private static final Random ENTROPY = new Random();
+    private static final int HEALTH_REPORT_CACHE_REFRESH_MIN = Math.max(10, Math.min(1440, Integer.getInteger(
+            AbstractFolder.class.getName()+".healthReportCacheRefreshMin", 60
+    )));
 
     private static long loadingTick;
     private static final AtomicInteger jobTotal = new AtomicInteger();
@@ -182,6 +192,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     private DescribableList<FolderHealthMetric,FolderHealthMetricDescriptor> healthMetrics;
 
     private FolderIcon icon;
+
+    private transient volatile long nextHealthReportsRefreshMillis;
+    private transient volatile List<HealthReport> healthReports;
 
     /** Subclasses should also call {@link #init}. */
     protected AbstractFolder(ItemGroup parent, String name) {
@@ -504,30 +517,77 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return reports.isEmpty() ? new HealthReport() : reports.get(0);
     }
 
+    /**
+     * Invalidates the cache of build health reports.
+     *
+     * @since FIXME
+     */
+    public void invalidateBuildHealthReports() {
+        healthReports = null;
+    }
+
     @Exported(name = "healthReport")
     public List<HealthReport> getBuildHealthReports() {
         if (healthMetrics == null || healthMetrics.isEmpty()) {
             return Collections.<HealthReport>emptyList();
         }
-        List<HealthReport> reports = new ArrayList<HealthReport>();
+        List<HealthReport> reports = healthReports;
+        if (reports != null && nextHealthReportsRefreshMillis > System.currentTimeMillis()) {
+            // cache is still valid
+            return reports;
+        }
+        // ensure we refresh on average once every HEALTH_REPORT_CACHE_REFRESH_MIN but not all at once
+        nextHealthReportsRefreshMillis = System.currentTimeMillis()
+                + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
+                + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
+        reports = new ArrayList<HealthReport>();
         List<FolderHealthMetric.Reporter> reporters = new ArrayList<FolderHealthMetric.Reporter>(healthMetrics.size());
+        boolean recursive = false;
+        boolean topLevelOnly = true;
         for (FolderHealthMetric metric : healthMetrics) {
+            recursive = recursive || metric.getType().isRecursive();
+            topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
             reporters.add(metric.reporter());
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
+                recursive = recursive || metric.getType().isRecursive();
+                topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
                 reporters.add(metric.reporter());
             }
         }
-        Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
-        stack.push(getItems());
-        while (!stack.isEmpty()) {
-            for (Item item : stack.pop()) {
+        if (recursive) {
+            Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
+            stack.push(getItems());
+            if (topLevelOnly) {
+                while (!stack.isEmpty()) {
+                    for (Item item : stack.pop()) {
+                        if (item instanceof TopLevelItem) {
+                            for (FolderHealthMetric.Reporter reporter : reporters) {
+                                reporter.observe(item);
+                            }
+                            if (item instanceof Folder) {
+                                stack.push(((Folder) item).getItems());
+                            }
+                        }
+                    }
+                }
+            } else {
+                while (!stack.isEmpty()) {
+                    for (Item item : stack.pop()) {
+                        for (FolderHealthMetric.Reporter reporter : reporters) {
+                            reporter.observe(item);
+                        }
+                        if (item instanceof Folder) {
+                            stack.push(((Folder) item).getItems());
+                        }
+                    }
+                }
+            }
+        } else {
+            for (Item item: getItems()) {
                 for (FolderHealthMetric.Reporter reporter : reporters) {
                     reporter.observe(item);
-                }
-                if (item instanceof Folder) {
-                    stack.push(((Folder) item).getItems());
                 }
             }
         }
@@ -539,6 +599,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
 
         Collections.sort(reports);
+        healthReports = reports; // idempotent write
         return reports;
     }
 
@@ -785,6 +846,76 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
         }
         return null;
+    }
+
+    private static void invalidateBuildHealthReports(Item item) {
+        while (item != null) {
+            if (item instanceof AbstractFolder) {
+                ((AbstractFolder) item).invalidateBuildHealthReports();
+            }
+            if (item.getParent() instanceof Item) {
+                item = (Item) item.getParent();
+            } else {
+                break;
+            }
+        }
+    }
+
+    @Extension
+    public static class ItemListenerImpl extends ItemListener {
+        @Override
+        public void onCreated(Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onCopied(Item src, Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onDeleted(Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onRenamed(Item item, String oldName, String newName) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onLocationChanged(Item item, String oldFullName, String newFullName) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onUpdated(Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+    }
+
+    @Extension
+    public static class RunListenerImpl extends RunListener<Run> {
+        @Override
+        public void onCompleted(Run run, @Nonnull TaskListener listener) {
+            invalidateBuildHealthReports(run.getParent());
+        }
+
+        @Override
+        public void onFinalized(Run run) {
+            invalidateBuildHealthReports(run.getParent());
+        }
+
+        @Override
+        public void onStarted(Run run, TaskListener listener) {
+            invalidateBuildHealthReports(run.getParent());
+        }
+
+        @Override
+        public void onDeleted(Run run) {
+            invalidateBuildHealthReports(run.getParent());
+        }
     }
 
 }

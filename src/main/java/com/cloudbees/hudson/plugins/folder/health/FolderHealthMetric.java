@@ -37,6 +37,10 @@ import java.util.List;
 
 public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderHealthMetric> {
 
+    public Type getType() {
+        return Type.RECURSIVE_ALL_ITEMS; // TODO should be Type.RECURSIVE_TOP_LEVEL_ITEMS but backwards compatibilty
+    }
+
     public abstract Reporter reporter();
 
     public static HealthReport getHealthReport(Item item) {
@@ -67,6 +71,30 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
          */
         void observe(Item item);
         List<HealthReport> report();
+    }
+
+    public enum Type {
+        IMMEDIATE_TOP_LEVEL_ITEMS(false, true),
+        RECURSIVE_TOP_LEVEL_ITEMS(true, true),
+        IMMEDIATE_ALL_ITEMS(false, false),
+        RECURSIVE_ALL_ITEMS(true, false);
+
+        private final boolean recursive;
+
+        private final boolean topLevelItems;
+
+        Type(boolean recursive, boolean topLevelItems) {
+            this.recursive = recursive;
+            this.topLevelItems = topLevelItems;
+        }
+
+        public boolean isRecursive() {
+            return recursive;
+        }
+
+        public boolean isTopLevelItems() {
+            return topLevelItems;
+        }
     }
 
 }
