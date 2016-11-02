@@ -28,13 +28,12 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
-import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
+import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
-import static hudson.Util.fixEmpty;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -44,7 +43,6 @@ import hudson.model.Descriptor;
 import hudson.model.HealthReport;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
-import static hudson.model.ItemGroupMixIn.loadChildren;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
@@ -106,6 +104,9 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import static hudson.Util.fixEmpty;
+import static hudson.model.ItemGroupMixIn.loadChildren;
 
 /**
  * A general-purpose {@link ItemGroup}.
@@ -288,15 +289,42 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         views.add(v);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    // TODO remove once baseline has JENKINS-39404
     @Override
     @SuppressWarnings("deprecation")
     public void addAction(Action a) {
         super.getActions().add(a);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    // TODO remove once baseline has JENKINS-39404
     @Override
     @SuppressWarnings("deprecation")
     public void replaceAction(Action a) {
+        addOrReplaceAction(a);
+    }
+
+    /**
+     * Add an action, replacing any existing actions of the (exact) same class.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
+     *
+     * @param a an action to add/replace
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // TODO remove once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public boolean addOrReplaceAction(@Nonnull Action a) {
+        if (a == null) {
+            throw new IllegalArgumentException("Action must be non-null");
+        }
         // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
         List<Action> old = new ArrayList<Action>(1);
         List<Action> current = super.getActions();
@@ -312,16 +340,19 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (!found) {
             addAction(a);
         }
+        return !found || !old.isEmpty();
     }
 
     /**
      * Remove an action.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
      *
      * @param a an action to remove (if {@code null} then this will be a no-op)
      * @return {@code true} if this actions changed as a result of the call
      * @since FIXME
      */
-    // @Override // TODO uncomment once baseline has JENKINS-39404
+    // TODO remove once baseline has JENKINS-39404
     @SuppressWarnings("deprecation")
     public boolean removeAction(@Nullable Action a) {
         if (a == null) {
@@ -333,13 +364,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Removes any actions of the specified type.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
      *
      * @param clazz the type of actions to remove
      * @return {@code true} if this actions changed as a result of the call
      * @since FIXME
      */
-    // @Override // TODO uncomment once baseline has JENKINS-39404
-    @SuppressWarnings({"ConstantConditions","deprecation"})
+    // TODO remove once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public boolean removeActions(@Nonnull Class<? extends Action> clazz) {
         if (clazz == null) {
@@ -358,17 +391,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Replaces any actions of the specified type by the supplied action.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
      *
-     * @param clazz the type of actions to replace
+     * @param clazz the type of actions to replace (note that the action you are replacing this with need not extend
+     *              this class)
      * @param a     the action to replace with
+     * @return {@code true} if this actions changed as a result of the call
      * @since FIXME
      */
-    // @Override // TODO uncomment once baseline has JENKINS-39404
+    // TODO remove once baseline has JENKINS-39404
     @SuppressWarnings({"ConstantConditions", "deprecation"})
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public boolean replaceActions(@Nonnull Class<? extends Action> clazz, Action a) {
         if (clazz == null) {
             throw new IllegalArgumentException("Action type must be non-null");
+        }
+        if (a == null) {
+            throw new IllegalArgumentException("Action must be non-null");
         }
         // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
         List<Action> old = new ArrayList<Action>();
