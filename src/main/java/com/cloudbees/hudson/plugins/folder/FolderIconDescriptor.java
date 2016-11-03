@@ -32,5 +32,16 @@ public abstract class FolderIconDescriptor extends Descriptor<FolderIcon> {
     public static DescriptorExtensionList<FolderIcon, FolderIconDescriptor> all() {
         return Jenkins.getActiveInstance().<FolderIcon, FolderIconDescriptor>getDescriptorList(FolderIcon.class);
     }
-    // TODO consider adding an isApplicable method
+
+    /**
+     * Returns true if this {@link FolderIcon} type is applicable to the
+     * given job type.
+     *
+     * @param folderType the type of folder.
+     * @return true to indicate applicable, in which case the icon will be
+     * displayed in the configuration screen of this folder.
+     */
+    public boolean isApplicable(Class<? extends AbstractFolder> folderType) {
+        return true;
+    }
 }
