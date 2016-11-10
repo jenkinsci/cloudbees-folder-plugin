@@ -127,6 +127,9 @@ import static hudson.model.ItemGroupMixIn.loadChildren;
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
 
     private static long loadingTick;
@@ -428,6 +431,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return !(old.isEmpty() && found);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
@@ -467,6 +473,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public AbstractFolderDescriptor getDescriptor() {
         return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
@@ -521,6 +530,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getItem(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getPronoun() {
         return AlternativeUiTextProvider.get(PRONOUN, this, getDescriptor().getDisplayName());
@@ -538,26 +550,41 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return r;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void addView(View v) throws IOException {
         viewGroupMixIn.addView(v);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean canDelete(View view) {
         return viewGroupMixIn.canDelete(view);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteView(View view) throws IOException {
         viewGroupMixIn.deleteView(view);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public View getView(String name) {
         return viewGroupMixIn.getView(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported
     @Override
     public Collection<View> getViews() {
@@ -572,6 +599,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         folderViews = newFolderViewHolder();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported
     @Override
     public View getPrimaryView() {
@@ -584,21 +614,33 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onViewRenamed(View view, String oldName, String newName) {
         viewGroupMixIn.onViewRenamed(view, oldName, newName);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ViewsTabBar getViewsTabBar() {
         return folderViews.getTabBar();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ItemGroup<? extends TopLevelItem> getItemGroup() {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Action> getViewActions() {
         return Collections.emptyList();
@@ -612,17 +654,31 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getPrimaryView();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected SearchItem get(String key) {
                 return Jenkins.getActiveInstance().getItem(key, grp());
             }
+
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected Collection<TopLevelItem> all() {
                 return Items.getAllItems(grp(), TopLevelItem.class);
             }
+
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected String getName(TopLevelItem j) {
                 return j.getRelativeNameFrom(grp());
@@ -634,6 +690,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
         ContextMenu menu = new ContextMenu();
@@ -740,6 +799,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return icon;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Collection<? extends Job> getAllJobs() {
         Set<Job> jobs = new HashSet<Job>();
@@ -749,6 +811,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return jobs;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported(name="jobs")
     @Override
     public Collection<I> getItems() {
@@ -761,6 +826,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return viewableItems;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public I getItem(String name) throws AccessDeniedException {
         if (items == null) {
@@ -779,6 +847,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return item;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
     public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
@@ -791,6 +862,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         save();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
     public void onDeleted(TopLevelItem item) throws IOException {
@@ -803,6 +877,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         save();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void delete() throws IOException, InterruptedException {
         // Some parts copied from AbstractItem.
@@ -833,6 +910,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void save() throws IOException {
         if (folderViews != null) {
@@ -854,6 +934,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         super.renameTo(newName);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
@@ -921,7 +1004,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
      */
     @Restricted(NoExternalUse.class)
-    protected @Nonnull String getSuccessfulDestination() {
+    @Nonnull
+    protected String getSuccessfulDestination() {
         return ".";
     }
 
@@ -955,7 +1039,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * Allows a subclass to block renames under dynamic conditions.
      * @return a message if rename should currently be prohibited, or null to allow
      */
-    protected @CheckForNull String renameBlocker() {
+    @CheckForNull
+    protected String renameBlocker() {
         for (Job<?,?> job : getAllJobs()) {
             if (job.isBuilding()) {
                 return "Unable to rename a folder while a job inside it is building.";

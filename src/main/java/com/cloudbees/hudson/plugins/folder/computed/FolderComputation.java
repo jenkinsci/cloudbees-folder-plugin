@@ -39,8 +39,12 @@ import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
+import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
+import hudson.util.AlternativeUiTextProvider;
+import hudson.util.AlternativeUiTextProvider.Message;
+import hudson.util.io.ReopenableRotatingFileOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,10 +58,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import hudson.util.AlternativeUiTextProvider;
-import hudson.util.AlternativeUiTextProvider.Message;
-import hudson.util.io.ReopenableRotatingFileOutputStream;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.jelly.XMLOutput;
 
@@ -67,23 +67,35 @@ import org.apache.commons.jelly.XMLOutput;
  */
 public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(FolderComputation.class.getName());
 
     /** If defined, a number of backup log files to keep. */
     @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
     private static @CheckForNull Integer BACKUP_LOG_COUNT = Integer.getInteger(FolderComputation.class.getName() + ".BACKUP_LOG_COUNT");
 
+    /** If defined, a number of kB that the event log can grow to before rotation. */
+    @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
+    @Nonnull
+    private static int EVENT_LOG_MAX_SIZE = Math.max(1,Integer.getInteger(FolderComputation.class.getName() + ".EVENT_LOG_MAX_SIZE", 150));
+
     /** The associated folder. */
-    private transient final @Nonnull ComputedFolder<I> folder;
+    @Nonnull
+    private transient final ComputedFolder<I> folder;
 
     /** The previous run, if any. */
-    private transient final @CheckForNull FolderComputation<I> previous;
+    @CheckForNull
+    private transient final FolderComputation<I> previous;
 
     /** The result of the build, if finished. */
-    private volatile @CheckForNull Result result;
+    @CheckForNull
+    private volatile Result result;
 
     /** The past few durations for purposes of estimation. */
-    private @CheckForNull List<Long> durations;
+    @CheckForNull
+    private List<Long> durations;
 
     /** Start time. */
     private long timestamp;
@@ -96,6 +108,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         this.previous = previous;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void run() {
         StreamBuildListener listener;
@@ -153,6 +168,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void save() throws IOException {
         if (BulkChange.contains(this)) {
@@ -163,11 +181,33 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         SaveableListener.fireOnChange(this, dataFile);
     }
 
-    public @Nonnull File getLogFile() {
+    @Nonnull
+    public File getLogFile() {
         return new File(folder.getComputationDir(), "computation.log");
     }
 
-    protected @Nonnull XmlFile getDataFile() {
+    @Nonnull
+    public File getEventsFile() {
+        return new File(folder.getComputationDir(), "events.log");
+    }
+
+    public TaskListener createEventsListener() throws IOException {
+        File eventsFile = getEventsFile();
+        boolean rotate = eventsFile.length() > EVENT_LOG_MAX_SIZE * 1024;
+        OutputStream os;
+        if (BACKUP_LOG_COUNT != null) {
+            os = new ReopenableRotatingFileOutputStream(eventsFile, BACKUP_LOG_COUNT);
+            if (rotate) {
+                ((ReopenableRotatingFileOutputStream) os).rewind();
+            }
+        } else {
+            os = new FileOutputStream(eventsFile, !rotate);
+        }
+        return new StreamBuildListener(os, Charsets.UTF_8);
+    }
+
+    @Nonnull
+    protected XmlFile getDataFile() {
         return new XmlFile(Items.XSTREAM, new File(folder.getComputationDir(), "computation.xml"));
     }
 
@@ -179,21 +219,34 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return Collections.unmodifiableList(a.getCauses());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getDisplayName() {
         return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getSearchUrl() {
         return "computation/";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
+    @Nonnull
     public ComputedFolder<I> getParent() {
         return folder;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long getEstimatedDuration() {
         if (durations == null || durations.isEmpty()) {
@@ -214,8 +267,14 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return result == null;
     }
 
-    public @Nonnull AnnotatedLargeText<FolderComputation<I>> getLogText() {
+    @Nonnull
+    public AnnotatedLargeText<FolderComputation<I>> getLogText() {
         return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), Charsets.UTF_8, !isLogUpdated(), this);
+    }
+
+    @Nonnull
+    public AnnotatedLargeText<FolderComputation<I>> getEventsText() {
+        return new AnnotatedLargeText<FolderComputation<I>>(getEventsFile(), Charsets.UTF_8, !isLogUpdated(), this);
     }
 
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
@@ -231,17 +290,20 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         } while (!logText.isComplete());
     }
 
-    public @CheckForNull Result getResult() {
+    @CheckForNull
+    public Result getResult() {
         return result;
     }
 
-    public @Nonnull Calendar getTimestamp() {
+    @Nonnull
+    public Calendar getTimestamp() {
         GregorianCalendar c = new GregorianCalendar();
         c.setTimeInMillis(timestamp);
         return c;
     }
 
-    public @Nonnull String getDurationString() {
+    @Nonnull
+    public String getDurationString() {
         if (isBuilding()) {
             return hudson.model.Messages.Run_InProgressDuration(Util.getTimeSpanString(System.currentTimeMillis() - timestamp));
         } else {
@@ -249,15 +311,18 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
-    public @Nonnull String getUrl() {
+    @Nonnull
+    public String getUrl() {
         return folder.getUrl() + "computation/";
     }
 
-    public @CheckForNull Result getPreviousResult() {
+    @CheckForNull
+    public Result getPreviousResult() {
         return previous == null ? null : previous.result;
     }
 
-    public @Nonnull BallColor getIconColor() {
+    @Nonnull
+    public BallColor getIconColor() {
         Result _result = result;
         if (_result != null) {
             return _result.color;
@@ -273,6 +338,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return getIconColor().getIconClassName();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + folder.getFullName() + "]";

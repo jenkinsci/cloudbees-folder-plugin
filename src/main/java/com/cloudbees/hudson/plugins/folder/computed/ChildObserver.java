@@ -25,13 +25,16 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import hudson.model.Item;
+import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.io.IOException;
 import javax.annotation.CheckForNull;
 
 /**
  * Callback for {@link ComputedFolder}.
- * Methods may be called only inside the scope of {@link ComputedFolder#computeChildren}.
+ * Methods may be called only inside the scope of {@link ComputedFolder#computeChildren} or an out-of-band event handler.
+ * @see ComputedFolder#computeChildren(ChildObserver, TaskListener)
+ * @see ComputedFolder#createEventsChildObserver()
  */
 public abstract class ChildObserver<I extends TopLevelItem> {
 
