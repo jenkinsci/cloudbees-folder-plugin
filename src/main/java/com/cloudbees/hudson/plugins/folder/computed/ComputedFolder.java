@@ -25,9 +25,11 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.thoughtworks.xstream.XStreamException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
+import hudson.Util;
 import hudson.XmlFile;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
@@ -279,6 +281,12 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Override
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        String oisDigest = null;
+        try {
+            oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
+        } catch (XStreamException e) {
+            // ignore
+        }
         super.submit(req, rsp);
         JSONObject json = req.getSubmittedForm();
         orphanedItemStrategy = req.bindJSON(OrphanedItemStrategy.class, json.getJSONObject("orphanedItemStrategy"));
@@ -288,6 +296,15 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         triggers.rebuild(req, json, Trigger.for_(this));
         for (Trigger t : triggers) {
             t.start(this, true);
+        }
+        try {
+            if (oisDigest == null || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
+                // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find orphans
+                recalculateAfterSubmitted(true);
+            }
+        } catch(XStreamException e){
+            // force a recalculation anyway in this case
+            recalculateAfterSubmitted(true);
         }
     }
 
