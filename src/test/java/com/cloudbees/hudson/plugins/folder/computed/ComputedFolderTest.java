@@ -26,12 +26,12 @@ package com.cloudbees.hudson.plugins.folder.computed;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.gargoylesoftware.htmlunit.html.DomElement;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.model.AllView;
+import hudson.model.Descriptor;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
@@ -55,8 +55,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import javax.servlet.ServletException;
 import org.apache.commons.lang.StringUtils;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -69,6 +69,8 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 public class ComputedFolderTest {
 
@@ -208,6 +210,107 @@ public class ComputedFolderTest {
         org2.addView(new MyView("mine", org2));
         configure = client.getPage(org2, "configure");
         assertThat(configure.getElementsByName("primaryView"), not(is(Collections.<DomElement>emptyList())));
+    }
+
+    @Test
+    public void recomputationSuppression() throws Exception {
+        final VariableRecomputationComputedFolder org = r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
+
+        // no recalculateAfterSubmitted calls means we recalculate
+        r.waitUntilNoActivity();
+        int round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round + 1));
+
+        // recalculateAfterSubmitted(true) calls means we recalculate
+        org.submit = new Runnable() {
+            @Override
+            public void run() {
+                org.recalculateAfterSubmitted(true);
+            }
+        };
+
+        round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round + 1));
+
+        // recalculateAfterSubmitted(false) calls means we suppress
+        org.submit = new Runnable() {
+            @Override
+            public void run() {
+                org.recalculateAfterSubmitted(false);
+            }
+        };
+
+        round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round));
+
+    }
+
+    @Test
+    public void recomputationSuppressionMulti() throws Exception {
+        final VariableRecomputationComputedFolder org =
+                r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
+
+        // at least one recalculateAfterSubmitted(true) calls means we recalculate
+        org.submit = new Runnable() {
+            @Override
+            public void run() {
+                org.recalculateAfterSubmitted(true);
+                org.recalculateAfterSubmitted(true);
+            }
+        };
+
+        int round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round + 1));
+
+        // at least one recalculateAfterSubmitted(true) calls means we recalculate
+        org.submit = new Runnable() {
+            @Override
+            public void run() {
+                org.recalculateAfterSubmitted(true);
+                org.recalculateAfterSubmitted(false);
+            }
+        };
+
+        round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round + 1));
+
+        // at least one recalculateAfterSubmitted(true) calls means we recalculate
+        org.submit = new Runnable() {
+            @Override
+            public void run() {
+                org.recalculateAfterSubmitted(false);
+                org.recalculateAfterSubmitted(true);
+            }
+        };
+
+        round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round + 1));
+
+        // all recalculateAfterSubmitted(false) calls means we suppress
+        org.submit = new Runnable() {
+            @Override
+            public void run() {
+                org.recalculateAfterSubmitted(false);
+                org.recalculateAfterSubmitted(false);
+            }
+        };
+
+        round = org.round;
+        r.configRoundtrip(org);
+        r.waitUntilNoActivity();
+        assertThat(org.round, is(round));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -361,6 +464,34 @@ public class ComputedFolderTest {
             public void setTabBar(@NonNull ViewsTabBar tabBar) {
                 throw new UnsupportedOperationException("Blow up if called");
             }
+        }
+    }
+
+    public static class VariableRecomputationComputedFolder extends SampleComputedFolder {
+
+        private transient Runnable submit;
+
+        private VariableRecomputationComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected void submit(StaplerRequest req, StaplerResponse rsp)
+                throws IOException, ServletException, Descriptor.FormException {
+            super.submit(req, rsp);
+            if (submit != null) {
+                submit.run();
+            }
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new VariableRecomputationComputedFolder(parent, name);
+            }
+
         }
     }
 
