@@ -274,7 +274,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @Nonnull
     public AnnotatedLargeText<FolderComputation<I>> getEventsText() {
-        return new AnnotatedLargeText<FolderComputation<I>>(getEventsFile(), Charsets.UTF_8, !isLogUpdated(), this);
+        return new AnnotatedLargeText<FolderComputation<I>>(getEventsFile(), Charsets.UTF_8, false, this);
     }
 
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
