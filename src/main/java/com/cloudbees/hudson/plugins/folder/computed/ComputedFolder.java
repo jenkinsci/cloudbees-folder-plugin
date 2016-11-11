@@ -185,12 +185,13 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }
         FullReindexChildObserver observer = new FullReindexChildObserver();
         computeChildren(observer, listener);
-        if (!observer.getOrphaned().isEmpty()) {
+        Map<String, I> orphaned = observer.orphaned();
+        if (!orphaned.isEmpty()) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "{0}: orphaned {1}",
-                        new Object[]{getFullName(), observer.getOrphaned().keySet()});
+                        new Object[]{getFullName(), orphaned.keySet()});
             }
-            for (I existing : orphanedItems(observer.getOrphaned().values(), listener)) {
+            for (I existing : orphanedItems(orphaned.values(), listener)) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
                 }
@@ -614,6 +615,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         private final Set<String> observed = new HashSet<String>();
         private final String fullName = getFullName();
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public I shouldUpdate(String name) {
             I existing = orphaned.remove(name);
@@ -624,6 +628,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             return existing;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean mayCreate(String name) {
             boolean r = observed.add(name);
@@ -631,6 +638,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             return r;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void created(I child) {
             if (child.getParent() != ComputedFolder.this) {
@@ -655,23 +665,43 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             ItemListener.fireOnCreated(child);
         }
 
-        Map<String, I> getOrphaned() {
-            return orphaned;
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Set<String> observed() {
+            return new HashSet<String>(observed);
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Map<String, I> orphaned() {
+            return new HashMap<String, I>(orphaned);
+        }
     }
 
     private class EventChildObserver extends ChildObserver<I> {
         private final String fullName = getFullName();
         private final Set<String> observed = new HashSet<String>();
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public I shouldUpdate(String name) {
             I existing = items.get(name);
+            if (existing != null) {
+                observed.add(name);
+            }
             LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[]{fullName, name, existing});
             return existing;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean mayCreate(String name) {
             boolean r = !items.containsKey(name) && observed.add(name);
@@ -679,6 +709,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             return r;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void created(I child) {
             if (child.getParent() != ComputedFolder.this) {
@@ -705,6 +738,22 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 j.rebuildDependencyGraphAsync();
             }
             ItemListener.fireOnCreated(child);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Set<String> observed() {
+            return new HashSet<String>(observed);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Map<String, I> orphaned() {
+            return new HashMap<String, I>(); // always empty as we never orphan items from events
         }
     }
 
