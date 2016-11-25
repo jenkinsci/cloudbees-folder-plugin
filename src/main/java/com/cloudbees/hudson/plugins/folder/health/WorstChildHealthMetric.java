@@ -66,7 +66,7 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
 
         @Override
         public String getDisplayName() {
-            return "Child item with worst health";
+            return Messages.WorstChildHealthMetric_DisplayName();
         }
 
         @Override public FolderHealthMetric createDefault() {
