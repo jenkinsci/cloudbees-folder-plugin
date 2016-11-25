@@ -28,6 +28,7 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
+import hudson.FilePath;
 import hudson.XmlFile;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
@@ -47,6 +48,7 @@ import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
 import hudson.security.ACL;
+import hudson.slaves.WorkspaceList;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
@@ -198,11 +200,39 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             LOGGER.log(Level.FINE, "{0}: orphaned {1}", new Object[] {fullName, orphaned});
             for (I existing : orphanedItems(orphaned.values(), listener)) {
                 LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
+                cleanupNodeWorkspaces(existing);
                 existing.delete();
                 // super.onDeleted handles removal from items
             }
         }
         LOGGER.log(Level.FINE, "finished updating {0}", fullName);
+    }
+
+
+    /**
+     * As we are removing the orphaned job, we can clean out its workspaces on agents
+     * Without this it can clutter up quickly before the workspace cleanup thread does the job.
+     */
+    private void cleanupNodeWorkspaces(I existing) {
+        Jenkins j = Jenkins.getInstance();
+        if (j != null) {
+            List<Node> nodes = new ArrayList<Node>();
+            nodes.add(j);
+            nodes.addAll(j.getNodes());
+            for (Node node : nodes) {
+                FilePath ws = node.getWorkspaceFor(existing);
+                if (ws != null) {
+                    try {
+                        ws.deleteRecursive();
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Unable to clean out workspace for orphaned job", e);
+                    } catch (InterruptedException e) {
+                        LOGGER.log(Level.WARNING, "Unable to clean out workspace for orphaned job", e);
+                    }
+                }
+            }
+
+        }
     }
 
     private synchronized void loadComputation() {
