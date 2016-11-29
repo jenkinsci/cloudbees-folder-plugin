@@ -49,7 +49,20 @@ import org.kohsuke.stapler.jelly.JellyClassTearOff;
  * @since 4.11-beta-1
  */
 public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor implements IconSpec {
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    protected AbstractFolderDescriptor(Class<? extends AbstractFolder> clazz) {
+        super(clazz);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected AbstractFolderDescriptor() {
+    }
+
     @Override
     public String getDisplayName() {
         return Messages.Folder_DisplayName();
