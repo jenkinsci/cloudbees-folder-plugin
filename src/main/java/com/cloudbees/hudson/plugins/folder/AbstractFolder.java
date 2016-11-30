@@ -609,7 +609,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Override
     public void onRenamed(I item, String oldName, String newName) throws IOException {
         items.remove(oldName);
-        items.put(newName, (I) item);
+        items.put(newName, item);
         // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, oldName, newName);
