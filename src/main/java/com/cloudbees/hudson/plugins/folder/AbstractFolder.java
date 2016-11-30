@@ -629,18 +629,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         save();
     }
 
-    // Bridge method when accessed as {@link ItemGroup} with a raw type.
-    @SuppressWarnings("deprecation")
-    public void onRenamed(Item item, String oldName, String newName) throws IOException {
-        onRenamed((I)item, oldName, newName);
-    }
-
-    // Bridge method when accessed as {@link ItemGroup} with a raw type.
-    @SuppressWarnings("deprecation")
-    public void onDeleted(Item item) throws IOException {
-        onDeleted((I)item);
-    }
-
     @Override
     public void delete() throws IOException, InterruptedException {
         // Some parts copied from AbstractItem.
