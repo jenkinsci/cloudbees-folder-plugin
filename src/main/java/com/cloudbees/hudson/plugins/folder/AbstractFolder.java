@@ -668,9 +668,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @SuppressWarnings("deprecation")
     @Override
-    public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
+    public void onRenamed(I item, String oldName, String newName) throws IOException {
         items.remove(oldName);
-        items.put(newName, (I) item);
+        items.put(newName, item);
         // For compatibility with old views:
         for (View v : views) {
             v.onJobRenamed(item, oldName, newName);
@@ -680,7 +680,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @SuppressWarnings("deprecation")
     @Override
-    public void onDeleted(TopLevelItem item) throws IOException {
+    public void onDeleted(I item) throws IOException {
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
         // For compatibility with old views:
