@@ -51,14 +51,19 @@ import org.kohsuke.stapler.jelly.JellyClassTearOff;
 public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor implements IconSpec {
 
     /**
-     * {@inheritDoc}
+     * Explicit constructor.
+     *
+     * @param clazz the explicit {@link AbstractFolder} sub-class that this descriptor is for.
+     * @see TopLevelItemDescriptor#TopLevelItemDescriptor(Class)
      */
     protected AbstractFolderDescriptor(Class<? extends AbstractFolder> clazz) {
         super(clazz);
     }
 
     /**
-     * {@inheritDoc}
+     * Default constructor.
+     *
+     * @see TopLevelItemDescriptor#TopLevelItemDescriptor()
      */
     protected AbstractFolderDescriptor() {
     }
