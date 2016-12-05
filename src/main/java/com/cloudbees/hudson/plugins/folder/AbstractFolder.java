@@ -28,11 +28,13 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
+import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
+import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.Util;
-import static hudson.Util.fixEmpty;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -42,7 +44,6 @@ import hudson.model.Descriptor;
 import hudson.model.HealthReport;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
-import static hudson.model.ItemGroupMixIn.loadChildren;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
@@ -88,6 +89,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -109,6 +111,9 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import static hudson.Util.fixEmpty;
+import static hudson.model.ItemGroupMixIn.loadChildren;
+
 /**
  * A general-purpose {@link ItemGroup}.
  * Base for {@link Folder} and {@link ComputedFolder}.
@@ -128,6 +133,9 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
     private static final Random ENTROPY = new Random();
     private static final int HEALTH_REPORT_CACHE_REFRESH_MIN = Math.max(10, Math.min(1440, Integer.getInteger(
@@ -172,20 +180,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
+    private /*almost final*/ AbstractFolderViewHolder folderViews;
+
     /**
      * {@link View}s.
      */
-    private /*almost final*/ CopyOnWriteArrayList<View> views;
+    @Deprecated
+    private transient /*almost final*/ CopyOnWriteArrayList<View> views;
 
     /**
      * Currently active Views tab bar.
      */
-    private volatile ViewsTabBar viewsTabBar;
+    @Deprecated
+    private transient volatile ViewsTabBar viewsTabBar;
 
     /**
      * Name of the primary view.
      */
-    private volatile String primaryView;
+    @Deprecated
+    private transient volatile String primaryView;
 
     private transient /*almost final*/ ViewGroupMixIn viewGroupMixIn;
 
@@ -211,37 +224,52 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             p.setOwner(this);
         }
         if (icon == null) {
-            icon = new StockFolderIcon();
+            icon = newDefaultFolderIcon();
         } 
         icon.setOwner(this);
-        
-        if (views == null) {
-            views = new CopyOnWriteArrayList<View>();
-        }
-        if (viewsTabBar == null) {
-            viewsTabBar = new DefaultViewsTabBar();
+
+        if (folderViews == null) {
+            if (views != null && !views.isEmpty()) {
+                folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
+                        : viewsTabBar);
+            } else {
+                folderViews = newFolderViewHolder();
+            }
+            views = null;
+            primaryView = null;
+            viewsTabBar = null;
         }
         viewGroupMixIn = new ViewGroupMixIn(this) {
             @Override
             protected List<View> views() {
-                return views;
+                return folderViews.getViews();
             }
             @Override
             protected String primaryView() {
-                return primaryView == null ? views.get(0).getViewName() : primaryView;
+                String primaryView = folderViews.getPrimaryView();
+                return primaryView == null ? folderViews.getViews().get(0).getViewName() : primaryView;
             }
             @Override
             protected void primaryView(String name) {
-                primaryView = name;
+                folderViews.setPrimaryView(name);
+            }
+            @Override
+            public void addView(View v) throws IOException {
+                if (folderViews.isViewsModifiable()) {
+                    super.addView(v);
+                }
+            }
+            @Override
+            public boolean canDelete(View view) {
+                return folderViews.isViewsModifiable() && super.canDelete(view);
+            }
+            @Override
+            public synchronized void deleteView(View view) throws IOException {
+                if (folderViews.isViewsModifiable()) {
+                    super.deleteView(view);
+                }
             }
         };
-        if (views.isEmpty()) {
-            try {
-                initViews(views);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
-            }
-        }
         if (healthMetrics == null) {
             List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
             for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
@@ -254,30 +282,171 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    protected DefaultViewsTabBar newDefaultViewsTabBar() {
+        return new DefaultViewsTabBar();
+    }
+
+    protected AbstractFolderViewHolder newFolderViewHolder() {
+        CopyOnWriteArrayList views = new CopyOnWriteArrayList<View>();
+        try {
+            initViews(views);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
+        }
+        return new DefaultFolderViewHolder(views, null, newDefaultViewsTabBar());
+    }
+
+    protected FolderIcon newDefaultFolderIcon() {
+        return new StockFolderIcon();
+    }
+
     protected void initViews(List<View> views) throws IOException {
         AllView v = new AllView("All", this);
         views.add(v);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    // TODO remove once baseline has JENKINS-39404
     @Override
+    @SuppressWarnings("deprecation")
     public void addAction(Action a) {
         super.getActions().add(a);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    // TODO remove once baseline has JENKINS-39404
     @Override
+    @SuppressWarnings("deprecation")
     public void replaceAction(Action a) {
+        addOrReplaceAction(a);
+    }
+
+    /**
+     * Add an action, replacing any existing actions of the (exact) same class.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
+     *
+     * @param a an action to add/replace
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // TODO remove once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public boolean addOrReplaceAction(@Nonnull Action a) {
+        if (a == null) {
+            throw new IllegalArgumentException("Action must be non-null");
+        }
         // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
         List<Action> old = new ArrayList<Action>(1);
         List<Action> current = super.getActions();
+        boolean found = false;
         for (Action a2 : current) {
-            if (a2.getClass() == a.getClass()) {
+            if (!found && a.equals(a2)) {
+                found = true;
+            } else if (a2.getClass() == a.getClass()) {
                 old.add(a2);
             }
         }
         current.removeAll(old);
-        addAction(a);
+        if (!found) {
+            addAction(a);
+        }
+        return !found || !old.isEmpty();
     }
 
+    /**
+     * Remove an action.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
+     *
+     * @param a an action to remove (if {@code null} then this will be a no-op)
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // TODO remove once baseline has JENKINS-39404
+    @SuppressWarnings("deprecation")
+    public boolean removeAction(@Nullable Action a) {
+        if (a == null) {
+            return false;
+        }
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        return super.getActions().removeAll(Collections.singleton(a));
+    }
+
+    /**
+     * Removes any actions of the specified type.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
+     *
+     * @param clazz the type of actions to remove
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // TODO remove once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public boolean removeActions(@Nonnull Class<? extends Action> clazz) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("Action type must be non-null");
+        }
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        List<Action> old = new ArrayList<Action>();
+        List<Action> current = super.getActions();
+        for (Action a : current) {
+            if (clazz.isInstance(a)) {
+                old.add(a);
+            }
+        }
+        return current.removeAll(old);
+    }
+
+    /**
+     * Replaces any actions of the specified type by the supplied action.
+     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
+     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
+     *
+     * @param clazz the type of actions to replace (note that the action you are replacing this with need not extend
+     *              this class)
+     * @param a     the action to replace with
+     * @return {@code true} if this actions changed as a result of the call
+     * @since FIXME
+     */
+    // TODO remove once baseline has JENKINS-39404
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public boolean replaceActions(@Nonnull Class<? extends Action> clazz, Action a) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("Action type must be non-null");
+        }
+        if (a == null) {
+            throw new IllegalArgumentException("Action must be non-null");
+        }
+        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
+        List<Action> old = new ArrayList<Action>();
+        List<Action> current = super.getActions();
+        boolean found = false;
+        for (Action a1 : current) {
+            if (!found && a.equals(a1)) {
+                found = true;
+            } else if (clazz.isInstance(a1) && !a.equals(a1)) {
+                old.add(a1);
+            }
+        }
+        current.removeAll(old);
+        if (!found) {
+            addAction(a);
+        }
+        return !(old.isEmpty() && found);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
@@ -317,6 +486,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public AbstractFolderDescriptor getDescriptor() {
         return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
@@ -371,6 +543,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getItem(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getPronoun() {
         return AlternativeUiTextProvider.get(PRONOUN, this, getDescriptor().getDisplayName());
@@ -388,32 +563,58 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return r;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void addView(View v) throws IOException {
         viewGroupMixIn.addView(v);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean canDelete(View view) {
         return viewGroupMixIn.canDelete(view);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteView(View view) throws IOException {
         viewGroupMixIn.deleteView(view);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public View getView(String name) {
         return viewGroupMixIn.getView(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported
     @Override
     public Collection<View> getViews() {
         return viewGroupMixIn.getViews();
     }
 
+    public AbstractFolderViewHolder getFolderViews() {
+        return folderViews;
+    }
+
+    public void resetFolderViews() {
+        folderViews = newFolderViewHolder();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Exported
     @Override
     public View getPrimaryView() {
@@ -421,24 +622,38 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     public void setPrimaryView(View v) {
-        primaryView = v.getViewName();
+        if (folderViews.isPrimaryModifiable()) {
+            folderViews.setPrimaryView(v.getViewName());
+        }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onViewRenamed(View view, String oldName, String newName) {
         viewGroupMixIn.onViewRenamed(view, oldName, newName);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ViewsTabBar getViewsTabBar() {
-        return viewsTabBar;
+        return folderViews.getTabBar();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ItemGroup<? extends TopLevelItem> getItemGroup() {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Action> getViewActions() {
         return Collections.emptyList();
@@ -452,17 +667,31 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getPrimaryView();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected SearchItem get(String key) {
                 return Jenkins.getActiveInstance().getItem(key, grp());
             }
+
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected Collection<TopLevelItem> all() {
                 return Items.getAllItems(grp(), TopLevelItem.class);
             }
+
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected String getName(TopLevelItem j) {
                 return j.getRelativeNameFrom(grp());
@@ -474,6 +703,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
         ContextMenu menu = new ContextMenu();
@@ -506,6 +738,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             return FormValidation.error(jenkins.model.Messages.Hudson_ViewAlreadyExists(view));
         }
     }
+
 
     /**
      * Get the current health report for a folder.
@@ -627,6 +860,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return icon;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Collection<? extends Job> getAllJobs() {
         Set<Job> jobs = new HashSet<Job>();
@@ -636,6 +872,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return jobs;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported(name="jobs")
     @Override
     public Collection<I> getItems() {
@@ -648,6 +887,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return viewableItems;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public I getItem(String name) throws AccessDeniedException {
         if (items == null) {
@@ -666,30 +908,39 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return item;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
     public void onRenamed(I item, String oldName, String newName) throws IOException {
         items.remove(oldName);
         items.put(newName, item);
         // For compatibility with old views:
-        for (View v : views) {
+        for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, oldName, newName);
         }
         save();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
     public void onDeleted(I item) throws IOException {
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
         // For compatibility with old views:
-        for (View v : views) {
+        for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, item.getName(), null);
         }
         save();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void delete() throws IOException, InterruptedException {
         // Some parts copied from AbstractItem.
@@ -720,8 +971,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void save() throws IOException {
+        if (folderViews != null) {
+            folderViews.invalidateCaches();
+        }
         if (BulkChange.contains(this)) {
             return;
         }
@@ -738,6 +995,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         super.renameTo(newName);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
@@ -755,12 +1015,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         try {
             description = json.getString("description");
             displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
-            if (json.has("viewsTabBar")) {
-                viewsTabBar = req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar"));
+            if (folderViews.isTabBarModifiable() && json.has("viewsTabBar")) {
+                folderViews.setTabBar(req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar")));
             }
 
-            if (json.has("primaryView")) {
-                primaryView = json.getString("primaryView");
+            if (folderViews.isPrimaryModifiable() && json.has("primaryView")) {
+                folderViews.setPrimaryView(json.getString("primaryView"));
             }
 
             properties.rebuild(req, json, getDescriptor().getPropertyDescriptors());
@@ -805,7 +1065,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
      */
     @Restricted(NoExternalUse.class)
-    protected @Nonnull String getSuccessfulDestination() {
+    @Nonnull
+    protected String getSuccessfulDestination() {
         return ".";
     }
 
@@ -839,7 +1100,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * Allows a subclass to block renames under dynamic conditions.
      * @return a message if rename should currently be prohibited, or null to allow
      */
-    protected @CheckForNull String renameBlocker() {
+    @CheckForNull
+    protected String renameBlocker() {
         for (Job<?,?> job : getAllJobs()) {
             if (job.isBuilding()) {
                 return "Unable to rename a folder while a job inside it is building.";

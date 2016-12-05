@@ -25,13 +25,18 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import hudson.model.Item;
+import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 
 /**
  * Callback for {@link ComputedFolder}.
- * Methods may be called only inside the scope of {@link ComputedFolder#computeChildren}.
+ * Methods may be called only inside the scope of {@link ComputedFolder#computeChildren} or an out-of-band event handler.
+ * @see ComputedFolder#computeChildren(ChildObserver, TaskListener)
+ * @see ComputedFolder#createEventsChildObserver()
  */
 public abstract class ChildObserver<I extends TopLevelItem> {
 
@@ -57,5 +62,21 @@ public abstract class ChildObserver<I extends TopLevelItem> {
      * @param child a newly constructed child item; do not call {@link Item#onCreatedFromScratch} and try to avoid calls to {@link Item#save}
      */
     public abstract void created(I child);
+
+    /**
+     * Returns a copy of the item names that have been observed.
+     *
+     * @return a copy of the item names that have been observed.
+     * @since FIXME
+     */
+    public abstract Set<String> observed();
+
+    /**
+     * Returns a copy of the map of orphaned items keyed by name.
+     *
+     * @return a copy of the map of orphaned items keyed by name.
+     * @since FIXME
+     */
+    public abstract Map<String,I> orphaned();
 
 }

@@ -45,27 +45,65 @@ THE SOFTWARE.
 
         <st:include page="configure-details" optional="true"/>
 
-        <j:if test="${it.views.size()>1}">
-          <f:entry title="${%Default View}" field="defaultView">
-            <select class="setting-input" name="primaryView">
-              <j:forEach var="v" items="${it.views}">
+        <j:choose>
+          <j:when test="${descriptor.isLookAndFeelConfigurable(it)}">
+            <f:section title="${%Appearance}">
+              <j:set var="views" value="${it.views}"/>
+              <j:if test="${it.folderViews.primaryModifiable and views.size()>1}">
+                <f:entry title="${%Default View}" field="defaultView">
+                  <select class="setting-input" name="primaryView">
+                    <j:forEach var="v" items="${views}">
+                      <j:choose>
+                        <j:when test="${it.primaryView==v}">
+                          <option value="${v.viewName}" selected="selected">${v.viewName}</option>
+                        </j:when>
+                        <j:otherwise>
+                          <option value="${v.viewName}">${v.viewName}</option>
+                        </j:otherwise>
+                      </j:choose>
+                    </j:forEach>
+                  </select>
+                </f:entry>
+              </j:if>
+
+              <j:if test="${it.folderViews.tabBarModifiable}">
                 <j:choose>
-                  <j:when test="${it.primaryView==v}">
-                    <option value="${v.viewName}" selected="selected">${v.viewName}</option>
+                  <j:when test="${descriptor.tabBarConfigurable}">
+                    <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
                   </j:when>
                   <j:otherwise>
-                    <option value="${v.viewName}">${v.viewName}</option>
+                    <f:invisibleEntry>
+                      <table>
+                        <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
+                      </table>
+                    </f:invisibleEntry>
                   </j:otherwise>
                 </j:choose>
-              </j:forEach>
-            </select>
-          </f:entry>
-        </j:if>
+              </j:if>
 
-        <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
+              <j:choose>
+                <j:when test="${descriptor.iconConfigurable}">
+                  <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+                </j:when>
+                <j:otherwise>
+                  <f:invisibleEntry>
+                    <table>
+                      <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+                    </table>
+                  </f:invisibleEntry>
+                </j:otherwise>
+              </j:choose>
 
-        <!-- TODO tried to hide unless ${it.icon.descriptor.all().size() > 1} using f:invisibleEntry but this did not seem to work: -->
-        <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+            </f:section>
+          </j:when>
+          <j:otherwise>
+            <f:invisibleEntry>
+              <table>
+                <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+              </table>
+            </f:invisibleEntry>
+          </j:otherwise>
+        </j:choose>
 
         <f:section title="${%Health metrics}">
           <f:advanced title="${%Health metrics}" align="left">
@@ -79,7 +117,9 @@ THE SOFTWARE.
         </f:section>
 
         <!-- folder  property configurations -->
+        <f:section title="${%Properties}">
         <f:descriptorList descriptors="${descriptor.getPropertyDescriptors()}" instances="${it.properties}" forceRowSet="true" />
+        </f:section>
 
         <j:if test="${h.hasPermission(it,it.CONFIGURE)}">
           <f:bottomButtonBar>

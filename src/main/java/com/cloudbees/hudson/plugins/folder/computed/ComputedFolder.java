@@ -25,9 +25,11 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.thoughtworks.xstream.XStreamException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
+import hudson.Util;
 import hudson.XmlFile;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
@@ -66,7 +68,6 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.util.TimeDuration;
@@ -75,12 +76,15 @@ import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 
 /**
  * A folder-like item whose children are computed.
@@ -92,14 +96,37 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @SuppressWarnings({"unchecked", "rawtypes", "deprecation"}) // generics mistakes in various places; BuildableItem defines deprecated methods (and @SW on those overrides does not seem to work)
 public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, Queue.FlyweightTask {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(ComputedFolder.class.getName());
 
+    /**
+     * Our {@link OrphanedItemStrategy}
+     */
     private OrphanedItemStrategy orphanedItemStrategy;
 
+    /**
+     * Our {@link Trigger}s.
+     */
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
     // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
-    private transient @Nonnull FolderComputation<I> computation;
+    /**
+     * Our {@link FolderComputation}.
+     */
+    @Nonnull
+    private transient FolderComputation<I> computation;
+
+    /**
+     * Tracks recalculation requirements in {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}.
+     *
+     * @see #recalculateAfterSubmitted(boolean)
+     * @see #submit(StaplerRequest, StaplerResponse)
+     * @see #doConfigSubmit(StaplerRequest, StaplerResponse)
+     * @since FIXME
+     */
+    private transient Recalculation recalculate;
 
     @SuppressFBWarnings(value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     protected ComputedFolder(ItemGroup parent, String name) {
@@ -107,6 +134,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         init();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected final void init() {
         super.init();
@@ -150,59 +180,39 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * Recreates children synchronously.
      */
     final void updateChildren(final TaskListener listener) throws IOException, InterruptedException {
-        final String fullName = getFullName();
-        LOGGER.log(Level.FINE, "updating {0}", fullName);
-        final Map<String,I> orphaned = new HashMap<String,I>(items);
-        final Set<String> observed = new HashSet<String>();
-        computeChildren(new ChildObserver<I>() {
-            @Override
-            public I shouldUpdate(String name) {
-                I existing = orphaned.remove(name);
-                if (existing != null) {
-                    observed.add(name);
-                }
-                LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
-                return existing;
-            }
-            @Override
-            public boolean mayCreate(String name) {
-                boolean r = observed.add(name);
-                LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[] {fullName, name, r});
-                return r;
-            }
-            @Override
-            public void created(I child) {
-                if (child.getParent() != ComputedFolder.this) {
-                    throw new IllegalStateException("Tried to notify " + ComputedFolder.this + " of creation of " + child + " with a different parent");
-                }
-                LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
-                String name = child.getName();
-                if (!observed.contains(name)) {
-                    throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name + " among " + observed);
-                }
-                child.onCreatedFromScratch();
-                try {
-                    child.save();
-                } catch (IOException x) {
-                    LOGGER.log(Level.WARNING, "Failed to save " + child, x);
-                }
-                items.put(name, child);
-                Jenkins j = Jenkins.getInstance();
-                if (j != null) {
-                    j.rebuildDependencyGraphAsync();
-                }
-                ItemListener.fireOnCreated(child);
-            }
-        }, listener);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "updating {0}", getFullName());
+        }
+        FullReindexChildObserver observer = new FullReindexChildObserver();
+        computeChildren(observer, listener);
+        Map<String, I> orphaned = observer.orphaned();
         if (!orphaned.isEmpty()) {
-            LOGGER.log(Level.FINE, "{0}: orphaned {1}", new Object[] {fullName, orphaned});
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "{0}: orphaned {1}",
+                        new Object[]{getFullName(), orphaned.keySet()});
+            }
             for (I existing : orphanedItems(orphaned.values(), listener)) {
-                LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {fullName, existing});
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
+                }
                 existing.delete();
                 // super.onDeleted handles removal from items
             }
         }
-        LOGGER.log(Level.FINE, "finished updating {0}", fullName);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "finished updating {0}", getFullName());
+        }
+    }
+
+    /**
+     * Creates a {@link ChildObserver} that subclasses can use when handling events that might create new / update
+     * existing child items. The handling of orphaned items is a responsibility of the {@link OrphanedItemStrategy}
+     * which is only applied as part of a full computation.
+     *
+     * @return a {@link ChildObserver} for event handling.
+     */
+    protected final ChildObserver<I> createEventsChildObserver() {
+        return new EventChildObserver();
     }
 
     private synchronized void loadComputation() {
@@ -222,15 +232,62 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @RequirePOST
     @Override
     public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
-        super.doConfigSubmit(req, rsp);
-        scheduleBuild();
+        try {
+            recalculate = Recalculation.UNKNOWN;
+            super.doConfigSubmit(req, rsp);
+            if (recalculate != Recalculation.NO_RECALCULATION) {
+                scheduleBuild();
+            }
+        } finally {
+            recalculate = null;
+        }
     }
 
+    /**
+     * Method for child classes to use if they want to suppress/confirm the automatic recalculation provided in
+     * {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}. This method should only be called from
+     * {@link #submit(StaplerRequest, StaplerResponse)}. If called multiple times from
+     * {@link #submit(StaplerRequest, StaplerResponse)} then all calls must be with the {@code false} parameter
+     * to suppress recalculation.
+     *
+     * @param recalculate {@code true} to require recalculation, {@code false} to suppress recalculation.
+     * @since FIXME
+     * @see #submit(StaplerRequest, StaplerResponse)
+     */
+    /*
+     * Note: it would have been much nicer to have submit(req,rsp) return a boolean... but that would have required
+     * doConfigSubmit(req,rsp) to also return a boolean which would have required the @WebMethod annotation to get
+     * Stapler to detect the method as a web method...
+     */
+    protected final void recalculateAfterSubmitted(boolean recalculate) {
+        if (this.recalculate == null) {
+            return;
+        }
+        if (this.recalculate == Recalculation.RECALCULATE) {
+            return;
+        }
+        this.recalculate = recalculate ? Recalculation.RECALCULATE : Recalculation.NO_RECALCULATION;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @see #recalculateAfterSubmitted(boolean)
+     */
     @Override
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        String oisDigest = null;
+        try {
+            oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
+        } catch (XStreamException e) {
+            // ignore
+        }
         super.submit(req, rsp);
         JSONObject json = req.getSubmittedForm();
         orphanedItemStrategy = req.bindJSON(OrphanedItemStrategy.class, json.getJSONObject("orphanedItemStrategy"));
@@ -241,11 +298,29 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         for (Trigger t : triggers) {
             t.start(this, true);
         }
+        try {
+            if (oisDigest == null || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
+                // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find orphans
+                recalculateAfterSubmitted(true);
+            }
+        } catch(XStreamException e){
+            // force a recalculation anyway in this case
+            recalculateAfterSubmitted(true);
+        }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Restricted(NoExternalUse.class)
     @Override
-    protected @Nonnull String getSuccessfulDestination() {
-        return computation.getSearchUrl() + "console";
+    @Nonnull
+    protected final String getSuccessfulDestination() {
+        if (recalculate != Recalculation.NO_RECALCULATION) {
+            return computation.getSearchUrl() + "console";
+        } else {
+            return super.getSuccessfulDestination();
+        }
     }
 
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
@@ -262,6 +337,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         trigger.start(this, true);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
     public List<Action> getActions() {
@@ -288,7 +366,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /** Duck-types {@link ParameterizedJobMixIn#scheduleBuild2(int, Action...)}. */
-    public @CheckForNull Queue.Item scheduleBuild2(int quietPeriod, Action... actions) {
+    @CheckForNull
+    public Queue.Item scheduleBuild2(int quietPeriod, Action... actions) {
         if (!isBuildable()) {
             return null;
         }
@@ -299,31 +378,49 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return j.getQueue().schedule2(this, quietPeriod, Arrays.asList(actions)).getItem();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean scheduleBuild() {
         return scheduleBuild2(0) != null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean scheduleBuild(Cause c) {
         return scheduleBuild2(0, new CauseAction(c)) != null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean scheduleBuild(int quietPeriod) {
         return scheduleBuild2(quietPeriod) != null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean scheduleBuild(int quietPeriod, Cause c) {
         return scheduleBuild2(quietPeriod, new CauseAction(c)) != null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isBuildBlocked() {
         return getCauseOfBlockage() != null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Deprecated
     @Override
     public String getWhyBlocked() {
@@ -331,6 +428,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return causeOfBlockage == null ? null : causeOfBlockage.getShortDescription();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CauseOfBlockage getCauseOfBlockage() {
         if (computation.isBuilding()) {
@@ -339,36 +439,57 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void checkAbortPermission() {
         checkPermission(CANCEL);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasAbortPermission() {
         return hasPermission(CANCEL);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isConcurrentBuild() {
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Collection<? extends SubTask> getSubTasks() {
         return Collections.singleton(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Authentication getDefaultAuthentication() {
         return ACL.SYSTEM;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Authentication getDefaultAuthentication(Queue.Item item) {
         return getDefaultAuthentication();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Label getAssignedLabel() {
         Jenkins j = Jenkins.getInstance();
@@ -378,16 +499,25 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return j.getSelfLabel();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Node getLastBuiltOn() {
         return Jenkins.getInstance();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long getEstimatedDuration() {
         return computation.getEstimatedDuration();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final FolderComputation<I> createExecutable() throws IOException {
         FolderComputation<I> c = createComputation(computation);
@@ -395,20 +525,30 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return c;
     }
 
-    protected @Nonnull FolderComputation<I> createComputation(@CheckForNull FolderComputation<I> previous) {
+    @Nonnull
+    protected FolderComputation<I> createComputation(@CheckForNull FolderComputation<I> previous) {
         return new FolderComputation<I>(this, previous);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Queue.Task getOwnerTask() {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Object getSameNodeConstraint() {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ResourceList getResourceList() {
         return ResourceList.EMPTY;
@@ -419,13 +559,29 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
+     * Identifies if this {@link ComputedFolder} has a separate out of band events log. Default implementation
+     * just checks if the events log has content. Subclasses can override this method to force the events log
+     * always present in the UI.
+     *
+     * @return {@code true} if this {@link ComputedFolder} has a separate out of band events log.
+     * @since FIXME
+     */
+    public boolean isHasEvents() {
+        return getComputation().getEventsFile().length() > 0;
+    }
+
+    /**
      * URL binding and other purposes.
      * It may be null temporarily inside the constructor, so beware if you extend this class.
      */
-    public @Nonnull FolderComputation<I> getComputation() {
+    @Nonnull
+    public FolderComputation<I> getComputation() {
         return computation;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected String renameBlocker() {
         if (computation.isBuilding()) {
@@ -434,7 +590,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return super.renameBlocker();
     }
 
-    public @NonNull OrphanedItemStrategy getOrphanedItemStrategy() {
+    @NonNull
+    public OrphanedItemStrategy getOrphanedItemStrategy() {
         return orphanedItemStrategy;
     }
 
@@ -442,7 +599,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * Gets the {@link OrphanedItemStrategyDescriptor}s applicable to this folder.
      */
     @Restricted(DoNotUse.class) // used by Jelly
-    public @NonNull List<OrphanedItemStrategyDescriptor> getOrphanedItemStrategyDescriptors() {
+    @NonNull
+    public List<OrphanedItemStrategyDescriptor> getOrphanedItemStrategyDescriptors() {
         List<OrphanedItemStrategyDescriptor> result = new ArrayList<OrphanedItemStrategyDescriptor>();
         for (OrphanedItemStrategyDescriptor descriptor : ExtensionList.lookup(OrphanedItemStrategyDescriptor.class)) {
             if (descriptor.isApplicable(getClass())) {
@@ -452,4 +610,168 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return result;
     }
 
+    private class FullReindexChildObserver extends ChildObserver<I> {
+        private final Map<String, I> orphaned = new HashMap<String,I>(items);
+        private final Set<String> observed = new HashSet<String>();
+        private final String fullName = getFullName();
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public I shouldUpdate(String name) {
+            I existing = orphaned.remove(name);
+            if (existing != null) {
+                observed.add(name);
+            }
+            LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
+            return existing;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean mayCreate(String name) {
+            boolean r = observed.add(name);
+            LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[] {fullName, name, r});
+            return r;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void created(I child) {
+            if (child.getParent() != ComputedFolder.this) {
+                throw new IllegalStateException("Tried to notify " + ComputedFolder.this + " of creation of " + child + " with a different parent");
+            }
+            LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
+            String name = child.getName();
+            if (!observed.contains(name)) {
+                throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name + " among " + observed);
+            }
+            child.onCreatedFromScratch();
+            try {
+                child.save();
+            } catch (IOException x) {
+                LOGGER.log(Level.WARNING, "Failed to save " + child, x);
+            }
+            items.put(name, child);
+            Jenkins j = Jenkins.getInstance();
+            if (j != null) {
+                j.rebuildDependencyGraphAsync();
+            }
+            ItemListener.fireOnCreated(child);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Set<String> observed() {
+            return new HashSet<String>(observed);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Map<String, I> orphaned() {
+            return new HashMap<String, I>(orphaned);
+        }
+    }
+
+    private class EventChildObserver extends ChildObserver<I> {
+        private final String fullName = getFullName();
+        private final Set<String> observed = new HashSet<String>();
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public I shouldUpdate(String name) {
+            I existing = items.get(name);
+            if (existing != null) {
+                observed.add(name);
+            }
+            LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[]{fullName, name, existing});
+            return existing;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean mayCreate(String name) {
+            boolean r = !items.containsKey(name) && observed.add(name);
+            LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[]{fullName, name, r});
+            return r;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void created(I child) {
+            if (child.getParent() != ComputedFolder.this) {
+                throw new IllegalStateException(
+                        "Tried to notify " + ComputedFolder.this + " of creation of " + child
+                                + " with a different parent");
+            }
+            LOGGER.log(Level.FINE, "{0}: created {1}", new Object[]{fullName, child});
+            String name = child.getName();
+            if (!observed.contains(name)) {
+                throw new IllegalStateException(
+                        "Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name
+                                + " among " + observed);
+            }
+            child.onCreatedFromScratch();
+            try {
+                child.save();
+            } catch (IOException x) {
+                LOGGER.log(Level.WARNING, "Failed to save " + child, x);
+            }
+            items.put(name, child);
+            Jenkins j = Jenkins.getInstance();
+            if (j != null) {
+                j.rebuildDependencyGraphAsync();
+            }
+            ItemListener.fireOnCreated(child);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Set<String> observed() {
+            return new HashSet<String>(observed);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Map<String, I> orphaned() {
+            return new HashMap<String, I>(); // always empty as we never orphan items from events
+        }
+    }
+
+    /**
+     * Records the recalculation requirements of a call to {@link #submit(StaplerRequest, StaplerResponse)}.
+     */
+    private enum Recalculation {
+        /**
+         * We don't know if recalculation is required... assume it will be.
+         */
+        UNKNOWN,
+        /**
+         * We know recalculation is required.
+         */
+        RECALCULATE,
+        /**
+         * We know recalculation is not required.
+         */
+        NO_RECALCULATION;
+    }
 }
