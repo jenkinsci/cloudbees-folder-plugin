@@ -70,6 +70,8 @@ import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -230,6 +232,21 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
         if (folderViews == null) {
             if (views != null && !views.isEmpty()) {
+                if (primaryView != null) {
+                    // TODO replace reflection with direct access once baseline core has JENKINS-38606 fix merged
+                    try {
+                        Method migrateLegacyPrimaryAllViewLocalizedName = AllView.class
+                                .getMethod("migrateLegacyPrimaryAllViewLocalizedName", List.class, String.class);
+                        primaryView =
+                                (String) migrateLegacyPrimaryAllViewLocalizedName.invoke(null, views, primaryView);
+                    } catch (NoSuchMethodException e) {
+                        // ignore, Jenkins core does not have JENKINS-38606 fix merged
+                    } catch (IllegalAccessException e) {
+                        // ignore, Jenkins core does not have JENKINS-38606 fix merged
+                    } catch (InvocationTargetException e) {
+                        // ignore, Jenkins core does not have JENKINS-38606 fix merged
+                    }
+                }
                 folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
                         : viewsTabBar);
             } else {
