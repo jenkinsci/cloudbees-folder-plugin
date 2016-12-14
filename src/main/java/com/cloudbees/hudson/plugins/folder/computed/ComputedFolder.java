@@ -241,7 +241,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         try {
             recalculate = Recalculation.UNKNOWN;
             super.doConfigSubmit(req, rsp);
-            if (recalculate != Recalculation.NO_RECALCULATION) {
+            if (recalculate != Recalculation.NO_RECALCULATION && isBuildable()) {
                 scheduleBuild();
             }
         } finally {
@@ -316,7 +316,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     @Nonnull
     protected final String getSuccessfulDestination() {
-        if (recalculate != Recalculation.NO_RECALCULATION) {
+        if (recalculate != Recalculation.NO_RECALCULATION && isBuildable()) {
             return computation.getSearchUrl() + "console";
         } else {
             return super.getSuccessfulDestination();

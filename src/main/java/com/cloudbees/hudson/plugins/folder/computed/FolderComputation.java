@@ -329,9 +329,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
         Result previousResult = getPreviousResult();
         if (previousResult == null) {
-            return BallColor.GREY_ANIME;
+            return isBuilding() ? BallColor.GREY_ANIME : BallColor.GREY;
         }
-        return previousResult.color.anime();
+        return isBuilding() ? previousResult.color.anime() : previousResult.color;
     }
 
     public String getBuildStatusIconClassName() {
