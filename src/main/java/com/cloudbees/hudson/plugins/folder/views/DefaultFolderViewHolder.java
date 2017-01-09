@@ -148,6 +148,6 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
                 // ignore, Jenkins core does not have JENKINS-38606 fix merged
             }
         }
-
+        return this;
     }
 }
