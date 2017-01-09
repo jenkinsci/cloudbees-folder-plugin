@@ -281,7 +281,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             ByteBuffer buffer = new ByteBuffer();
             try {
                 buffer.write(
-                        String.format("No events as of %tc, waiting for events...\n", new Date())
+                        String.format("No events as of %tc, waiting for events...%n", new Date())
                                 .getBytes(Charsets.UTF_8)
                 );
                 return new AnnotatedLargeText<FolderComputation<I>>(buffer, Charsets.UTF_8, false, this);
