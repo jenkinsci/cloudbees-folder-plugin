@@ -24,8 +24,6 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import antlr.ANTLRException;
-import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
-import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.Items;
@@ -188,7 +186,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
          * {@inheritDoc}
          */
         public String getDisplayName() {
-            return "Periodically if not otherwise run";
+            return Messages.PeriodicFolderTrigger_DisplayName();
         }
 
         /**

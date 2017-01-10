@@ -28,10 +28,6 @@ import com.cloudbees.hudson.plugins.folder.FolderIcon;
 import com.cloudbees.hudson.plugins.folder.FolderIconDescriptor;
 import hudson.Extension;
 import hudson.model.Hudson;
-import jenkins.model.Jenkins;
-import org.apache.commons.jelly.JellyContext;
-import org.jenkins.ui.icon.Icon;
-import org.jenkins.ui.icon.IconSet;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 
@@ -57,14 +53,14 @@ public class StockFolderIcon extends FolderIcon {
     }
 
     public String getDescription() {
-        return "Folder";
+        return Messages.StockFolderIcon_Description();
     }
 
     @Extension(ordinal=100)
     public static class DescriptorImpl extends FolderIconDescriptor {
         @Override
         public String getDisplayName() {
-            return "Default Icon";
+            return Messages.StockFolderIcon_DisplayName();
         }
     }
 }
