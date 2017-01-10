@@ -52,6 +52,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Level;
@@ -60,6 +61,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.jelly.XMLOutput;
+import org.kohsuke.stapler.framework.io.ByteBuffer;
 
 /**
  * A particular “run” of {@link ComputedFolder}.
@@ -274,7 +276,20 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @Nonnull
     public AnnotatedLargeText<FolderComputation<I>> getEventsText() {
-        return new AnnotatedLargeText<FolderComputation<I>>(getEventsFile(), Charsets.UTF_8, false, this);
+        File eventsFile = getEventsFile();
+        if (eventsFile.length() <= 0) {
+            ByteBuffer buffer = new ByteBuffer();
+            try {
+                buffer.write(
+                        String.format("No events as of %tc, waiting for events...%n", new Date())
+                                .getBytes(Charsets.UTF_8)
+                );
+                return new AnnotatedLargeText<FolderComputation<I>>(buffer, Charsets.UTF_8, false, this);
+            } catch (IOException e) {
+                // ignore and fall through
+            }
+        }
+        return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, Charsets.UTF_8, false, this);
     }
 
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
