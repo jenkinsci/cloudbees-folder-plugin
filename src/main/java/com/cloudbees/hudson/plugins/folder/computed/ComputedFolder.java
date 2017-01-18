@@ -151,7 +151,39 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         for (Trigger t : triggers) {
             t.start(this, Items.currentlyUpdatingByXml());
         }
-        loadComputation();
+        synchronized (this) {
+            computation = createComputation(null);
+        }
+    }
+
+    @Override
+    public void onCreatedFromScratch() {
+        try {
+            FileUtils.forceMkdir(getComputationDir());
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+        super.onCreatedFromScratch();
+    }
+
+    @Override
+    public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
+        try {
+            FileUtils.forceMkdir(getComputationDir());
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+        synchronized (this) {
+            XmlFile file = computation.getDataFile();
+            if (file.exists()) {
+                try {
+                    file.unmarshal(computation);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Failed to load " + file, e);
+                }
+            }
+        }
+        super.onLoad(parent, name);
     }
 
     /**
@@ -213,23 +245,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     protected final ChildObserver<I> createEventsChildObserver() {
         return new EventChildObserver();
-    }
-
-    private synchronized void loadComputation() {
-        try {
-            FileUtils.forceMkdir(getComputationDir());
-        } catch (IOException x) {
-            LOGGER.log(Level.WARNING, null, x);
-        }
-        computation = createComputation(null);
-        XmlFile file = computation.getDataFile();
-        if (file != null && file.exists()) {
-            try {
-                file.unmarshal(computation);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to load " + file, e);
-            }
-        }
     }
 
     /**
