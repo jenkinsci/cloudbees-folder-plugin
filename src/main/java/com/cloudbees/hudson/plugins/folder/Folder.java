@@ -331,7 +331,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         if (items.containsKey(name)) {
             throw new IllegalArgumentException("already an item '" + name + "'");
         }
-        items.put(item.getName(), item);
+        itemsPut(item.getName(), item);
         return item;
     }
 
@@ -378,7 +378,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
         @Override
         protected void add(TopLevelItem item) {
-            items.put(item.getName(), item);
+            itemsPut(item.getName(), item);
         }
 
         @Override

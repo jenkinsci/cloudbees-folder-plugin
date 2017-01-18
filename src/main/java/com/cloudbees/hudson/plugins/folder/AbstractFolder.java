@@ -621,6 +621,31 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
 
+    protected final I itemsPut(String name, I item) {
+        ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator = childNameGenerator();
+        if (childNameGenerator != null) {
+            File nameFile = new File(getRootDirFor(item), ChildNameGenerator.CHILD_NAME_FILE);
+            String oldName;
+            if (nameFile.isFile()) {
+                try {
+                    oldName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                } catch (IOException e) {
+                    oldName = null;
+                }
+            } else {
+                oldName = null;
+            }
+            if (!name.equals(oldName)) {
+                try {
+                    FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Could not create " + nameFile);
+                }
+            }
+        }
+        return items.put(name, item);
+    }
+
     /**
      * {@inheritDoc}
      */
