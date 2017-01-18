@@ -76,8 +76,8 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * need {@link Item#getRootDir()} to work during the constructor.
      * @param project the {@link AbstractFolder}.
      * @param itemName the name that will be returned by {@link Item#getName()} when the item is constructed. This is
-     *                 the second parameter of {@link AbstractItem#(ItemGroup,String)}. This one would be the one
-     *                 with URL path segment escaping.
+     *                 the second parameter of {@link AbstractItem#AbstractItem(ItemGroup, String)}. This one would be
+     *                 the one with URL path segment escaping.
      * @param idealName the original name before whatever URL path segment escaping you applied
      * @return the {@link Trace} to keep track of when we can remove the memory of the creation process.
      */
