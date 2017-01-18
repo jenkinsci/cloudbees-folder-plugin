@@ -35,6 +35,7 @@ import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.Util;
+import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -44,6 +45,7 @@ import hudson.model.Descriptor;
 import hudson.model.HealthReport;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.ItemGroupMixIn;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
@@ -69,6 +71,7 @@ import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -77,6 +80,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +105,8 @@ import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -114,7 +120,6 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static hudson.Util.fixEmpty;
-import static hudson.model.ItemGroupMixIn.loadChildren;
 
 /**
  * A general-purpose {@link ItemGroup}.
@@ -462,6 +467,161 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /**
+     * Loads all the child {@link Item}s.
+     *
+     * @param modulesDir Directory that contains sub-directories for each child item.
+     */
+    // TODO replace with ItemGroup.loadChildren once that handles name mangling
+    public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
+                                                             Function1<? extends K, ? super V> key) {
+        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<K, V>();
+        if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
+            LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
+                    new Object[]{modulesDir, parent.getFullName()});
+            return configurations;
+        }
+
+        File[] subdirs = modulesDir.listFiles(new FileFilter() {
+            public boolean accept(File child) {
+                return child.isDirectory();
+            }
+        });
+        if (subdirs == null) {
+            return configurations;
+        }
+        final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
+        Map<String,V> byDirName = new HashMap<String, V>();
+        if (parent.items != null) {
+            if (childNameGenerator == null) {
+                for (V item : parent.items.values()) {
+                    byDirName.put(item.getName(), item);
+                }
+            } else {
+                for (V item : parent.items.values()) {
+                    String itemName = childNameGenerator.dirNameFromItem(parent, item);
+                    if (itemName == null) {
+                        itemName = childNameGenerator.dirNameFromLegacy(parent, item.getName());
+                    }
+                    byDirName.put(itemName, item);
+                }
+            }
+        }
+        for (File subdir : subdirs) {
+            try {
+                boolean legacy;
+                String childName;
+                if (childNameGenerator == null) {
+                    // the directory name is the item name
+                    childName = subdir.getName();
+                    legacy = false;
+                } else {
+                    File nameFile = new File(subdir, ChildNameGenerator.CHILD_NAME_FILE);
+                    if (nameFile.isFile()) {
+                        childName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                        if (childName == null) {
+                            LOGGER.log(Level.WARNING, "{0} was empty, assuming child name is {1}",
+                                            new Object[]{nameFile, subdir.getName()});
+                            legacy = true;
+                            childName = subdir.getName();
+                        } else {
+                            legacy = false;
+                        }
+                    } else {
+                        // this is a legacy name
+                        legacy = true;
+                        childName = subdir.getName();
+                    }
+                }
+                // Try to retain the identity of an existing child object if we can.
+                V item = byDirName.get(childName);
+                if (item == null) {
+                    XmlFile xmlFile = Items.getConfigFile(subdir);
+                    if (xmlFile.exists()) {
+                        item = (V) xmlFile.read();
+                        String name;
+                        if (childNameGenerator == null) {
+                            name = subdir.getName();
+                        } else {
+                            String dirName = childNameGenerator.dirNameFromItem(parent, item);
+                            if (dirName == null) {
+                                dirName = childNameGenerator.dirNameFromLegacy(parent, childName);
+                            }
+                            if (!subdir.getName().equals(dirName)) {
+                                File newSubdir = parent.getRootDirFor(dirName);
+                                if (newSubdir.exists()) {
+                                    LOGGER.log(Level.WARNING, "Ignoring {0} as folder naming rules collide with {1}",
+                                                    new Object[]{subdir, newSubdir});
+                                    continue;
+
+                                }
+                                LOGGER.log(Level.INFO, "Moving {0} to {1} in accordance with folder naming rules",
+                                        new Object[]{subdir, newSubdir});
+                                if (!subdir.renameTo(newSubdir)) {
+                                    LOGGER.log(Level.WARNING, "Failed to move {0} to {1}. Ignoring this item",
+                                            new Object[]{subdir, newSubdir});
+                                    continue;
+                                }
+                            }
+                            File nameFile = new File(parent.getRootDirFor(dirName), ChildNameGenerator.CHILD_NAME_FILE);
+                            name = childNameGenerator.itemNameFromItem(parent, item);
+                            if (name == null) {
+                                name = childNameGenerator.itemNameFromLegacy(parent, childName);
+                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            } else if (!childName.equals(name) || legacy) {
+                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            }
+                            if (!dirName.equals(name) && item instanceof AbstractItem
+                                    && ((AbstractItem) item).getDisplayNameOrNull() == null) {
+                                BulkChange bc = new BulkChange(item);
+                                try {
+                                    ((AbstractItem) item).setDisplayName(childName);
+                                } finally {
+                                    bc.abort();
+                                }
+                            }
+                        }
+                        item.onLoad(parent, name);
+                    } else {
+                        Logger.getLogger(AbstractFolder.class.getName())
+                                .log(Level.WARNING, "could not find file " + xmlFile.getFile());
+                        continue;
+                    }
+                } else {
+                    String name;
+                    if (childNameGenerator == null) {
+                        name = subdir.getName();
+                    } else {
+                        File nameFile = new File(subdir, ChildNameGenerator.CHILD_NAME_FILE);
+                        name = childNameGenerator.itemNameFromItem(parent, item);
+                        if (name == null) {
+                            name = childNameGenerator.itemNameFromLegacy(parent, childName);
+                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                        } else if (!childName.equals(name) || legacy) {
+                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                        }
+                        if (!subdir.getName().equals(name) && item instanceof AbstractItem
+                                && ((AbstractItem) item).getDisplayNameOrNull() == null) {
+                            BulkChange bc = new BulkChange(item);
+                            try {
+                                ((AbstractItem) item).setDisplayName(childName);
+                            } finally {
+                                bc.abort();
+                            }
+                        }
+                    }
+                    item.onLoad(parent, name);
+                }
+                configurations.put(key.call(item), item);
+            } catch (Exception e) {
+                Logger.getLogger(ItemGroupMixIn.class.getName()).log(Level.WARNING, "could not load " + subdir, e);
+            }
+        }
+
+        return configurations;
+    }
+
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -481,6 +641,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
             }
 
+            final ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
             items = loadChildren(this, getJobsDir(), new Function1<String,I>() {
                 @Override
                 public String call(I item) {
@@ -494,13 +655,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
                         loadingTick = now;
                     }
-                    // TODO loadChildren does not support decoding folder names
-                    return item.getName();
+                    if (childNameGenerator == null) {
+                        return item.getName();
+                    } else {
+                        String name = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
+                        if (name == null) {
+                            return childNameGenerator.itemNameFromLegacy(AbstractFolder.this, item.getName());
+                        }
+                        return name;
+                    }
                 }
             });
         } finally {
             t.setName(n);
         }
+    }
+
+    private ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+        return getDescriptor().childNameGenerator();
     }
 
     /**
@@ -539,7 +711,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public File getRootDirFor(I child) {
-        return getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
+        ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
+        if (childNameGenerator == null) {
+            return getRootDirFor(child.getName());
+        }
+        String name = childNameGenerator.dirNameFromItem(this, child);
+        if (name == null) {
+            name = childNameGenerator.dirNameFromLegacy(this, child.getName());
+        }
+        return getRootDirFor(name);
     }
 
     /**

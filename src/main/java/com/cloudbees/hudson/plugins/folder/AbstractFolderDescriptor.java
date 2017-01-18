@@ -26,6 +26,7 @@ package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.views.ViewsTabBar;
 import java.io.StringWriter;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 import jenkins.model.Jenkins;
 import org.apache.commons.jelly.Script;
 import org.apache.commons.jelly.XMLOutput;
@@ -181,6 +183,11 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
 
     public boolean isLookAndFeelConfigurable(AbstractFolder<?> folder) {
         return isIconConfigurable() || (isTabBarConfigurable() && folder.getFolderViews().isTabBarModifiable()) || (folder.getViews().size() > 1 && folder.getFolderViews().isPrimaryModifiable());
+    }
+
+    @CheckForNull
+    public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+        return null;
     }
 
 }
