@@ -160,6 +160,7 @@ public class ChildNameGeneratorTest {
     private void checkComputedFolder(ComputedFolderImpl instance, int round) throws IOException {
         File rootDir = r.j.jenkins.getRootDir();
         File probe = new File(rootDir, "leanbh-c\u00faig.probe");
+        FileUtils.touch(probe);
         File actual = null;
         Normalizer.Form form = null;
         try {
