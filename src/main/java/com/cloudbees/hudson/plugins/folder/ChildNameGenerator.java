@@ -66,7 +66,7 @@ import jenkins.model.TransientActionFactory;
  * @param <I> the type of {@link TopLevelItem} within the folder.
  * @since 5.17
  */
-// TODO migrate this functionality into core so that we can support renaming
+// TODO migrate this functionality (by changing the base class) into core once baseline Jenkins has JENKINS-41222 merged
 public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends TopLevelItem> {
     /**
      * The name of the file that contains the actual name of the child item.

@@ -471,7 +471,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      *
      * @param modulesDir Directory that contains sub-directories for each child item.
      */
-    // TODO replace with ItemGroup.loadChildren once that handles name mangling
+    // TODO replace with ItemGroup.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
                                                              Function1<? extends K, ? super V> key) {
         CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<K, V>();
