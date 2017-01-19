@@ -539,12 +539,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     if (xmlFile.exists()) {
                         item = (V) xmlFile.read();
                         String name;
+                        boolean itemNeedsSave = false;
                         if (childNameGenerator == null) {
                             name = subdir.getName();
                         } else {
                             String dirName = childNameGenerator.dirNameFromItem(parent, item);
                             if (dirName == null) {
                                 dirName = childNameGenerator.dirNameFromLegacy(parent, childName);
+                                BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
+                                try {
+                                    childNameGenerator.recordLegacyName(parent, item, childName);
+                                    itemNeedsSave = true;
+                                } catch (IOException e) {
+                                    LOGGER.log(Level.WARNING, "Ignoring {0} as could not record legacy name",
+                                            subdir);
+                                    continue;
+                                } finally {
+                                    bc.abort();
+                                }
                             }
                             if (!subdir.getName().equals(dirName)) {
                                 File newSubdir = parent.getRootDirFor(dirName);
@@ -567,20 +579,30 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                             if (name == null) {
                                 name = childNameGenerator.itemNameFromLegacy(parent, childName);
                                 FileUtils.writeStringToFile(nameFile, name, "UTF-8");
-                            } else if (!childName.equals(name) || legacy) {
-                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
-                            }
-                            if (!dirName.equals(name) && item instanceof AbstractItem
-                                    && ((AbstractItem) item).getDisplayNameOrNull() == null) {
-                                BulkChange bc = new BulkChange(item);
+                                BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
                                 try {
-                                    ((AbstractItem) item).setDisplayName(childName);
+                                    childNameGenerator.recordLegacyName(parent, item, childName);
+                                    itemNeedsSave = true;
+                                } catch (IOException e) {
+                                    LOGGER.log(Level.WARNING, "Ignoring {0} as could not record legacy name",
+                                            subdir);
+                                    continue;
                                 } finally {
                                     bc.abort();
                                 }
+                            } else if (!childName.equals(name) || legacy) {
+                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
                             }
                         }
                         item.onLoad(parent, name);
+                        if (itemNeedsSave) {
+                            try {
+                                item.save();
+                            } catch (IOException e) {
+                                LOGGER.log(Level.WARNING, "Could not update {0} after applying folder naming rules",
+                                        item.getFullName());
+                            }
+                        }
                     } else {
                         Logger.getLogger(AbstractFolder.class.getName())
                                 .log(Level.WARNING, "could not find file " + xmlFile.getFile());

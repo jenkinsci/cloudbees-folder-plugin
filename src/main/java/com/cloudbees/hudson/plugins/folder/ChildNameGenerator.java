@@ -32,10 +32,13 @@ import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.JobProperty;
 import hudson.model.TopLevelItem;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Map;
 import java.util.WeakHashMap;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import jenkins.model.TransientActionFactory;
 
 /**
  * Provides a way for a {@link ComputedFolder} may need to break the association between the directory names on disk
@@ -46,7 +49,8 @@ import javax.annotation.Nonnull;
  * <p>
  * Challenges:
  * <ul>
- * <li>See the notes on {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} and {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} regarding the constraints on how to name things</li>
+ * <li>See the notes on {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} and
+ * {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} regarding the constraints on how to name things</li>
  * <li>There are some items which need the {@link Item#getRootDir()} during construction (those are bold evil item types
  * that leak side-effects, you should fix them if you find them). While you wait for them to be fixed you will need
  * to work-arround the issue by ensuring that you call {@link #beforeCreateItem(AbstractFolder, String, String)}
@@ -69,7 +73,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      */
     public static final String CHILD_NAME_FILE = "name-utf8.txt";
 
-    private final Map<Trace,String> idealNames = new WeakHashMap<Trace,String>();
+    private static final Map<Trace,String> idealNames = new WeakHashMap<Trace,String>();
 
     /**
      * Work-around helper method to "fix" {@link Item} constructors that have on-disk side-effects and therefore
@@ -79,10 +83,13 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      *                 the second parameter of {@link AbstractItem#AbstractItem(ItemGroup, String)}. This one would be
      *                 the one with URL path segment escaping.
      * @param idealName the original name before whatever URL path segment escaping you applied
-     * @return the {@link Trace} to keep track of when we can remove the memory of the creation process.
+     * @return the {@link Trace} to keep track of when we can remove the memory of the creation process. Please
+     * {@link Trace#close()} the trace after the item is created.
      */
     @Nonnull
-    public final Trace beforeCreateItem(@Nonnull P project, @Nonnull String itemName, @Nonnull String idealName) {
+    public static final Trace beforeCreateItem(@Nonnull AbstractFolder<?> project,
+                                               @Nonnull String itemName,
+                                               @Nonnull String idealName) {
         final Trace trace = new Trace(project, itemName);
         synchronized (idealNames) {
             idealNames.put(trace, idealName);
@@ -91,10 +98,10 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     }
 
     /**
-     * Clean up for a creation {@link Trace}. Not strictly required to be called, but nice implementations will do this.
+     * Clean up for a creation {@link Trace}. Not strictly required, but nice implementations will do this via {@link Trace#close()}.
      * @param trace the trace.
      */
-    public final void afterItemCreated(@Nonnull Trace trace) {
+    private static final void afterItemCreated(@Nonnull Trace trace) {
         synchronized (idealNames) {
             idealNames.remove(trace);
         }
@@ -119,7 +126,9 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     /**
      * Infers the {@link Item#getName()} from the {@link Item} instance itself. For a valid implementation, the
      * {@link ComputedFolder} using this {@link ChildNameGenerator} will be attaching into the {@link Item} the
-     * actual name, typically via a {@link JobProperty} or {@link Action}. This method's task is to find that
+     * actual name, typically via a {@link JobProperty} or {@link Action} (beware {@link TransientActionFactory}
+     * implementations may want to invoke {@link Item#getRootDir()} which will trigger a stack overflow though, so
+     * safer to stick with the {@link JobProperty} or equivalent). This method's task is to find that
      * and return the name stored within or {@code null} if that information is missing (in which case
      * {@link #itemNameFromLegacy(AbstractFolder, String)} will be called to try and infer the name from the
      * disk name that the {@link Item} is being loaded from.
@@ -142,7 +151,9 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     /**
      * Infers the directory name in which the {@link Item} instance itself should be stored. For a valid
      * implementation, the {@link ComputedFolder} using this {@link ChildNameGenerator} will be attaching into the
-     * {@link Item} the actual name, typically via a {@link JobProperty} or {@link Action}. This method's task is to
+     * {@link Item} the actual name, typically via a {@link JobProperty} or {@link Action} (beware
+     * {@link TransientActionFactory} implementations may want to invoke {@link Item#getRootDir()} which will trigger
+     * a stack overflow though, so safer to stick with the {@link JobProperty} or equivalent) . This method's task is to
      * find that and return the filesystem safe mangled equivalent name stored within or {@code null} if that
      * information is missing (in which case {@link #dirNameFromLegacy(AbstractFolder, String)}
      * will be called to try and infer the filesystem safe mangled equivalent name from the disk name that the
@@ -214,10 +225,12 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     @Nonnull
     public abstract String dirNameFromLegacy(@Nonnull P parent, @Nonnull String legacyDirName);
 
+    public abstract void recordLegacyName(P parent, I item, String legacyDirName) throws IOException;
+
     /**
      * Traces the creation of a new Item in a folder.
      */
-    public static final class Trace {
+    public static final class Trace implements Closeable {
         /**
          * The folder.
          */
@@ -264,6 +277,14 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
             int result = folder.hashCode();
             result = 31 * result + itemName.hashCode();
             return result;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void close() {
+            afterItemCreated(this);
         }
     }
 }
