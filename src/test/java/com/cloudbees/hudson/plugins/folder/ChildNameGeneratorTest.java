@@ -222,8 +222,15 @@ public class ChildNameGeneratorTest {
     }
 
     public static String mangle(String s) {
-        String hash = Util.getDigestOf(s);
-        String base = Normalizer.normalize(s, Normalizer.Form.NFD).toLowerCase(Locale.ENGLISH);
+        // NOTE: some file systems can use a different normalization strategy so we break from the ideal
+        // and force normalization to a particular form in order to ensure the test is filesystem independent
+        //
+        // individual real implementations should probably make a careful decision with regards to normalization
+        // where they are unable to recover the legacy name from the item's config and thus have to rely
+        // on the name on disk in the filesystem.
+        String normalized = Normalizer.normalize(s, Normalizer.Form.NFD);
+        String hash = Util.getDigestOf(normalized);
+        String base = normalized.toLowerCase(Locale.ENGLISH);
         StringBuilder buf = new StringBuilder(32);
         for (char c : base.toCharArray()) {
             if (buf.length() >= 8) break;
