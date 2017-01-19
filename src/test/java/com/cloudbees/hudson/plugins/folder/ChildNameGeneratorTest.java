@@ -158,6 +158,33 @@ public class ChildNameGeneratorTest {
     }
 
     private void checkComputedFolder(ComputedFolderImpl instance, int round) throws IOException {
+        File rootDir = r.j.jenkins.getRootDir();
+        File probe = new File(rootDir, "leanbh-c\u00faig.probe");
+        File actual = null;
+        Normalizer.Form form = null;
+        try {
+            File[] contents = rootDir.listFiles();
+            if (contents != null) {
+                for (File f: contents) {
+                    if ("leanbh-c\u00faig.probe".equals(f.getName())) {
+                        actual = probe;
+                        form = Normalizer.Form.NFC;
+                        System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
+                        break;
+                    }
+                    if ("leanbh cu\u0301ig.probe".equals(f.getName())) {
+                        actual = probe;
+                        form = Normalizer.Form.NFD;
+                        System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
+                        break;
+                    }
+                }
+            }
+        } finally {
+            FileUtils.deleteQuietly(probe);
+            FileUtils.deleteQuietly(actual);
+        }
+        assertThat("We detected the filesystem normalization form", form, notNullValue());
         instance.assertItemNames(round,
                 "$$child-one",
                 "$$child_two",
@@ -178,16 +205,34 @@ public class ChildNameGeneratorTest {
                 "job/$$%E1%84%8B%E1%85%A1%E1%84%8B%E1%85%B5%207/", // 아이 7
                 "job/$$nin%CC%83o%20ocho/"
         );
-        instance.assertItemDirs(round,
-                "child_on-1ec93354e47959489d1440d",
-                "child_tw-bca7d461e11f4f3ed12fd0d",
-                "child_th-b7a6e5662f26eb036090308",
-                "leanbh_c-cde398abd1bc432e87c49ca",
-                "________-97e4b38574769f9d9968fe9", // ребенок пять
-                "___-d22e9fe51690274d8262bda", // 儿童六
-                "_____7-d57fff123224bd679e4213b", // 아이 7
-                "nin_o_oc-1a0c91070942136ba398919"
-        );
+        switch (form) {
+            case NFC:
+            case NFKC:
+                instance.assertItemDirs(round,
+                        "child_on-1ec93354e47959489d1440d",
+                        "child_tw-bca7d461e11f4f3ed12fd0d",
+                        "child_th-b7a6e5662f26eb036090308",
+                        "leanbh_c-cde398abd1bc432e87c49ca",
+                        "________-97e4b38574769f9d9968fe9", // ребенок пять
+                        "___-d22e9fe51690274d8262bda", // 儿童六
+                        "_____7-d57fff123224bd679e4213b", // 아이 7
+                        "nin_o_oc-1a0c91070942136ba398919"
+                );
+                break;
+            case NFD:
+            case NFKD:
+                instance.assertItemDirs(round,
+                        "child_on-1ec93354e47959489d1440d",
+                        "child_tw-bca7d461e11f4f3ed12fd0d",
+                        "child_th-b7a6e5662f26eb036090308",
+                        "leanbh_c-66fe5ac0be4a896280ef09f",
+                        "________-97e4b38574769f9d9968fe9", // ребенок пять
+                        "___-d22e9fe51690274d8262bda", // 儿童六
+                        "_____7-6d2219439eec0df19863ab8", // 아이 7
+                        "nin_o_oc-782e3bad2d233732a03f9dd"
+                );
+                break;
+        }
         for (String name: Arrays.asList(
                 "child-one",
                 "child_two",
@@ -222,15 +267,8 @@ public class ChildNameGeneratorTest {
     }
 
     public static String mangle(String s) {
-        // NOTE: some file systems can use a different normalization strategy so we break from the ideal
-        // and force normalization to a particular form in order to ensure the test is filesystem independent
-        //
-        // individual real implementations should probably make a careful decision with regards to normalization
-        // where they are unable to recover the legacy name from the item's config and thus have to rely
-        // on the name on disk in the filesystem.
-        String normalized = Normalizer.normalize(s, Normalizer.Form.NFD);
-        String hash = Util.getDigestOf(normalized);
-        String base = normalized.toLowerCase(Locale.ENGLISH);
+        String hash = Util.getDigestOf(s);
+        String base = Normalizer.normalize(s, Normalizer.Form.NFD).toLowerCase(Locale.ENGLISH);
         StringBuilder buf = new StringBuilder(32);
         for (char c : base.toCharArray()) {
             if (buf.length() >= 8) break;
