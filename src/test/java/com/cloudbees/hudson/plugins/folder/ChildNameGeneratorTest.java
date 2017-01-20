@@ -257,7 +257,7 @@ public class ChildNameGeneratorTest {
                     System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
                     break;
                 }
-                if ("leanbh cu\u0301ig.probe".equals(f.getName())) {
+                if ("leanbh-cu\u0301ig.probe".equals(f.getName())) {
                     form = Normalizer.Form.NFD;
                     System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
                     break;
