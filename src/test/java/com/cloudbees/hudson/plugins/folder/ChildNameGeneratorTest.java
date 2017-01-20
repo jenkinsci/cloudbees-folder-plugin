@@ -183,6 +183,44 @@ public class ChildNameGeneratorTest {
         });
     }
 
+    /**
+     * Given: a computed folder
+     * When: upgrading from a version that does not have name mangling to a version that does
+     * Then: mangling gets applied
+     */
+    @Test
+    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
+    public void upgradeNFD() throws Exception {
+        // The test data was generated using NFD filename encodings... but when unzipping the name can be changed
+        // to NFC by the filesystem, so we need to check the expected outcome based on the inferred canonical form
+        // used by the filesystem.
+        r.addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                TopLevelItem i = r.j.jenkins.getItem("instance");
+                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+                ComputedFolderImpl instance = (ComputedFolderImpl) i;
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
+            }
+        });
+        r.addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                TopLevelItem i = r.j.jenkins.getItem("instance");
+                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+                ComputedFolderImpl instance = (ComputedFolderImpl) i;
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
+                r.j.jenkins.reload();
+                i = r.j.jenkins.getItem("instance");
+                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+                instance = (ComputedFolderImpl) i;
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
+                instance.doReload();
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
+            }
+        });
+    }
+
     private void checkComputedFolder(ComputedFolderImpl instance, int round, Normalizer.Form form) throws IOException {
         assertThat("We detected the filesystem normalization form", form, notNullValue());
         instance.assertItemNames(round,
