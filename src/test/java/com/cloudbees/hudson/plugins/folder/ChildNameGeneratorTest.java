@@ -273,6 +273,15 @@ public class ChildNameGeneratorTest {
         assertThat("We have an item for name " + idealName, item, notNullValue());
         assertThat("The root directory of the item for name " + idealName + " is mangled",
                 item.getRootDir().getName(), is(mangle(idealName)));
+        String altEncoding = Normalizer.normalize(idealName, Normalizer.Form.NFD);
+        if (idealName.equals(altEncoding)) {
+            altEncoding = Normalizer.normalize(idealName, Normalizer.Form.NFC);
+        }
+        if (!idealName.equals(altEncoding)) {
+            File altRootDir = instance.getRootDirFor(altEncoding);
+            assertThat("Alternative normalized form: " + altRootDir + " does not exist",
+                    altRootDir.isDirectory(), is(false));
+        }
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
                 nameFile.isFile(), is(true));
@@ -591,14 +600,14 @@ public class ChildNameGeneratorTest {
         @Override
         public String itemNameFromLegacy(@Nonnull F parent,
                                          @Nonnull String legacyDirName) {
-            return encode(Normalizer.normalize(legacyDirName, Normalizer.Form.NFC));
+            return encode(legacyDirName);
         }
 
         @Nonnull
         @Override
         public String dirNameFromLegacy(@Nonnull F parent,
                                         @Nonnull String legacyDirName) {
-            return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFC));
+            return mangle(legacyDirName);
         }
 
         @Override
