@@ -70,6 +70,29 @@ import static org.junit.Assert.assertThat;
 
 /**
  * Tests {@link ChildNameGenerator} using a generator that modifies both the {@link Item#getName()} and the directory.
+ * <p>
+ * The test data set was generated using NFC encoded names. There are 8 children in the computed folder, each name
+ * is the name of that child with different "fun" translations or other characters.
+ * <nl>
+ *     <li><code>child-one</code> demonstrates a name that should have no issues</li>
+ *     <li><code>child_two</code> demonstrates a name that should have no issues</li>
+ *     <li><code>child three</code> demonstrates a name that has a space in it</li>
+ *     <li><code>leanbh cúig</code> (Irish for "child five") demonstrates a name that has a NFC chacacter with a
+ *     different NFD encoding (also I messed up with the Russian translation and <code>leanbh ceithre</code> doesn't
+ *     have a fada)</li>
+ *     <li><code>ребенок пять</code> (Russian, should probably be "ребенок номер четыре" but I'm not re-generating the
+ *     test data now - should be "child four") demonstrates an indo-european character set where the NFC and NFD forms
+ *     are identical but we are using unicode characters</li>
+ *     <li><code>儿童六</code> (Chinese, reversing through google translate gives "children six") demonstrates an asian
+ *     character set where the NFC and NFD forms are identical</li>
+ *     <li><code>아이 7</code> (Korean, google translate gave this for "child seven" but converts back as "child 7")
+ *     demonstrates an asian character set where the NFC and NFD forms are different.</li>
+ *     <li><code>niño ocho</code> (Spanish, supposed to be "child eight" round-tripped through Google translate gives
+ *     "eight boy") demonstrates a name that has a NFC chacacter with a different NFD encoding</li>
+ * </nl>
+ *
+ * Aside: <a href="https://www.youtube.com/watch?v=LMkJuDVJdTw">Here's what happens when you round-trip through Google
+ * Translate</a> "Cold, apricot, relaxing satisfaction!"
  */
 public class ChildNameGeneratorTest {
 
@@ -90,18 +113,18 @@ public class ChildNameGeneratorTest {
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
                 instance.assertItemNames(1);
-                instance.addKids(
+                instance.addKids( // these are all NFC names
                         "child-one",
                         "child_two",
                         "child three",
-                        "leanbh cúig",
+                        "leanbh c\u00faig", // leanbh cúig
                         "ребенок пять",
                         "儿童六",
-                        "아이 7",
-                        "niño ocho"
+                        "\uc544\uc774 7", // 아이 7
+                        "ni\u00f1o ocho" // niño ocho
                 );
                 instance.recompute(Result.SUCCESS);
-                checkComputedFolder(instance, 2);
+                checkComputedFolder(instance, 2, Normalizer.Form.NFC);
             }
         });
         r.addStep(new Statement() {
@@ -110,14 +133,14 @@ public class ChildNameGeneratorTest {
                 TopLevelItem i = r.j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, Normalizer.Form.NFC);
                 r.j.jenkins.reload();
                 i = r.j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, Normalizer.Form.NFC);
                 instance.doReload();
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, Normalizer.Form.NFC);
             }
         });
     }
@@ -130,13 +153,16 @@ public class ChildNameGeneratorTest {
     @Test
     @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
     public void upgrade() throws Exception {
+        // The test data was generated using NFC filename encodings... but when unzipping the name can be changed
+        // to NFD by the filesystem, so we need to check the expected outcome based on the inferred canonical form
+        // used by the filesystem.
         r.addStep(new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 TopLevelItem i = r.j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
             }
         });
         r.addStep(new Statement() {
@@ -145,46 +171,19 @@ public class ChildNameGeneratorTest {
                 TopLevelItem i = r.j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
                 r.j.jenkins.reload();
                 i = r.j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
                 instance.doReload();
-                checkComputedFolder(instance, 0);
+                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
             }
         });
     }
 
-    private void checkComputedFolder(ComputedFolderImpl instance, int round) throws IOException {
-        File rootDir = r.j.jenkins.getRootDir();
-        File probe = new File(rootDir, "leanbh-c\u00faig.probe");
-        FileUtils.touch(probe);
-        File actual = null;
-        Normalizer.Form form = null;
-        try {
-            File[] contents = rootDir.listFiles();
-            if (contents != null) {
-                for (File f: contents) {
-                    if ("leanbh-c\u00faig.probe".equals(f.getName())) {
-                        actual = probe;
-                        form = Normalizer.Form.NFC;
-                        System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
-                        break;
-                    }
-                    if ("leanbh cu\u0301ig.probe".equals(f.getName())) {
-                        actual = probe;
-                        form = Normalizer.Form.NFD;
-                        System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
-                        break;
-                    }
-                }
-            }
-        } finally {
-            FileUtils.deleteQuietly(probe);
-            FileUtils.deleteQuietly(actual);
-        }
+    private void checkComputedFolder(ComputedFolderImpl instance, int round, Normalizer.Form form) throws IOException {
         assertThat("We detected the filesystem normalization form", form, notNullValue());
         instance.assertItemNames(round,
                 "$$child-one",
@@ -246,6 +245,26 @@ public class ChildNameGeneratorTest {
         )) {
             checkChild(instance, name);
         }
+    }
+
+    private Normalizer.Form inferNormalizerForm() {
+        Normalizer.Form form = null;
+        File[] contents = r.j.jenkins.getRootDir().listFiles();
+        if (contents != null) {
+            for (File f: contents) {
+                if ("leanbh-c\u00faig.probe".equals(f.getName())) {
+                    form = Normalizer.Form.NFC;
+                    System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
+                    break;
+                }
+                if ("leanbh cu\u0301ig.probe".equals(f.getName())) {
+                    form = Normalizer.Form.NFD;
+                    System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
+                    break;
+                }
+            }
+        }
+        return form;
     }
 
     private void checkChild(ComputedFolderImpl instance, String idealName) throws IOException {
