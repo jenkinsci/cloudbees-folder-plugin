@@ -212,10 +212,10 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      *         to an other by <strong>moving</strong> their {@code JENKINS_HOME} (or even parts of it) so if you are
      *         mangling names, be sure to ensure that the mangled name is the same on all OSes
      *     </li>
-     *     <li><a href="http://unicode.org/reports/tr15/">NFC vs NFD</a> may be a concern as different filesystems
+     *     <li><a href="http://unicode.org/reports/tr15/">NFC vs. NFD</a> may be a concern as different filesystems
      *     apply different rules and normalization to the filenames. This is primarily a concern when migrating from
      *     before having a {@link ChildNameGenerator} to having a {@link ChildNameGenerator} as the migration will
-     *     require inference of the unmangled name from the filesystem, which may or may not match the unmangeld
+     *     require inference of the un-mangled name from the filesystem, which may or may not match the un-mangled
      *     name from the source of the computation. Now POSIX does not specify how the filesystem is supposed to handle
      *     encoding of filenames and there can be strange behaviours, e.g.
      *     <a href="http://stackoverflow.com/a/32663908/1589700">{@link File#listFiles()} is rumoured to always return
@@ -225,14 +225,16 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      * The {@link ChildNameGenerator} at least allows an {@link AbstractFolder} to apply an on-disk naming strategy
      * that differs from the names used for the URLs.
      * <p>
-     * <strong>IF YOU IMPLEMENT A {@link ChildNameGenerator} YOU MUST RETURN A SINGLETON FROM THIS METHOD</strong>
+     * If you implement a {@link ChildNameGenerator} it is strongly recommended to return a singleton for performance
+     * reasons.
      *
      * @param <I> A wildcard parameter to assist type matching.
-     * @return a <strong>SINGLETON</strong> instance of {@link ChildNameGenerator} for all instanced of the concrete
+     * @return a (ideally singleton) instance of {@link ChildNameGenerator} for all instances of the concrete
      * {@link AbstractFolder} class or {@code null} if no name mangling will be performed.
      * @since 5.17
      */
     // TODO figure out how one could un-wind name mangling if one ever wanted to
+    // TODO move the name mangling code from branch-api to this plugin so that everyone can use it
     @CheckForNull
     public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
         return null;

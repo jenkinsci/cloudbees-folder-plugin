@@ -354,6 +354,7 @@ public class ChildNameGeneratorTest {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class ComputedFolderImpl extends ComputedFolder<FreeStyleProject> {
+        // TODO refactor the ChildNameGeneratorTests to remove duplication of most of this class
 
         private Set<String> fatalKids = new TreeSet<String>();
 

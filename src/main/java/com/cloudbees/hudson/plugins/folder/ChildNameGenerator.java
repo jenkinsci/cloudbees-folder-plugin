@@ -41,7 +41,7 @@ import javax.annotation.Nonnull;
 import jenkins.model.TransientActionFactory;
 
 /**
- * Provides a way for a {@link ComputedFolder} may need to break the association between the directory names on disk
+ * Provides a way for a {@link ComputedFolder} to break the association between the directory names on disk
  * that are used to store its items and the {@link Item#getName()} which is used to create the URL of the item.
  * <p>
  * <strong>NOTE:</strong> if you need to implement this functionality, you need to ensure that users cannot rename
@@ -62,6 +62,15 @@ import jenkins.model.TransientActionFactory;
  * for is missing.</li>
  * </ul>
  *
+ * For a valid implementation, the
+ * {@link ComputedFolder} using this {@link ChildNameGenerator} will be attaching into the {@link Item} the
+ * actual name, typically via a {@link JobProperty} or {@link Action} (beware {@link TransientActionFactory}
+ * implementations may want to invoke {@link Item#getRootDir()} which will trigger a stack overflow though, so
+ * safer to stick with the {@link JobProperty} or equivalent). This method's task is to find that
+ * and return the name stored within or {@code null} if that information is missing (in which case
+ * {@link #itemNameFromLegacy(AbstractFolder, String)} will be called to try and infer the name from the
+ * disk name that the {@link Item} is being loaded from.
+ *
  * @param <P> the type of {@link AbstractFolder}.
  * @param <I> the type of {@link TopLevelItem} within the folder.
  * @since 5.17
@@ -69,7 +78,14 @@ import jenkins.model.TransientActionFactory;
 // TODO migrate this functionality (by changing the base class) into core once baseline Jenkins has JENKINS-41222 merged
 public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends TopLevelItem> {
     /**
-     * The name of the file that contains the actual name of the child item.
+     * The name of the file that contains the actual name of the child item. This file is to allow a Jenkins
+     * Administrator to determine which child is which when dealing with a folder containing child names that have
+     * been mangled.
+     * <p>
+     * If there is nothing else to go on, this file will be used in preference to the child directory name, but as it
+     * is too easy for users to mistakenly think changing the contents of the file will rename the child (which could
+     * cause data loss for the computed folder's child) it is better for implementations to store the definitive
+     * ideal name in a {@link JobProperty}, {@link Action} or equivalent that is attached directly to the {@link Item}.
      */
     public static final String CHILD_NAME_FILE = "name-utf8.txt";
 
@@ -110,28 +126,23 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     /**
      * Looks up the {@link Item} to see if we stored the ideal name before invoking the constructor that is having
      * on-disk side-effects before the object has escaped {@link #beforeCreateItem(AbstractFolder, String, String)}
-     * @param parent
-     * @param item
-     * @return
+     * @param parent the parent within which the item is being created.
+     * @param item the partially created item.
+     * @return the ideal name of the item.
      */
     @CheckForNull
     protected final String idealNameFromItem(@Nonnull P parent, @Nonnull I item) {
         String itemName = item.getName();
-        if (itemName == null) return null;
+        if (itemName == null) {
+            return null;
+        }
         synchronized (idealNames) {
             return idealNames.get(new Trace(parent, itemName));
         }
     }
 
     /**
-     * Infers the {@link Item#getName()} from the {@link Item} instance itself. For a valid implementation, the
-     * {@link ComputedFolder} using this {@link ChildNameGenerator} will be attaching into the {@link Item} the
-     * actual name, typically via a {@link JobProperty} or {@link Action} (beware {@link TransientActionFactory}
-     * implementations may want to invoke {@link Item#getRootDir()} which will trigger a stack overflow though, so
-     * safer to stick with the {@link JobProperty} or equivalent). This method's task is to find that
-     * and return the name stored within or {@code null} if that information is missing (in which case
-     * {@link #itemNameFromLegacy(AbstractFolder, String)} will be called to try and infer the name from the
-     * disk name that the {@link Item} is being loaded from.
+     * Infers the {@link Item#getName()} from the {@link Item} instance itself.
      *
      * Challenges include:
      * <ul>
@@ -142,38 +153,30 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * </ul>
      * @param parent the parent within which the item is being loaded.
      * @param item the partially loaded item (take care what methods you call, the item will not have a reference to
-     *             its parent.
+     *             its parent).
      * @return the name of the item.
      */
     @CheckForNull
     public abstract String itemNameFromItem(@Nonnull P parent, @Nonnull I item);
 
     /**
-     * Infers the directory name in which the {@link Item} instance itself should be stored. For a valid
-     * implementation, the {@link ComputedFolder} using this {@link ChildNameGenerator} will be attaching into the
-     * {@link Item} the actual name, typically via a {@link JobProperty} or {@link Action} (beware
-     * {@link TransientActionFactory} implementations may want to invoke {@link Item#getRootDir()} which will trigger
-     * a stack overflow though, so safer to stick with the {@link JobProperty} or equivalent) . This method's task is to
-     * find that and return the filesystem safe mangled equivalent name stored within or {@code null} if that
-     * information is missing (in which case {@link #dirNameFromLegacy(AbstractFolder, String)}
-     * will be called to try and infer the filesystem safe mangled equivalent name from the disk name that the
-     * {@link Item} is being loaded from.
+     * Infers the directory name in which the {@link Item} instance itself should be stored.
      *
      * Challenges include:
      * <ul>
-     *     <li>The only really filesystem safe characters are {@code A-Za-z0-9_.-}</li>
-     *     <li>Because of Windows and allowing for users to migrate their Jenkins from unix to windows and vice-versa,
-     *     some names are reserved names under Windows:
-     *     {@code AUX, COM1, COM2, ..., COM9, CON, LPT1, LPT2, ..., LPT9, NUL, PRN} plus all case variations of these
-     *     names plus the variants where a single {@code .} is appended, you need to map those to something else</li>
-     *     <li>Don't make the filenames too long. Try to keep them under 32 characters. If you can go smaller, even
-     *     better.</li>
-     *     <li>Get it right first time</li>
+     * <li>The only really filesystem safe characters are {@code A-Za-z0-9_.-}</li>
+     * <li>Because of Windows and allowing for users to migrate their Jenkins from Wnix to Windows and vice-versa,
+     * some names are reserved names under Windows:
+     * {@code AUX, COM1, COM2, ..., COM9, CON, LPT1, LPT2, ..., LPT9, NUL, PRN} plus all case variations of these
+     * names plus the variants where a single {@code .} is appended, you need to map those to something else</li>
+     * <li>Don't make the filenames too long. Try to keep them under 32 characters. If you can go smaller, even
+     * better.</li>
+     * <li>Get it right the first time</li>
      * </ul>
      *
      * @param parent the parent within which the item is being loaded.
      * @param item   the partially loaded item (take care what methods you call, the item will not have a reference to
-     *               its parent.
+     *               its parent).
      * @return the filesystem safe mangled equivalent name of the item.
      */
     @CheckForNull
@@ -195,40 +198,50 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * </ul>
      * @param parent the parent within which the item is being loaded.
      * @param legacyDirName the directory name that we are loading an item from.
-     * @return
+     * @return the name of the item.
      */
     @Nonnull
     public abstract String itemNameFromLegacy(@Nonnull P parent, @Nonnull String legacyDirName);
 
     /**
-     * {@link #dirNameFromLegacy(AbstractFolder, String)} could not help, we are loading the item for the first
+     * {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} could not help, we are loading the item for the first
      * time since the {@link ChildNameGenerator} was enabled for the parent folder type, this method's mission is
      * to pretend the {@code legacyDirName} is the "mostly correct" name and turn this into the filesystem safe
      * mangled equivalent name to use going forward.
      *
      * Challenges include:
      * <ul>
-     *     <li>The only really filesystem safe characters are {@code A-Za-z0-9_.-}</li>
-     *     <li>Because of Windows and allowing for users to migrate their Jenkins from unix to windows and vice-versa,
-     *     some names are reserved names under Windows:
-     *     {@code AUX, COM1, COM2, ..., COM9, CON, LPT1, LPT2, ..., LPT9, NUL, PRN} plus all case variations of these
-     *     names plus the variants where a single {@code .} is appended, you need to map those to something else</li>
-     *     <li>Don't make the filenames too long. Try to keep them under 32 characters. If you can go smaller, even
-     *     better.</li>
-     *     <li>Get it right first time</li>
+     * <li>The only really filesystem safe characters are {@code A-Za-z0-9_.-}</li>
+     * <li>Because of Windows and allowing for users to migrate their Jenkins from Unix to Windows and vice-versa,
+     * some names are reserved names under Windows:
+     * {@code AUX, COM1, COM2, ..., COM9, CON, LPT1, LPT2, ..., LPT9, NUL, PRN} plus all case variations of these
+     * names plus the variants where a single {@code .} is appended, you need to map those to something else</li>
+     * <li>Don't make the filenames too long. Try to keep them under 32 characters. If you can go smaller, even
+     * better.</li>
+     * <li>Get it right the first time</li>
      * </ul>
      *
      * @param parent        the parent within which the item is being loaded.
      * @param legacyDirName the directory name that we are loading an item from.
-     * @return
+     * @return the filesystem safe mangled equivalent name of the item.
      */
     @Nonnull
     public abstract String dirNameFromLegacy(@Nonnull P parent, @Nonnull String legacyDirName);
 
+    /**
+     * Record the ideal name inferred in the item when it was missing and has been inferred from the legacy directory
+     * name.
+     *
+     * @param parent the parent.
+     * @param item the item.
+     * @param legacyDirName the name of the directory that the item was loaded from.
+     * @throws IOException if the ideal name could not be attached to the item.
+     */
     public abstract void recordLegacyName(P parent, I item, String legacyDirName) throws IOException;
 
     /**
-     * Traces the creation of a new Item in a folder.
+     * Traces the creation of a new {@link Item} in a folder. Use
+     * {@link ChildNameGenerator#beforeCreateItem(AbstractFolder, String, String)} to get the instance.
      */
     public static final class Trace implements Closeable {
         /**
