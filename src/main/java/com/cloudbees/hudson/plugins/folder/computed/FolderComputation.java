@@ -60,6 +60,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.jelly.XMLOutput;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 
@@ -118,6 +119,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         StreamBuildListener listener;
         try {
             File logFile = getLogFile();
+            FileUtils.forceMkdir(logFile.getParentFile());
             OutputStream os;
             if (BACKUP_LOG_COUNT != null) {
                 os = new ReopenableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
@@ -195,6 +197,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     public TaskListener createEventsListener() throws IOException {
         File eventsFile = getEventsFile();
+        FileUtils.forceMkdir(eventsFile.getParentFile());
         boolean rotate = eventsFile.length() > EVENT_LOG_MAX_SIZE * 1024;
         OutputStream os;
         if (BACKUP_LOG_COUNT != null) {

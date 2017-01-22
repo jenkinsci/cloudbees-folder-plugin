@@ -24,7 +24,10 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Messages;
+import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
@@ -168,6 +171,10 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
 
         @Override
         public Collection<? extends Action> createFor(@Nonnull Item target) {
+            if (target.getParent() instanceof ComputedFolder) {
+                // cannot move from a computed folder
+                return Collections.emptySet();
+            }
             return Collections.singleton(new RelocationAction(target));
         }
     }
