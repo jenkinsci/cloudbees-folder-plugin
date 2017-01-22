@@ -66,10 +66,13 @@ import jenkins.model.TransientActionFactory;
  * {@link ComputedFolder} using this {@link ChildNameGenerator} will be attaching into the {@link Item} the
  * actual name, typically via a {@link JobProperty} or {@link Action} (beware {@link TransientActionFactory}
  * implementations may want to invoke {@link Item#getRootDir()} which will trigger a stack overflow though, so
- * safer to stick with the {@link JobProperty} or equivalent). This method's task is to find that
+ * safer to stick with the {@link JobProperty} or equivalent). The
+ * {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} method's task is to find the stored name
  * and return the name stored within or {@code null} if that information is missing (in which case
  * {@link #itemNameFromLegacy(AbstractFolder, String)} will be called to try and infer the name from the
  * disk name that the {@link Item} is being loaded from.
+ * A similar relation exists for the {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} and
+ * {@link #dirNameFromLegacy(AbstractFolder, String)} methods.
  *
  * @param <P> the type of {@link AbstractFolder}.
  * @param <I> the type of {@link TopLevelItem} within the folder.
@@ -165,7 +168,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * Challenges include:
      * <ul>
      * <li>The only really filesystem safe characters are {@code A-Za-z0-9_.-}</li>
-     * <li>Because of Windows and allowing for users to migrate their Jenkins from Wnix to Windows and vice-versa,
+     * <li>Because of Windows and allowing for users to migrate their Jenkins from Unix to Windows and vice-versa,
      * some names are reserved names under Windows:
      * {@code AUX, COM1, COM2, ..., COM9, CON, LPT1, LPT2, ..., LPT9, NUL, PRN} plus all case variations of these
      * names plus the variants where a single {@code .} is appended, you need to map those to something else</li>
