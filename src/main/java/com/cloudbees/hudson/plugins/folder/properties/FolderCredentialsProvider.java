@@ -28,11 +28,14 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.CredentialsStoreAction;
+import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
@@ -52,12 +55,14 @@ import hudson.security.ACL;
 import hudson.security.AccessDeniedException2;
 import hudson.security.Permission;
 import hudson.util.CopyOnWriteMap;
+import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -123,24 +128,32 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             authentication = ACL.SYSTEM;
         }
         List<C> result = new ArrayList<C>();
-        if (ACL.SYSTEM.equals(authentication)) {
-            while (itemGroup != null) {
-                if (itemGroup instanceof AbstractFolder) {
-                    final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
-                    FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
-                    if (property != null) {
-                        result.addAll(DomainCredentials.getCredentials(
-                                property.getDomainCredentialsMap(),
-                                type,
-                                domainRequirements,
-                                CredentialsMatchers.always()));
+        Set<String> ids = new HashSet<String>();
+        while (itemGroup != null) {
+            if (itemGroup instanceof AbstractFolder) {
+                if (!((AbstractFolder) itemGroup).getACL().hasPermission(authentication, USE_ITEM)) {
+                    continue;
+                }
+                final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
+                FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
+                if (property != null) {
+                    for (C c : DomainCredentials.getCredentials(
+                            property.getDomainCredentialsMap(),
+                            type,
+                            domainRequirements,
+                            CredentialsMatchers.always())) {
+                        if (!(c instanceof IdCredentials) || ids.add(((IdCredentials) c).getId())) {
+                            // if IdCredentials, only add if we havent added already
+                            // if not IdCredentials, always add
+                            result.add(c);
+                        }
                     }
                 }
-                if (itemGroup instanceof Item) {
-                    itemGroup = Item.class.cast(itemGroup).getParent();
-                } else {
-                    break;
-                }
+            }
+            if (itemGroup instanceof Item) {
+                itemGroup = Item.class.cast(itemGroup).getParent();
+            } else {
+                break;
             }
         }
         return result;
@@ -159,6 +172,65 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             return getCredentials(type, (ItemGroup) item, authentication, domainRequirements);
         }
         return super.getCredentials(type, item, authentication, domainRequirements);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public <C extends IdCredentials> ListBoxModel getCredentialIds(@NonNull Class<C> type,
+                                                                   @Nullable ItemGroup itemGroup,
+                                                                   @Nullable Authentication authentication,
+                                                                   @NonNull List<DomainRequirement> domainRequirements,
+                                                                   @NonNull CredentialsMatcher matcher) {
+        if (authentication == null) {
+            authentication = ACL.SYSTEM;
+        }
+        ListBoxModel result = new ListBoxModel();
+        Set<String> ids = new HashSet<String>();
+        while (itemGroup != null) {
+            if (itemGroup instanceof AbstractFolder) {
+                if (!((AbstractFolder) itemGroup).getACL().hasPermission(authentication, USE_ITEM)) {
+                    continue;
+                }
+                final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
+                FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
+                if (property != null) {
+                    for (C c : DomainCredentials.getCredentials(
+                            property.getDomainCredentialsMap(),
+                            type,
+                            domainRequirements,
+                            matcher)) {
+                        if (ids.add(c.getId())) {
+                            result.add(CredentialsNameProvider.name(c), c.getId());
+                        }
+                    }
+                }
+            }
+            if (itemGroup instanceof Item) {
+                itemGroup = Item.class.cast(itemGroup).getParent();
+            } else {
+                break;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public <C extends IdCredentials> ListBoxModel getCredentialIds(@NonNull Class<C> type, @NonNull Item item,
+                                                                   @Nullable Authentication authentication,
+                                                                   @NonNull List<DomainRequirement> domainRequirements,
+                                                                   @NonNull CredentialsMatcher matcher) {
+        if (item instanceof AbstractFolder) {
+            // credentials defined in the folder should be available in the context of the folder
+            return getCredentialIds(type, (ItemGroup) item, authentication, domainRequirements, matcher);
+        }
+        return getCredentialIds(type, item.getParent(), authentication, domainRequirements, matcher);
     }
 
     /**
