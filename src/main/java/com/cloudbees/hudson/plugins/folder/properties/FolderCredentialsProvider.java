@@ -75,7 +75,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * A store of credentials that can be used as a Stapler opbject.
+ * A store of credentials that can be used as a Stapler object.
  */
 @Extension(optional = true)
 public class FolderCredentialsProvider extends CredentialsProvider {
