@@ -129,9 +129,6 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         if (ACL.SYSTEM.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
-                    if (!((AbstractFolder) itemGroup).getACL().hasPermission(authentication, USE_ITEM)) {
-                        continue;
-                    }
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
                     FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
                     if (property != null) {
