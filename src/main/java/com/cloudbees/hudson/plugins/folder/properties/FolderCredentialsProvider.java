@@ -200,7 +200,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                     }
                 }
                 if (itemGroup instanceof Item) {
-                    itemGroup = Item.class.cast(itemGroup).getParent();
+                    itemGroup = ((Item)itemGroup).getParent();
                 } else {
                     break;
                 }
