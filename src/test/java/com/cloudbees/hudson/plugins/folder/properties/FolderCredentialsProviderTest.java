@@ -41,6 +41,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
+import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -57,6 +58,8 @@ import java.util.List;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 import org.acegisecurity.Authentication;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.hamcrest.StringDescription;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -201,17 +204,109 @@ public class FolderCredentialsProviderTest {
         r.assertBuildStatus(Result.FAILURE, prj.scheduleBuild2(0).get());
     }
 
+    @Test
+    public void given_folderAndSystemCredentials_when_builtAsUserWithUseItem_then_folderCredentialFound() throws Exception {
+        SystemCredentialsProvider.getInstance().getCredentials().add(
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "You don't want me", "bar", "fly")
+        );
+        Folder f = createFolder();
+        CredentialsStore folderStore = getFolderStore(f);
+        folderStore.addCredentials(Domain.global(),
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
+                        "manchu"));
+        FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
+        prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu", Matchers.hasProperty("username", is("foo"))));
+
+        JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
+        r.jenkins.setSecurityRealm(realm);
+
+        MockAuthorizationStrategy strategy = new MockAuthorizationStrategy();
+        strategy.grant(CredentialsProvider.USE_ITEM).everywhere().to("bob");
+        strategy.grant(Item.BUILD).everywhere().to("bob");
+        strategy.grant(Computer.BUILD).everywhere().to("bob");
+
+        r.jenkins.setAuthorizationStrategy(strategy);
+        HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
+        jobsToUsers.put(prj.getFullName(), User.get("bob").impersonate());
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
+
+        QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
+        QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
+        try {
+            r.buildAndAssertSuccess(prj);
+        } catch (Exception e) {
+            FreeStyleBuild build = prj.getLastBuild();
+            if (build != null) {
+                System.out.println(JenkinsRule.getLog(build));
+            }
+            throw e;
+        }
+    }
+
+    @Test
+    public void given_nestedFolderAndSystemCredentials_when_builtAsUserWithUseItem_then_folderCredentialFound() throws Exception {
+        SystemCredentialsProvider.getInstance().getCredentials().add(
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "You don't want me", "bar", "fly")
+        );
+        Folder f = createFolder();
+        CredentialsStore folderStore = getFolderStore(f);
+        folderStore.addCredentials(Domain.global(),
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Prof. Xavier", "prof",
+                        "xavier"));
+        Folder child = f.createProject(Folder.class, "child");
+        getFolderStore(child).addCredentials(Domain.global(),
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
+                        "manchu"));
+        FreeStyleProject prj = child.createProject(FreeStyleProject.class, "job");
+        prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu", Matchers.hasProperty("username", is("foo"))));
+
+        JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
+        r.jenkins.setSecurityRealm(realm);
+
+        MockAuthorizationStrategy strategy = new MockAuthorizationStrategy();
+        strategy.grant(CredentialsProvider.USE_ITEM).everywhere().to("bob");
+        strategy.grant(Item.BUILD).everywhere().to("bob");
+        strategy.grant(Computer.BUILD).everywhere().to("bob");
+
+        r.jenkins.setAuthorizationStrategy(strategy);
+        HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
+        jobsToUsers.put(prj.getFullName(), User.get("bob").impersonate());
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
+
+        QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
+        QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
+        try {
+            r.buildAndAssertSuccess(prj);
+        } catch (Exception e) {
+            FreeStyleBuild build = prj.getLastBuild();
+            if (build != null) {
+                System.out.println(JenkinsRule.getLog(build));
+            }
+            throw e;
+        }
+    }
+
     public static class HasCredentialBuilder extends Builder {
 
         private final String id;
+        private Matcher<?> matcher;
 
         @DataBoundConstructor
         public HasCredentialBuilder(String id) {
             this.id = id;
         }
 
+        public HasCredentialBuilder(String id, Matcher<?> matcher) {
+            this.id = id;
+            this.matcher = matcher;
+        }
+
         public String getId() {
             return id;
+        }
+
+        public Matcher<?> getMatcher() {
+            return matcher;
         }
 
         @Override
@@ -225,6 +320,16 @@ public class FolderCredentialsProviderTest {
             } else {
                 listener.getLogger()
                         .printf("Found %s credentials with id %s%n", CredentialsNameProvider.name(credentials), id);
+                if (matcher != null) {
+                    if (matcher.matches(credentials)) {
+                        listener.getLogger().println("Credentials match criteria");
+                    } else {
+                        StringDescription description = new StringDescription();
+                        matcher.describeMismatch(credentials, description);
+                        listener.getLogger().println(description.toString());
+                        return false;
+                    }
+                }
                 return true;
             }
         }
