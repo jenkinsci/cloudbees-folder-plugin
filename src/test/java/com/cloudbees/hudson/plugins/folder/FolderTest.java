@@ -63,6 +63,7 @@ import jenkins.util.Timer;
 import org.acegisecurity.AccessDeniedException;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -147,11 +148,11 @@ public class FolderTest {
 
     private void copyFromGUI(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
         HtmlPage page = wc.getPage(f, "newJob");
-        ((HtmlInput)page.getElementById("name")).setValueAttribute(toName);
+        ((HtmlInput)page.getElementById("name")).type(toName);
         HtmlInput fe = (HtmlInput) page.getElementById("from");
         fe.focus();
         fe.type(fromName);
-        r.submit(page.getForms().get(1));
+        r.submit(page.getFormByName("createItem"));
     }
 
     /**
