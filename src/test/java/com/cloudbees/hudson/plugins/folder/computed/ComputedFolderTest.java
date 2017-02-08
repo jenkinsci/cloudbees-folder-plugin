@@ -159,12 +159,12 @@ public class ComputedFolderTest {
         JenkinsRule.WebClient client = r.createWebClient();
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
 
-        assertThat(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), is(0));
+        assertEquals(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), 0);
 
         s.kids.add("A");
         s.recompute(Result.SUCCESS);
 
-        assertThat(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), is(0));
+        assertEquals(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), 0);
     }
 
     @Test
@@ -172,9 +172,12 @@ public class ComputedFolderTest {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.assertItemNames(0);
 
-        s.addTrigger(new PeriodicFolderTrigger("1m"));
+        PeriodicFolderTrigger t = new PeriodicFolderTrigger("1m");
+        s.addTrigger(t);
+        t.run();
 
-        Thread.sleep(65000);
+        Thread.sleep(2000);
+
         s.assertItemNames(1);
     }
 
