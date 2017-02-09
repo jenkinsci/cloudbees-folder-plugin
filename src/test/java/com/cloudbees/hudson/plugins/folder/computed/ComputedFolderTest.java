@@ -176,7 +176,7 @@ public class ComputedFolderTest {
         s.addTrigger(t);
         t.run();
 
-        Thread.sleep(2000);
+        r.waitUntilNoActivity();
 
         s.assertItemNames(1);
     }
