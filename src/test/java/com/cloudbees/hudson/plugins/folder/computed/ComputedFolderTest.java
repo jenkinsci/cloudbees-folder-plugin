@@ -62,7 +62,6 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.Issue;
@@ -153,6 +152,33 @@ public class ComputedFolderTest {
         a1.keepLog(false);
         d.recompute(Result.SUCCESS);
         d.assertItemNames(5);
+    }
+
+    @Test
+    public void notAddChildren() throws Exception {
+        JenkinsRule.WebClient client = r.createWebClient();
+        SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
+
+        assertEquals(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), 0);
+
+        s.kids.add("A");
+        s.recompute(Result.SUCCESS);
+
+        assertEquals(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), 0);
+    }
+
+    @Test
+    public void runByTrigger() throws Exception {
+        SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
+        s.assertItemNames(0);
+
+        PeriodicFolderTrigger t = new PeriodicFolderTrigger("1m");
+        s.addTrigger(t);
+        t.run();
+
+        r.waitUntilNoActivity();
+
+        s.assertItemNames(1);
     }
 
     /** Verify that running branch projects are not deleted even after an organization folder reindex. */
