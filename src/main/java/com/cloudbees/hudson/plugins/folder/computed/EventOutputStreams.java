@@ -55,6 +55,7 @@ import org.apache.commons.io.IOUtils;
  * <li>Rotate after it gets too big</li>
  * <li>Not hold the file open indefinitely - ideally only when writing so that it can be moved by other processes</li>
  * </ul>
+ *
  * @since 5.18
  */
 public class EventOutputStreams implements Closeable {
@@ -165,6 +166,7 @@ public class EventOutputStreams implements Closeable {
                         this.pendingSize.addAndGet(-bytes.length);
                         os.write(bytes);
                     }
+                    os.flush();
                 } catch (IOException e) {
                     // ignore
                 } finally {
@@ -177,12 +179,12 @@ public class EventOutputStreams implements Closeable {
 
     /**
      * Gets a new {@link OutputStream}, the caller must close the stream in order to ensure all its output gets written.
+     *
      * @return a new {@link OutputStream}.
      */
     public OutputStream get() {
         return new OutputStream() {
             private final byte[] buf = new byte[1024];
-            private int last = 0;
             private int index = 0;
             private long start = System.nanoTime();
 
@@ -190,9 +192,6 @@ public class EventOutputStreams implements Closeable {
             public void write(int b) throws IOException {
                 buf[index] = (byte) b;
                 index++;
-                if (b == '\n') {
-                    last = index;
-                }
                 lazyFlush();
             }
 
@@ -203,34 +202,37 @@ public class EventOutputStreams implements Closeable {
                     if (index == 0) {
                         return;
                     }
-                    if (last == 0 || index == last) { // it's a long line, send the partial
+                    int count = index;
+                    for (int i = index - 1; i >= 0; i--) {
+                        if (buf[i] == '\n') {
+                            count = i + 1;
+                            break;
+                        }
+                    }
+                    if (index == count) { // send the whole buffer
                         offer(buf.clone());
                         index = 0;
-                    } else { // send up to the last newline
-                        offer(Arrays.copyOf(buf, last));
-                        System.arraycopy(buf, last, buf, 0, index - last);
-                        index -= last;
+                    } else { // send a partial buffer up to the last newline
+                        offer(Arrays.copyOf(buf, count));
+                        System.arraycopy(buf, count, buf, 0, index - count);
+                        index -= count;
                     }
-                    last = 0;
                 }
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(byte[] data, int off, int len) throws IOException {
+                if (data == null) {
+                    throw new NullPointerException();
+                }
                 if (index + len <= buf.length) {
-                    System.arraycopy(b, off, buf, index, len);
-                    for (int i = index + len - 1; i >= index; i--) {
-                        if (buf[i] == '\n') {
-                            last = i + 1;
-                            break;
-                        }
-                    }
+                    System.arraycopy(data, off, buf, index, len);
                     index += len;
                     lazyFlush();
                 } else {
                     while (len > 0) {
                         int l = Math.min(len, buf.length - index);
-                        write(b, off, l);
+                        write(data, off, l);
                         off += l;
                         len -= l;
                     }
@@ -243,7 +245,6 @@ public class EventOutputStreams implements Closeable {
                 if (index > 0) {
                     offer(Arrays.copyOf(buf, index));
                     index = 0;
-                    last = 0;
                 }
             }
 
@@ -278,10 +279,10 @@ public class EventOutputStreams implements Closeable {
 
         /**
          * Returns {@code true} if the output file can be written to now, {@code false} if the write should be delayed.
-         * 
+         *
          * @return {@code true} if the output file can be written to now, {@code false} if the write should be delayed
          */
-        public boolean canWriteNow(){
+        public boolean canWriteNow() {
             return true;
         }
     }

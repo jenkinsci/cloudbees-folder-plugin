@@ -110,6 +110,7 @@ public class EventOutputStreamsTest {
         List<String> bs = new ArrayList<String>();
         for (String line : FileUtils.readLines(file)) {
             assertThat(line.matches("^\\d+[AB](\\d+[AB])+$"), is(false));
+            assertThat(line.indexOf(0), is(-1));
             if (line.endsWith("A")) {
                 as.add(line);
             } else if (line.endsWith("B")) {
