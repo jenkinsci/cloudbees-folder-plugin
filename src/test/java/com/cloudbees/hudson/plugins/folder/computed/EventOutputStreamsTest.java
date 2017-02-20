@@ -23,6 +23,7 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -61,9 +62,14 @@ public class EventOutputStreamsTest {
     }
 
     public void test(final boolean aFlush, final boolean bFlush) throws Exception {
-        File file = work.newFile();
-        final EventOutputStreams instance = new EventOutputStreams(
-                file, 250, TimeUnit.MILLISECONDS, 8192, false, Long.MAX_VALUE, 0);
+        final File file = work.newFile();
+        final EventOutputStreams instance = new EventOutputStreams(new EventOutputStreams.OutputFile() {
+            @NonNull
+            @Override
+            public File get() {
+                return file;
+            }
+        }, 250, TimeUnit.MILLISECONDS, 8192, false, Long.MAX_VALUE, 0);
         Thread t1 = new Thread() {
             public void run() {
                 OutputStream os = instance.get();

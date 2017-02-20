@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -45,6 +46,7 @@ import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
+import hudson.util.StreamTaskListener;
 import hudson.util.io.ReopenableRotatingFileOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -205,15 +207,21 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @WithBridgeMethods(TaskListener.class)
     @Nonnull
-    public synchronized StreamBuildListener createEventsListener() {
+    public synchronized StreamTaskListener createEventsListener() {
         File eventsFile = getEventsFile();
         if (!eventsFile.getParentFile().isDirectory() && !eventsFile.getParentFile().mkdirs()) {
             LOGGER.log(Level.WARNING, "Could not create directory {0} for {1}",
                     new Object[]{eventsFile.getParentFile(), folder.getFullName()});
-            // TODO return a StreamBuildListener sending output to a log, for now this will just try to write
+            // TODO return a StreamBuildListener sending output to a log, for now this will just try and fail to write
         }
-        if (eventStreams == null || !eventsFile.equals(eventStreams.getFile())) {
-            eventStreams = new EventOutputStreams(eventsFile,
+        if (eventStreams == null) {
+            eventStreams = new EventOutputStreams(new EventOutputStreams.OutputFile() {
+                @NonNull
+                @Override
+                public File get() {
+                    return getEventsFile();
+                }
+            },
                     250, TimeUnit.MILLISECONDS,
                     1024,
                     true,
@@ -221,7 +229,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                     BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT)
             );
         }
-        return new StreamBuildListener(eventStreams.get(), Charsets.UTF_8);
+        return new StreamTaskListener(eventStreams.get(), Charsets.UTF_8);
     }
 
     @Nonnull

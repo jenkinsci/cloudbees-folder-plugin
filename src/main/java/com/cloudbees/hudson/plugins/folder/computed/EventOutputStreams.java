@@ -24,6 +24,8 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
 import java.io.File;
@@ -67,7 +69,7 @@ public class EventOutputStreams implements Closeable {
     /**
      * The primary file name.
      */
-    private final File primaryFile;
+    private final OutputFile outputFile;
     /**
      * How often to trigger a flush (defaults to 250ms)
      */
@@ -97,22 +99,22 @@ public class EventOutputStreams implements Closeable {
      */
     private final Object writeLock = new Object();
 
-    public EventOutputStreams(File primaryFile, boolean append) {
-        this(primaryFile, append, 0);
+    public EventOutputStreams(OutputFile outputFile, boolean append) {
+        this(outputFile, append, 0);
     }
 
-    public EventOutputStreams(File primaryFile, boolean append, int fileCount) {
-        this(primaryFile, 250, TimeUnit.MILLISECONDS, 1024, append, 32 * 1024L, fileCount);
+    public EventOutputStreams(OutputFile outputFile, boolean append, int fileCount) {
+        this(outputFile, 250, TimeUnit.MILLISECONDS, 1024, append, 32 * 1024L, fileCount);
     }
 
-    public EventOutputStreams(File primaryFile,
+    public EventOutputStreams(OutputFile outputFile,
                               long flushInterval,
                               TimeUnit flushIntervalUnits,
                               int flushSize,
                               boolean append,
                               long rotateSize,
                               int fileCount) {
-        this.primaryFile = primaryFile;
+        this.outputFile = outputFile;
         this.flushIntervalNanos = flushIntervalUnits.toNanos(flushInterval);
         this.flushSize = flushSize;
         this.fileCount = fileCount;
@@ -135,16 +137,17 @@ public class EventOutputStreams implements Closeable {
         }
         if (content == null || pendingSize >= flushSize || System.nanoTime() - lastFlushNanos > flushIntervalNanos) {
             synchronized (writeLock) {
-                if (!appendNextOpen || primaryFile.length() > rotateSize) {
+                File file = outputFile.get();
+                if (!appendNextOpen || file.length() > rotateSize) {
                     if (fileCount > 0) {
                         for (int i = fileCount - 1; i >= 0; i--) {
-                            File fi = i == 0
-                                    ? primaryFile
-                                    : new File(primaryFile.getParent(), primaryFile.getName() + "." + (i));
-                            if (fi.exists()) {
-                                File next = new File(primaryFile.getParent(), primaryFile.getName() + "." + (i + 1));
-                                next.delete();
-                                fi.renameTo(next);
+                            File f = i == 0
+                                    ? file
+                                    : new File(file.getParent(), file.getName() + "." + (i));
+                            if (f.exists()) {
+                                File n = new File(file.getParent(), file.getName() + "." + (i + 1));
+                                n.delete();
+                                f.renameTo(n);
                             }
                         }
                     } else {
@@ -153,7 +156,7 @@ public class EventOutputStreams implements Closeable {
                 }
                 FileOutputStream os = null;
                 try {
-                    os = new FileOutputStream(primaryFile, appendNextOpen);
+                    os = new FileOutputStream(file, appendNextOpen);
                     byte[] bytes;
                     while (null != (bytes = pending.poll())) {
                         this.pendingSize.addAndGet(-bytes.length);
@@ -258,13 +261,16 @@ public class EventOutputStreams implements Closeable {
     }
 
     /**
-     * Returns the file that output is being sent to.
-     * One would use this method in cases where the file location might change and so you would have to check
-     * whether the instance needs to be replaced with one for the new location.
-     *
-     * @return the file that output is being sent to.
+     * Supplies the current output file destination. We use indirection so that when used from a
+     * {@link FolderComputation} the containing {@link Folder} can be moved without keeping the events log open.
      */
-    public File getFile() {
-        return primaryFile;
+    public interface OutputFile {
+        /**
+         * Returns the file that output is being sent to.
+         *
+         * @return the file that output is being sent to.
+         */
+        @NonNull
+        File get();
     }
 }
