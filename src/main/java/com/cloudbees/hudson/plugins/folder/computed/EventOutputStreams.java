@@ -137,6 +137,9 @@ public class EventOutputStreams implements Closeable {
         }
         if (content == null || pendingSize >= flushSize || System.nanoTime() - lastFlushNanos > flushIntervalNanos) {
             synchronized (writeLock) {
+                if (!outputFile.canWriteNow()) {
+                    return;
+                }
                 File file = outputFile.get();
                 if (!appendNextOpen || file.length() > rotateSize) {
                     if (fileCount > 0) {
@@ -264,13 +267,22 @@ public class EventOutputStreams implements Closeable {
      * Supplies the current output file destination. We use indirection so that when used from a
      * {@link FolderComputation} the containing {@link Folder} can be moved without keeping the events log open.
      */
-    public interface OutputFile {
+    public static abstract class OutputFile {
         /**
          * Returns the file that output is being sent to.
          *
          * @return the file that output is being sent to.
          */
         @NonNull
-        File get();
+        public abstract File get();
+
+        /**
+         * Returns {@code true} if the output file can be written to now, {@code false} if the write should be delayed.
+         * 
+         * @return {@code true} if the output file can be written to now, {@code false} if the write should be delayed
+         */
+        public boolean canWriteNow(){
+            return true;
+        }
     }
 }

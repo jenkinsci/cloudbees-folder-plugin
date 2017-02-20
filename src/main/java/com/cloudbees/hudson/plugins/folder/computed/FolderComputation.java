@@ -31,6 +31,7 @@ import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
+import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -44,6 +45,8 @@ import hudson.model.StreamBuildListener;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
+import hudson.model.queue.CauseOfBlockage;
+import hudson.model.queue.QueueTaskDispatcher;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
 import hudson.util.StreamTaskListener;
@@ -212,7 +215,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         if (!eventsFile.getParentFile().isDirectory() && !eventsFile.getParentFile().mkdirs()) {
             LOGGER.log(Level.WARNING, "Could not create directory {0} for {1}",
                     new Object[]{eventsFile.getParentFile(), folder.getFullName()});
-            // TODO return a StreamBuildListener sending output to a log, for now this will just try and fail to write
+            // TODO return a StreamTaskListener sending output to a log, for now this will just try and fail to write
         }
         if (eventStreams == null) {
             eventStreams = new EventOutputStreams(new EventOutputStreams.OutputFile() {
@@ -220,6 +223,19 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                 @Override
                 public File get() {
                     return getEventsFile();
+                }
+
+                @Override
+                public boolean canWriteNow() {
+                    GregorianCalendar timestamp = new GregorianCalendar();
+                    timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
+                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.<Action>emptyList());
+                    for (QueueTaskDispatcher d: QueueTaskDispatcher.all()) {
+                        if (d.canRun(probe) != null) {
+                            return false;
+                        }
+                    }
+                    return true;
                 }
             },
                     250, TimeUnit.MILLISECONDS,
