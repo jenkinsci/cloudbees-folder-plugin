@@ -227,6 +227,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
                 @Override
                 public boolean canWriteNow() {
+                    // TODO rework once JENKINS-42248 is solved
                     GregorianCalendar timestamp = new GregorianCalendar();
                     timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
                     Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.<Action>emptyList());

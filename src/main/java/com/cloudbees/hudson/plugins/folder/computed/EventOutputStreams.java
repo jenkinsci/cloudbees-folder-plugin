@@ -282,6 +282,7 @@ public class EventOutputStreams implements Closeable {
          *
          * @return {@code true} if the output file can be written to now, {@code false} if the write should be delayed
          */
+        // TODO potentially deprecate depending on how JENKINS-42248 is implemented
         public boolean canWriteNow() {
             return true;
         }
