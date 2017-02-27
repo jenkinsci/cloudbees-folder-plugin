@@ -43,6 +43,7 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.ResourceList;
+import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.ItemListener;
@@ -592,6 +593,36 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Nonnull
     public FolderComputation<I> getComputation() {
         return computation;
+    }
+
+    @Restricted(NoExternalUse.class) // used by stapler only
+    public PseudoRun<I> getLastSuccessfulBuild() {
+        FolderComputation<I> computation = getComputation();
+        Result result = computation.getResult();
+        if (result != null && Result.UNSTABLE.isWorseOrEqualTo(result)) {
+            return new PseudoRun(computation);
+        }
+        return null;
+    }
+
+    @Restricted(NoExternalUse.class) // used by stapler only
+    public PseudoRun<I> getLastStableBuild() {
+        FolderComputation<I> computation = getComputation();
+        Result result = computation.getResult();
+        if (result != null && Result.SUCCESS.isWorseOrEqualTo(result)) {
+            return new PseudoRun(computation);
+        }
+        return null;
+    }
+
+    @Restricted(NoExternalUse.class) // used by stapler only
+    public PseudoRun<I> getLastFailedBuild() {
+        FolderComputation<I> computation = getComputation();
+        Result result = computation.getResult();
+        if (result != null && Result.UNSTABLE.isBetterThan(result)) {
+            return new PseudoRun(computation);
+        }
+        return null;
     }
 
     /**
