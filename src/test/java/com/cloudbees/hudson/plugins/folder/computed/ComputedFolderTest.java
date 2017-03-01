@@ -42,6 +42,7 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroup;
+import hudson.triggers.Trigger;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.ByteArrayOutputStream;
@@ -59,6 +60,7 @@ import javax.servlet.ServletException;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -337,6 +339,18 @@ public class ComputedFolderTest {
         r.configRoundtrip(org);
         r.waitUntilNoActivity();
         assertThat(org.round, is(round));
+    }
+
+    @Test
+    public void triggersRoundtrip() throws Exception {
+        SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
+        s.addTrigger(new PeriodicFolderTrigger("30m"));
+        SampleComputedFolder s2 = r.configRoundtrip(s);
+        Trigger<?> trigger = s2.getTriggers().get(r.jenkins.getDescriptorByType(PeriodicFolderTrigger.DescriptorImpl.class));
+        assertThat(trigger, notNullValue());
+        assertThat(trigger, instanceOf(PeriodicFolderTrigger.class));
+        assertThat(((PeriodicFolderTrigger)trigger).getInterval(), is("30m"));
+
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
