@@ -29,7 +29,7 @@
     <st:include page="sidepanel.jelly" it="${it.parent}" />
     <l:main-panel>
       <h1><l:icon class="icon-monitor icon-xlg"/>
-        ${it.displayName} ${%Events}
+        ${it.parent.pronoun} ${%Events}
       </h1>
       <j:set var="threshold" value="${h.getSystemProperty('hudson.consoleTailKB')?:'150'}" />
       <!-- Show at most last 150KB (can override with system property) unless consoleFull is set -->
