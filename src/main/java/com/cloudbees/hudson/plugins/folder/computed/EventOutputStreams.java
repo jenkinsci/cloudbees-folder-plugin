@@ -210,7 +210,7 @@ public class EventOutputStreams implements Closeable {
                         }
                     }
                     if (index == count) { // send the whole buffer
-                        offer(buf.clone());
+                        offer(Arrays.copyOf(buf, count));
                         index = 0;
                     } else { // send a partial buffer up to the last newline
                         offer(Arrays.copyOf(buf, count));
@@ -232,9 +232,13 @@ public class EventOutputStreams implements Closeable {
                 } else {
                     while (len > 0) {
                         int l = Math.min(len, buf.length - index);
-                        write(data, off, l);
-                        off += l;
-                        len -= l;
+                        if (l > 0) {
+                            System.arraycopy(data, off, buf, index, l);
+                            index += l;
+                            off += l;
+                            len -= l;
+                        }
+                        lazyFlush();
                     }
                 }
             }
