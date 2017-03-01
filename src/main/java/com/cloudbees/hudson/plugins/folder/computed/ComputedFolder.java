@@ -49,6 +49,7 @@ import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
 import hudson.security.ACL;
+import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
@@ -110,7 +111,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * Our {@link Trigger}s.
      */
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
-    // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
     /**
      * Our {@link FolderComputation}.
@@ -340,6 +340,17 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
         return triggers.toMap();
+    }
+
+    public List<TriggerDescriptor> getTriggerDescriptors() {
+        List<TriggerDescriptor> result = new ArrayList<TriggerDescriptor>();
+        for (TriggerDescriptor d: Trigger.for_(this)) {
+            if (d instanceof TimerTrigger.DescriptorImpl) {
+                continue;
+            }
+            result.add(d);
+        }
+        return result;
     }
 
     public void addTrigger(Trigger trigger) {
