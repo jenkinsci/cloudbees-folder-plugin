@@ -342,7 +342,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return triggers.toMap();
     }
 
+    @Restricted(NoExternalUse.class) // currently used only by jelly / stapler
     public List<TriggerDescriptor> getTriggerDescriptors() {
+        // TODO remove this once core has support for DescriptorVisibilityFilter on Trigger.for_(Item)
         List<TriggerDescriptor> result = new ArrayList<TriggerDescriptor>();
         for (TriggerDescriptor d: Trigger.for_(this)) {
             if (d instanceof TimerTrigger.DescriptorImpl) {
