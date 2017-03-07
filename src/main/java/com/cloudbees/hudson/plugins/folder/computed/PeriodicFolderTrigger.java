@@ -171,6 +171,9 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      */
     @Override
     public void run() {
+        if (job == null) {
+            return;
+        }
         long now = System.currentTimeMillis();
         FolderComputation<?> computation = job.getComputation();
         if (computation != null) {

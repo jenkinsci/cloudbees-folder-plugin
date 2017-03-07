@@ -487,19 +487,23 @@ public class ComputedFolderTest {
                 }
                 listener.getLogger().println("considering " + kid);
                 FreeStyleProject p = observer.shouldUpdate(kid);
-                if (p == null) {
-                    if (observer.mayCreate(kid)) {
-                        listener.getLogger().println("creating a child");
-                        p = new FreeStyleProject(this, kid);
-                        p.setDescription("created in round #" + round);
-                        observer.created(p);
-                        created.add(kid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new FreeStyleProject(this, kid);
+                            p.setDescription("created in round #" + round);
+                            observer.created(p);
+                            created.add(kid);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
                     }
-                } else {
-                    listener.getLogger().println("updated existing child with description " + p.getDescription());
-                    p.setDescription("updated in round #" + round);
+                } finally {
+                    observer.completed(kid);
                 }
             }
 
@@ -672,17 +676,21 @@ public class ComputedFolderTest {
                 String childName = StringUtils.join(kids, '+');
                 listener.getLogger().println("considering " + childName);
                 SampleComputedFolder d = observer.shouldUpdate(childName);
-                if (d == null) {
-                    if (observer.mayCreate(childName)) {
-                        listener.getLogger().println("creating a child");
-                        d = new SampleComputedFolder(this, childName);
-                        d.kids = kids;
-                        observer.created(d);
+                try {
+                    if (d == null) {
+                        if (observer.mayCreate(childName)) {
+                            listener.getLogger().println("creating a child");
+                            d = new SampleComputedFolder(this, childName);
+                            d.kids = kids;
+                            observer.created(d);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("left existing child");
                     }
-                } else {
-                    listener.getLogger().println("left existing child");
+                } finally {
+                    observer.completed(childName);
                 }
             }
 
@@ -739,21 +747,25 @@ public class ComputedFolderTest {
                 }
                 listener.getLogger().println("considering " + kid);
                 FreeStyleProject p = observer.shouldUpdate(kid);
-                if (p == null) {
-                    if (observer.mayCreate(kid)) {
-                        listener.getLogger().println("creating a child");
-                        p = new FreeStyleProject(this, kid);
-                        p.setDescription("created in round #" + round);
-                        p.getBuildersList().add(new SleepBuilder(500));
-                        observer.created(p);
-                        created.add(kid);
-                        p.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new FreeStyleProject(this, kid);
+                            p.setDescription("created in round #" + round);
+                            p.getBuildersList().add(new SleepBuilder(500));
+                            observer.created(p);
+                            created.add(kid);
+                            p.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
                     }
-                } else {
-                    listener.getLogger().println("updated existing child with description " + p.getDescription());
-                    p.setDescription("updated in round #" + round);
+                } finally {
+                    observer.completed(kid);
                 }
             }
         }
@@ -762,27 +774,31 @@ public class ComputedFolderTest {
             compute.countDown();
             compute.await();
             Thread.sleep(25);
-            try (StreamTaskListener listener = getComputation().createEventsListener()) {
-                ChildObserver<FreeStyleProject> observer = createEventsChildObserver();
+            try (StreamTaskListener listener = getComputation().createEventsListener();
+                 ChildObserver<FreeStyleProject> observer = openEventsChildObserver()) {
                 listener.getLogger().println("considering " + kid);
                 FreeStyleProject p = observer.shouldUpdate(kid);
-                if (p == null) {
-                    if (observer.mayCreate(kid)) {
-                        listener.getLogger().println("creating a child");
-                        p = new FreeStyleProject(this, kid);
-                        p.setDescription("created in event #" + round);
-                        p.getBuildersList().add(new SleepBuilder(500));
-                        observer.created(p);
-                        created.add(kid);
-                        p.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new FreeStyleProject(this, kid);
+                            p.setDescription("created in event #" + round);
+                            p.getBuildersList().add(new SleepBuilder(500));
+                            observer.created(p);
+                            created.add(kid);
+                            p.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in event #" + round);
                     }
-                } else {
-                    listener.getLogger().println("updated existing child with description " + p.getDescription());
-                    p.setDescription("updated in event #" + round);
+                } finally {
+                    observer.completed(kid);
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         }

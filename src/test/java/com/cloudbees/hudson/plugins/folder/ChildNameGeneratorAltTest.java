@@ -373,30 +373,34 @@ public class ChildNameGeneratorAltTest {
                 listener.getLogger().println("considering " + kid);
                 String encodedKid = encode(kid);
                 FreeStyleProject p = observer.shouldUpdate(encodedKid);
-                if (p == null) {
-                    if (observer.mayCreate(encodedKid)) {
-                        listener.getLogger().println("creating a child");
-                        ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid);
-                        try {
-                            p = new FreeStyleProject(this, encodedKid);
-                        } finally {
-                            trace.close();
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(encodedKid)) {
+                            listener.getLogger().println("creating a child");
+                            ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid);
+                            try {
+                                p = new FreeStyleProject(this, encodedKid);
+                            } finally {
+                                trace.close();
+                            }
+                            BulkChange bc = new BulkChange(p);
+                            try {
+                                p.addProperty(new NameProperty(kid));
+                                p.setDescription("created in round #" + round);
+                            } finally {
+                                bc.commit();
+                            }
+                            observer.created(p);
+                            created.add(kid);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
                         }
-                        BulkChange bc = new BulkChange(p);
-                        try {
-                            p.addProperty(new NameProperty(kid));
-                            p.setDescription("created in round #" + round);
-                        } finally {
-                            bc.commit();
-                        }
-                        observer.created(p);
-                        created.add(kid);
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
                     }
-                } else {
-                    listener.getLogger().println("updated existing child with description " + p.getDescription());
-                    p.setDescription("updated in round #" + round);
+                } finally {
+                    observer.completed(encodedKid);
                 }
             }
         }
