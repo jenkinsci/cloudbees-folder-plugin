@@ -58,7 +58,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      * Normally we rely on {@link FolderComputation#getTimestamp} but there is a slight delay
      * between {@link ComputedFolder#scheduleBuild(int, Cause)} and {@link ComputedFolder#createExecutable}.
      */
-    private transient long lastTriggered;
+    private transient long lastTriggered; // could be volatile or AtomicLong, but FolderCron will not run >1 concurrently anyway
 
     /**
      * Constructor.
