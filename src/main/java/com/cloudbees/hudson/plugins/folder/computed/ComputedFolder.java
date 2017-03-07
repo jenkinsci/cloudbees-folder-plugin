@@ -550,6 +550,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     public final FolderComputation<I> createExecutable() throws IOException {
         FolderComputation<I> c = createComputation(computation);
         computation = c;
+        LOGGER.log(Level.FINE, "Recording {0} @{1}", new Object[] {c, c.getTimestamp()});
         return c;
     }
 
