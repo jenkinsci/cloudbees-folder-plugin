@@ -127,20 +127,20 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @since 6.0.0
      */
     @Nonnull
-    private transient final ReentrantLock currentObservationsLock = new ReentrantLock();
+    private transient /* almost final */ ReentrantLock currentObservationsLock;
     /**
      * Condition to flag whenever the {@link #currentObservationsChanged} has had elements removed.
      *
      * @since 6.0.0
      */
-    private transient final Condition currentObservationsChanged = currentObservationsLock.newCondition();
+    private transient /* almost final */ Condition currentObservationsChanged;
     /**
      * The names of the child items that are currently being observed.
      *
      * @since 6.0.0
      */
     @GuardedBy("#computationLock")
-    private transient final Set<String> currentObservations = new HashSet<>();
+    private transient /* almost final */ Set<String> currentObservations;
     /**
      * Flag set when the implementation uses {@link #createEventsChildObserver()} and not
      * {@link #openEventsChildObserver()}, when {@code true} then the {@link #currentObservations} is ignored
@@ -149,7 +149,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @since 6.0.0
      */
     @GuardedBy("#computationLock")
-    private transient boolean currentObservationsLockDisabled = false;
+    private transient boolean currentObservationsLockDisabled;
 
     /**
      * Tracks recalculation requirements in {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}.
@@ -187,6 +187,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         synchronized (this) {
             computation = createComputation(null);
         }
+        currentObservationsLock = new ReentrantLock();
+        currentObservationsChanged = currentObservationsLock.newCondition();
+        currentObservations = new HashSet<>();
     }
 
     @Override
