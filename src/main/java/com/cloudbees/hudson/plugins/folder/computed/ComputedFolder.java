@@ -36,6 +36,7 @@ import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.Descriptor;
+import hudson.model.Executor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Items;
@@ -43,8 +44,10 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.ResourceList;
+import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import hudson.model.User;
 import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
@@ -64,6 +67,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -71,6 +75,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
+import jenkins.model.CauseOfInterruption;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.util.TimeDuration;
@@ -220,9 +225,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
-     * Called to (re-)compute the set of children of this folder.
+     * Called to (re-)compute the set of children of this folder. It is recommended that the computation checks the
+     * {@link Thread#interrupted()} status and throws a {@link InterruptedException} if set at least once every 5
+     * seconds to allow the user to interrupt a computation..
+     *
      * @param observer how to indicate which children should be seen
      * @param listener a way to report progress
+     * @throws IOException if there was an {@link IOException} during the computation.
+     * @throws InterruptedException if the computation was interrupted.
      */
     protected abstract void computeChildren(ChildObserver<I> observer, TaskListener listener) throws IOException, InterruptedException;
 
@@ -268,6 +278,31 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "finished updating {0}", getFullName());
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void delete() throws IOException, InterruptedException {
+        checkPermission(DELETE);
+        FolderComputation<I> computation = getComputation();
+        Executor executor = Executor.of(computation);
+        if (executor != null) {
+            LOGGER.log(Level.INFO, "Interrupting {0} in order to delete it", this);
+            executor.interrupt(Result.ABORTED, new CauseOfInterruption.UserInterruption(User.current()));
+            // give it 15 seconds or so to respond to the interrupt
+            long expiration = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+            while (executor.isAlive()
+                    && executor.getCurrentExecutable() == computation
+                    && expiration - System.nanoTime() > 0L) {
+                Thread.sleep(50L);
+            }
+            if (executor.isAlive() && executor.getCurrentExecutable() == computation) {
+                LOGGER.log(Level.WARNING, "Interrupted {0} in order to delete it, but it has not stopped yet", this);
+            }
+        }
+        super.delete();
     }
 
     /**
