@@ -149,7 +149,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @since 6.0.0
      */
     @GuardedBy("#computationLock")
-    private transient boolean currentObservationsLockDisabled = true;
+    private transient boolean currentObservationsLockDisabled = false;
 
     /**
      * Tracks recalculation requirements in {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}.
