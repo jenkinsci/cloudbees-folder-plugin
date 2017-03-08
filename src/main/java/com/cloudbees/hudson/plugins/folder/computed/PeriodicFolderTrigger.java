@@ -25,6 +25,7 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import antlr.ANTLRException;
 import hudson.Extension;
+import hudson.model.Cause;
 import hudson.model.Item;
 import hudson.model.Items;
 import hudson.triggers.TimerTrigger;
@@ -32,6 +33,8 @@ import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.ListBoxModel;
 import hudson.util.TimeUnit2;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -43,10 +46,19 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
+    private static final Logger LOGGER = Logger.getLogger(PeriodicFolderTrigger.class.getName());
+
     /**
      * The interval between successive indexings.
      */
     private final long interval;
+
+    /**
+     * Timestamp when we last {@link #run}.
+     * Normally we rely on {@link FolderComputation#getTimestamp} but there is a slight delay
+     * between {@link ComputedFolder#scheduleBuild(int, Cause)} and {@link ComputedFolder#createExecutable}.
+     */
+    private transient long lastTriggered; // could be volatile or AtomicLong, but FolderCron will not run >1 concurrently anyway
 
     /**
      * Constructor.
@@ -159,14 +171,24 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      */
     @Override
     public void run() {
+        long now = System.currentTimeMillis();
         FolderComputation<?> computation = job.getComputation();
         if (computation != null) {
-            long delay = System.currentTimeMillis() - computation.getTimestamp().getTimeInMillis();
+            long delay = now - computation.getTimestamp().getTimeInMillis();
             if (delay < interval) {
+                LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
                 return;
             }
         }
-        job.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+        if (now - lastTriggered < interval) {
+            LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
+            return;
+        }
+        if (job.scheduleBuild(0, new TimerTrigger.TimerTriggerCause())) {
+            lastTriggered = now;
+        } else {
+            LOGGER.log(Level.WARNING, "Queue refused to schedule {0}", job);
+        }
     }
 
     /**
