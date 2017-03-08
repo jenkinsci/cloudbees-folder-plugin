@@ -390,6 +390,20 @@ public class ComputedFolderTest {
         assertThat("None of the executors have died abnormally", deaths, containsInAnyOrder());
     }
 
+    @Test
+    @Issue("JENKINS-35112")
+    public void deleteWhileComputing() throws Exception {
+        CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
+        d.kids.addAll(Arrays.asList("A", "B"));
+        QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
+        FolderComputation<FreeStyleProject> computation;
+        while (Executor.of((computation = d.getComputation())) == null) {
+            Thread.sleep(50);
+        }
+        d.delete();
+        assertThat(computation.getResult(), is(Result.ABORTED));
+    }
+
     /**
      * Waits until Hudson finishes building everything, including those in the queue, or fail the test
      * if the specified timeout milliseconds is
