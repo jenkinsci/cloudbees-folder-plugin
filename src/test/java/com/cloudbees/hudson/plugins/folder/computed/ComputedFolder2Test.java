@@ -56,8 +56,8 @@ public class ComputedFolder2Test {
             public void evaluate() throws Throwable {
                 EventableFolder d = rr.j.jenkins.createProject(EventableFolder.class, "d");
                 d.add("one");
-                ComputedFolderTest.doRecompute(d, Result.SUCCESS);
-                assertThat(d.getItems(), hasSize(equalTo(1)));
+                String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
+                assertThat(log, d.getItems(), hasSize(equalTo(1)));
             }
         });
         rr.addStep(new Statement() {
@@ -67,8 +67,8 @@ public class ComputedFolder2Test {
                 assertNotNull(d);
                 assertThat(d.getItems(), hasSize(equalTo(1)));
                 d.add("two");
-                ComputedFolderTest.doRecompute(d, Result.SUCCESS);
-                assertThat(d.getItems(), hasSize(equalTo(1)));
+                String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
+                assertThat(log, d.getItems(), hasSize(equalTo(1)));
             }
         });
     }
@@ -108,6 +108,7 @@ public class ComputedFolder2Test {
                     if (p == null) {
                         if (observer.mayCreate(kid)) {
                             listener.getLogger().println("adding " + kid);
+                            kids.add(kid);
                             p = new FreeStyleProject(this, kid);
                             observer.created(p);
                         }
