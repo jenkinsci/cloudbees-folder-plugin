@@ -30,23 +30,32 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
+import hudson.Functions;
 import hudson.model.AllView;
+import hudson.model.Computer;
 import hudson.model.Descriptor;
+import hudson.model.Executor;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
 import hudson.model.ListView;
 import hudson.model.MyView;
+import hudson.model.OneOffExecutor;
+import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroup;
+import hudson.model.queue.QueueTaskFuture;
+import hudson.triggers.TimerTrigger;
+import hudson.util.StreamTaskListener;
 import hudson.triggers.Trigger;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.management.ThreadInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,10 +65,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -353,6 +365,106 @@ public class ComputedFolderTest {
 
     }
 
+    @Test
+    @Issue("JENKINS-42511")
+    public void concurrentEvents() throws Exception {
+        CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
+        d.kids.addAll(Arrays.asList("A", "B"));
+        QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
+        d.onKid("B");
+        future.get();
+        waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
+        List<Throwable> deaths = new ArrayList<Throwable>();
+        for (Computer comp : r.jenkins.getComputers()) {
+            for (Executor e : comp.getExecutors()) {
+                if (e.getCauseOfDeath() != null) {
+                    deaths.add(e.getCauseOfDeath());
+                }
+            }
+            for (Executor e : comp.getOneOffExecutors()) {
+                if (e.getCauseOfDeath() != null) {
+                    deaths.add(e.getCauseOfDeath());
+                }
+            }
+        }
+        assertThat("None of the executors have died abnormally", deaths, containsInAnyOrder());
+    }
+
+    /**
+     * Waits until Hudson finishes building everything, including those in the queue, or fail the test
+     * if the specified timeout milliseconds is
+     */
+    public void waitUntilNoActivityIgnoringThreadDeathUpTo(int timeout) throws Exception {
+        long startTime = System.currentTimeMillis();
+        int streak = 0;
+
+        while (true) {
+            Thread.sleep(10);
+            if (isSomethingHappeningIgnoringThreadDeath())
+                streak = 0;
+            else
+                streak++;
+
+            if (streak > 5)   // the system is quiet for a while
+                return;
+
+            if (System.currentTimeMillis() - startTime > timeout) {
+                List<Queue.Executable> building = new ArrayList<Queue.Executable>();
+                List<Throwable> deaths = new ArrayList<Throwable>();
+                for (Computer c : r.jenkins.getComputers()) {
+                    for (Executor e : c.getExecutors()) {
+                        if (e.isBusy()) {
+                            if (e.getCauseOfDeath() == null) {
+                                building.add(e.getCurrentExecutable());
+                            } else {
+                                deaths.add(e.getCauseOfDeath());
+                            }
+                        }
+                    }
+                    for (Executor e : c.getOneOffExecutors()) {
+                        if (e.isBusy()) {
+                            if (e.getCauseOfDeath() == null) {
+                                building.add(e.getCurrentExecutable());
+                            } else {
+                                deaths.add(e.getCauseOfDeath());
+                            }
+                        }
+                    }
+                }
+                ThreadInfo[] threadInfos = Functions.getThreadInfos();
+                Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
+                for (ThreadInfo ti : threadInfos) {
+                    System.err.println(Functions.dumpThreadInfo(ti, m));
+                }
+                throw new AssertionError(
+                        String.format("Jenkins is still doing something after %dms: queue=%s building=%s deaths=%s",
+                                timeout, Arrays.asList(r.jenkins.getQueue().getItems()), building, deaths));
+            }
+        }
+    }
+
+    /**
+     * Returns true if Hudson is building something or going to build something.
+     */
+    public boolean isSomethingHappeningIgnoringThreadDeath() {
+        if (!r.jenkins.getQueue().isEmpty()) {
+            return true;
+        }
+        for (Computer n : r.jenkins.getComputers()) {
+            for (OneOffExecutor e : n.getOneOffExecutors()) {
+                if (e.getCauseOfDeath() == null && e.isBusy()) {
+                    return true;
+                }
+            }
+            for (Executor e : n.getExecutors()) {
+                if (e.getCauseOfDeath() == null && e.isBusy()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolder extends ComputedFolder<FreeStyleProject> {
 
@@ -375,19 +487,23 @@ public class ComputedFolderTest {
                 }
                 listener.getLogger().println("considering " + kid);
                 FreeStyleProject p = observer.shouldUpdate(kid);
-                if (p == null) {
-                    if (observer.mayCreate(kid)) {
-                        listener.getLogger().println("creating a child");
-                        p = new FreeStyleProject(this, kid);
-                        p.setDescription("created in round #" + round);
-                        observer.created(p);
-                        created.add(kid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new FreeStyleProject(this, kid);
+                            p.setDescription("created in round #" + round);
+                            observer.created(p);
+                            created.add(kid);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
                     }
-                } else {
-                    listener.getLogger().println("updated existing child with description " + p.getDescription());
-                    p.setDescription("updated in round #" + round);
+                } finally {
+                    observer.completed(kid);
                 }
             }
 
@@ -560,17 +676,21 @@ public class ComputedFolderTest {
                 String childName = StringUtils.join(kids, '+');
                 listener.getLogger().println("considering " + childName);
                 SampleComputedFolder d = observer.shouldUpdate(childName);
-                if (d == null) {
-                    if (observer.mayCreate(childName)) {
-                        listener.getLogger().println("creating a child");
-                        d = new SampleComputedFolder(this, childName);
-                        d.kids = kids;
-                        observer.created(d);
+                try {
+                    if (d == null) {
+                        if (observer.mayCreate(childName)) {
+                            listener.getLogger().println("creating a child");
+                            d = new SampleComputedFolder(this, childName);
+                            d.kids = kids;
+                            observer.created(d);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
                     } else {
-                        listener.getLogger().println("not allowed to create a child");
+                        listener.getLogger().println("left existing child");
                     }
-                } else {
-                    listener.getLogger().println("left existing child");
+                } finally {
+                    observer.completed(childName);
                 }
             }
 
@@ -594,6 +714,127 @@ public class ComputedFolderTest {
             @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SecondOrderComputedFolder(parent, name);
+            }
+
+        }
+
+    }
+
+    public static class CoordinatedComputedFolder extends ComputedFolder<FreeStyleProject> {
+
+        List<String> kids = new ArrayList<String>();
+        int round;
+        List<String> created = new ArrayList<String>();
+        List<String> deleted = new ArrayList<String>();
+        CountDownLatch compute = new CountDownLatch(2);
+
+        private CoordinatedComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws IOException, InterruptedException {
+            round++;
+            listener.getLogger().println("=== Round #" + round + " ===");
+            List<String> kids = new ArrayList<>(this.kids);
+            compute.countDown();
+            compute.await();
+            for (String kid : kids) {
+                Thread.sleep(25);
+                if (kid.equals("Z")) {
+                    throw new AbortException("not adding Z");
+                }
+                listener.getLogger().println("considering " + kid);
+                FreeStyleProject p = observer.shouldUpdate(kid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new FreeStyleProject(this, kid);
+                            p.setDescription("created in round #" + round);
+                            p.getBuildersList().add(new SleepBuilder(500));
+                            observer.created(p);
+                            created.add(kid);
+                            p.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
+                    } else {
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
+                    }
+                } finally {
+                    observer.completed(kid);
+                }
+            }
+        }
+
+        public void onKid(String kid) throws InterruptedException {
+            compute.countDown();
+            compute.await();
+            Thread.sleep(25);
+            try (StreamTaskListener listener = getComputation().createEventsListener();
+                 ChildObserver<FreeStyleProject> observer = openEventsChildObserver()) {
+                listener.getLogger().println("considering " + kid);
+                FreeStyleProject p = observer.shouldUpdate(kid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new FreeStyleProject(this, kid);
+                            p.setDescription("created in event #" + round);
+                            p.getBuildersList().add(new SleepBuilder(500));
+                            observer.created(p);
+                            created.add(kid);
+                            p.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
+                    } else {
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in event #" + round);
+                    }
+                } finally {
+                    observer.completed(kid);
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Collection<FreeStyleProject> orphanedItems(Collection<FreeStyleProject> orphaned,
+                                                             TaskListener listener)
+                throws IOException, InterruptedException {
+            Collection<FreeStyleProject> deleting = super.orphanedItems(orphaned, listener);
+            for (FreeStyleProject p : deleting) {
+                String kid = p.getName();
+                listener.getLogger().println("deleting " + kid + " in round #" + round);
+                deleted.add(kid);
+            }
+            return deleting;
+        }
+
+        String recompute(Result result) throws Exception {
+            return doRecompute(this, result);
+        }
+
+        void assertItemNames(int round, String... names) {
+            assertEquals(round, this.round);
+            Set<String> actual = new TreeSet<String>();
+            for (FreeStyleProject p : getItems()) {
+                actual.add(p.getName());
+            }
+            assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new CoordinatedComputedFolder(parent, name);
             }
 
         }
