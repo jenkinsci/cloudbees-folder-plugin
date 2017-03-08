@@ -110,7 +110,6 @@ public class ComputedFolder2Test {
                             listener.getLogger().println("adding " + kid);
                             p = new FreeStyleProject(this, kid);
                             observer.created(p);
-                            p.scheduleBuild2(0);
                         }
                     }
                 } finally {
