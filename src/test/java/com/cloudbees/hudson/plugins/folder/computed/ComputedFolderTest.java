@@ -651,7 +651,7 @@ public class ComputedFolderTest {
         }
     }
 
-    private static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
+    static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
         d.scheduleBuild2(0).getFuture().get();
         FolderComputation<?> computation = d.getComputation();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
