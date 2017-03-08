@@ -28,6 +28,7 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.thoughtworks.xstream.XStreamException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.XmlFile;
@@ -293,13 +294,15 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             executor.interrupt(Result.ABORTED, new CauseOfInterruption.UserInterruption(User.current()));
             // give it 15 seconds or so to respond to the interrupt
             long expiration = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+            // comparison with executor.getCurrentExecutable() == computation currently should always be true
+            // as we no longer recycle Executors, but safer to future-proof in case we ever revisit recycling
             while (executor.isAlive()
                     && executor.getCurrentExecutable() == computation
                     && expiration - System.nanoTime() > 0L) {
                 Thread.sleep(50L);
             }
             if (executor.isAlive() && executor.getCurrentExecutable() == computation) {
-                LOGGER.log(Level.WARNING, "Interrupted {0} in order to delete it, but it has not stopped yet", this);
+                throw new AbortException("Failed to stop computation of " + getFullDisplayName());
             }
         }
         super.delete();
