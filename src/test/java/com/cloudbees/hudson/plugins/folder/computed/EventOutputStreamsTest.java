@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -109,14 +110,16 @@ public class EventOutputStreamsTest {
         List<String> as = new ArrayList<String>();
         List<String> bs = new ArrayList<String>();
         for (String line : FileUtils.readLines(file)) {
-            assertThat(line.matches("^\\d+[AB](\\d+[AB])+$"), is(false));
-            assertThat(line.indexOf(0), is(-1));
+            assertThat("Line does not have both thread output: '" + StringEscapeUtils.escapeJava(line)+"'",
+                    line.matches("^\\d+[AB](\\d+[AB])+$"), is(false));
+            assertThat("Line does not contain a null character: '" + StringEscapeUtils.escapeJava(line) + "'",
+                    line.indexOf(0), is(-1));
             if (line.endsWith("A")) {
                 as.add(line);
             } else if (line.endsWith("B")) {
                 bs.add(line);
             } else {
-                fail("unexpected line: '" + line +"'");
+                fail("unexpected line: '" + StringEscapeUtils.escapeJava(line) +"'");
             }
         }
         List<String> sorted = new ArrayList<String>(as);

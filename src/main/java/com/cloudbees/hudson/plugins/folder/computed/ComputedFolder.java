@@ -28,6 +28,7 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.thoughtworks.xstream.XStreamException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.XmlFile;
@@ -36,6 +37,7 @@ import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.Descriptor;
+import hudson.model.Executor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Items;
@@ -46,10 +48,12 @@ import hudson.model.ResourceList;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import hudson.model.User;
 import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
 import hudson.security.ACL;
+import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
@@ -64,14 +68,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
+import jenkins.model.CauseOfInterruption;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.util.TimeDuration;
+import net.jcip.annotations.GuardedBy;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
@@ -111,13 +120,42 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * Our {@link Trigger}s.
      */
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
-    // TODO p:config-triggers also expects there to be a BuildAuthorizationToken authToken option. Do we want one?
 
     /**
      * Our {@link FolderComputation}.
      */
     @Nonnull
     private transient FolderComputation<I> computation;
+
+    /**
+     * Lock to guard {@link #currentObservations}.
+     *
+     * @since 6.0.0
+     */
+    @Nonnull
+    private transient /* almost final */ ReentrantLock currentObservationsLock;
+    /**
+     * Condition to flag whenever the {@link #currentObservationsChanged} has had elements removed.
+     *
+     * @since 6.0.0
+     */
+    private transient /* almost final */ Condition currentObservationsChanged;
+    /**
+     * The names of the child items that are currently being observed.
+     *
+     * @since 6.0.0
+     */
+    @GuardedBy("#computationLock")
+    private transient /* almost final */ Set<String> currentObservations;
+    /**
+     * Flag set when the implementation uses {@link #createEventsChildObserver()} and not
+     * {@link #openEventsChildObserver()}, when {@code true} then the {@link #currentObservations} is ignored
+     * as we cannot rely on the implementation to call {@link ChildObserver#close()}.
+     *
+     * @since 6.0.0
+     */
+    @GuardedBy("#computationLock")
+    private transient boolean currentObservationsLockDisabled;
 
     /**
      * Tracks recalculation requirements in {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}.
@@ -155,6 +193,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         synchronized (this) {
             computation = createComputation(null);
         }
+        currentObservationsLock = new ReentrantLock();
+        currentObservationsChanged = currentObservationsLock.newCondition();
+        currentObservations = new HashSet<>();
     }
 
     @Override
@@ -188,9 +229,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
-     * Called to (re-)compute the set of children of this folder.
+     * Called to (re-)compute the set of children of this folder. It is recommended that the computation checks the
+     * {@link Thread#interrupted()} status and throws a {@link InterruptedException} if set at least once every 5
+     * seconds to allow the user to interrupt a computation..
+     *
      * @param observer how to indicate which children should be seen
      * @param listener a way to report progress
+     * @throws IOException if there was an {@link IOException} during the computation.
+     * @throws InterruptedException if the computation was interrupted.
      */
     protected abstract void computeChildren(ChildObserver<I> observer, TaskListener listener) throws IOException, InterruptedException;
 
@@ -216,20 +262,21 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "updating {0}", getFullName());
         }
-        FullReindexChildObserver observer = new FullReindexChildObserver();
-        computeChildren(observer, listener);
-        Map<String, I> orphaned = observer.orphaned();
-        if (!orphaned.isEmpty()) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "{0}: orphaned {1}",
-                        new Object[]{getFullName(), orphaned.keySet()});
-            }
-            for (I existing : orphanedItems(orphaned.values(), listener)) {
+        try (FullReindexChildObserver observer = new FullReindexChildObserver()) {
+            computeChildren(observer, listener);
+            Map<String, I> orphaned = observer.orphaned();
+            if (!orphaned.isEmpty()) {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
+                    LOGGER.log(Level.FINE, "{0}: orphaned {1}",
+                            new Object[]{getFullName(), orphaned.keySet()});
                 }
-                existing.delete();
-                // super.onDeleted handles removal from items
+                for (I existing : orphanedItems(orphaned.values(), listener)) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
+                    }
+                    existing.delete();
+                    // super.onDeleted handles removal from items
+                }
             }
         }
         if (LOGGER.isLoggable(Level.FINE)) {
@@ -238,13 +285,68 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void delete() throws IOException, InterruptedException {
+        checkPermission(DELETE);
+        FolderComputation<I> computation = getComputation();
+        Executor executor = Executor.of(computation);
+        if (executor != null) {
+            LOGGER.log(Level.INFO, "Interrupting {0} in order to delete it", this);
+            executor.interrupt(Result.ABORTED, new CauseOfInterruption.UserInterruption(User.current()));
+            // give it 15 seconds or so to respond to the interrupt
+            long expiration = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+            // comparison with executor.getCurrentExecutable() == computation currently should always be true
+            // as we no longer recycle Executors, but safer to future-proof in case we ever revisit recycling
+            while (executor.isAlive()
+                    && executor.getCurrentExecutable() == computation
+                    && expiration - System.nanoTime() > 0L) {
+                Thread.sleep(50L);
+            }
+            if (executor.isAlive() && executor.getCurrentExecutable() == computation) {
+                throw new AbortException("Failed to stop computation of " + getFullDisplayName());
+            }
+        }
+        super.delete();
+    }
+
+    /**
      * Creates a {@link ChildObserver} that subclasses can use when handling events that might create new / update
      * existing child items. The handling of orphaned items is a responsibility of the {@link OrphanedItemStrategy}
      * which is only applied as part of a full computation.
      *
      * @return a {@link ChildObserver} for event handling.
+     * @deprecated use {@link #openEventsChildObserver()}
      */
+    @Deprecated
+    @Restricted(NoExternalUse.class) // cause a compilation error to force implementations to switch
     protected final ChildObserver<I> createEventsChildObserver() {
+        LOGGER.log(Level.WARNING, "The {0} implementation of ComputedFolder has not been updated to use "
+                + "openEventsChildObserver(), this may result in 'java.lang.IllegalStateException: JENKINS-23152 ... "
+                + "already existed; will not overwrite with ...' being thrown when processing events",
+                getClass().getName());
+        currentObservationsLock.lock();
+        try {
+            if (!currentObservationsLockDisabled) {
+                currentObservationsLockDisabled = true;
+                currentObservationsChanged.signalAll();
+            }
+        } finally {
+            currentObservationsLock.unlock();
+        }
+        return new EventChildObserver();
+    }
+
+    /**
+     * Opens a new {@link ChildObserver} that subclasses can use when handling events that might create new / update
+     * existing child items. The handling of orphaned items is a responsibility of the {@link OrphanedItemStrategy}
+     * which is only applied as part of a full computation.
+     *
+     * @return a {@link ChildObserver} for event handling. The caller must {@link ChildObserver#close()} when done.
+     * @since 6.0.0
+     */
+    protected final ChildObserver<I> openEventsChildObserver() {
         return new EventChildObserver();
     }
 
@@ -341,6 +443,19 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
         return triggers.toMap();
+    }
+
+    @Restricted(NoExternalUse.class) // currently used only by jelly / stapler
+    public List<TriggerDescriptor> getTriggerDescriptors() {
+        // TODO remove this once core has support for DescriptorVisibilityFilter on Trigger.for_(Item)
+        List<TriggerDescriptor> result = new ArrayList<TriggerDescriptor>();
+        for (TriggerDescriptor d: Trigger.for_(this)) {
+            if (d instanceof TimerTrigger.DescriptorImpl) {
+                continue;
+            }
+            result.add(d);
+        }
+        return result;
     }
 
     public void addTrigger(Trigger trigger) {
@@ -538,6 +653,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     public final FolderComputation<I> createExecutable() throws IOException {
         FolderComputation<I> c = createComputation(computation);
         computation = c;
+        LOGGER.log(Level.FINE, "Recording {0} @{1}", new Object[] {c, c.getTimestamp()});
         return c;
     }
 
@@ -659,14 +775,41 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     private class FullReindexChildObserver extends ChildObserver<I> {
         private final Map<String, I> orphaned = new HashMap<String,I>(items);
         private final Set<String> observed = new HashSet<String>();
+        private final Set<String> locked = new HashSet<String>();
         private final String fullName = getFullName();
+
+        @Override
+        public void close() {
+            if (!locked.isEmpty()) {
+                currentObservationsLock.lock();
+                try {
+                    currentObservations.removeAll(locked);
+                    currentObservationsChanged.signalAll();
+                } finally {
+                    currentObservationsLock.unlock();
+                }
+            }
+        }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public I shouldUpdate(String name) {
+        public I shouldUpdate(String name) throws InterruptedException {
+            currentObservationsLock.lock();
+            try {
+                while (!currentObservations.add(name) && !currentObservationsLockDisabled) {
+                    currentObservationsChanged.await();
+                }
+                locked.add(name);
+            } finally {
+                currentObservationsLock.unlock();
+            }
             I existing = orphaned.remove(name);
+            if (existing == null) {
+                // may have been created by a parallel event
+                existing = items.get(name);
+            }
             if (existing != null) {
                 observed.add(name);
             }
@@ -681,6 +824,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         public boolean mayCreate(String name) {
             boolean r = observed.add(name);
             LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[] {fullName, name, r});
+            if (!r) {
+                completed(name);
+            }
             return r;
         }
 
@@ -709,6 +855,25 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 j.rebuildDependencyGraphAsync();
             }
             ItemListener.fireOnCreated(child);
+            // signal this name early
+            completed(name);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void completed(String name) {
+            if (locked.contains(name)) {
+                currentObservationsLock.lock();
+                try {
+                    locked.remove(name);
+                    currentObservations.remove(name);
+                    currentObservationsChanged.signalAll();
+                } finally {
+                    currentObservationsLock.unlock();
+                }
+            }
         }
 
         /**
@@ -731,12 +896,35 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     private class EventChildObserver extends ChildObserver<I> {
         private final String fullName = getFullName();
         private final Set<String> observed = new HashSet<String>();
+        private final Set<String> locked = new HashSet<String>();
+
+        @Override
+        public void close() {
+            if (!locked.isEmpty()) {
+                currentObservationsLock.lock();
+                try {
+                    currentObservations.removeAll(locked);
+                    currentObservationsChanged.signalAll();
+                } finally {
+                    currentObservationsLock.unlock();
+                }
+            }
+        }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public I shouldUpdate(String name) {
+        public I shouldUpdate(String name) throws InterruptedException {
+            currentObservationsLock.lock();
+            try {
+                while (!currentObservations.add(name) && !currentObservationsLockDisabled) {
+                    currentObservationsChanged.await();
+                }
+                locked.add(name);
+            } finally {
+                currentObservationsLock.unlock();
+            }
             I existing = items.get(name);
             if (existing != null) {
                 observed.add(name);
@@ -752,6 +940,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         public boolean mayCreate(String name) {
             boolean r = !items.containsKey(name) && observed.add(name);
             LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[]{fullName, name, r});
+            if (!r) {
+                completed(name);
+            }
             return r;
         }
 
@@ -784,6 +975,25 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 j.rebuildDependencyGraphAsync();
             }
             ItemListener.fireOnCreated(child);
+            // signal this name early
+            completed(name);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void completed(String name) {
+            if (locked.contains(name)) {
+                currentObservationsLock.lock();
+                try {
+                    locked.remove(name);
+                    currentObservations.remove(name);
+                    currentObservationsChanged.signalAll();
+                } finally {
+                    currentObservationsLock.unlock();
+                }
+            }
         }
 
         /**
