@@ -108,15 +108,15 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
     }
 
     public HttpResponse doIndex(StaplerRequest request) {
-        return HttpResponses.redirectTo(Jenkins.getActiveInstance().getRootUrlFromRequest() + computation.getUrl() );
+        return HttpResponses.redirectViaContextPath(computation.getUrl());
     }
 
     public HttpResponse doConsole(StaplerRequest request) {
-        return HttpResponses.redirectTo(Jenkins.getActiveInstance().getRootUrlFromRequest() + computation.getUrl() + "console");
+        return HttpResponses.redirectViaContextPath(computation.getUrl() + "console");
     }
 
     public HttpResponse doConsoleText(StaplerRequest request) {
-        return HttpResponses.redirectTo(Jenkins.getActiveInstance().getRootUrlFromRequest() + computation.getUrl() + "consoleText");
+        return HttpResponses.redirectViaContextPath(computation.getUrl() + "consoleText");
     }
 
     @Restricted(NoExternalUse.class)
