@@ -38,10 +38,29 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.*;
+import hudson.model.AbstractItem;
+import hudson.model.Action;
+import hudson.model.AllView;
+import hudson.model.Computer;
+import hudson.model.Descriptor;
+import hudson.model.Executor;
+import hudson.model.Failure;
+import hudson.model.HealthReport;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.ItemGroupMixIn;
+import hudson.model.Items;
+import hudson.model.Job;
+import hudson.model.ModifiableViewGroup;
+import hudson.model.Queue;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.model.TopLevelItem;
+import hudson.model.View;
+import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
-import hudson.model.queue.Tasks;
 import hudson.model.queue.WorkUnit;
 import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
@@ -118,7 +137,7 @@ import static hudson.model.queue.Executables.getParentOf;
  * <b>Extending Folders UI</b><br>
  * As any other {@link Item} type, folder types support extension of UI via {@link Action}s.
  * These actions can be persisted or added via {@link TransientActionFactory}.
- * See <a href="https://wiki.jenkins-ci.org/display/JENKINS/Action+and+its+family+of+subtypes">this page</a> 
+ * See <a href="https://wiki.jenkins-ci.org/display/JENKINS/Action+and+its+family+of+subtypes">this page</a>
  * for more details about actions.
  * In folders actions provide the following features:
  * <ul>
@@ -222,7 +241,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         if (icon == null) {
             icon = newDefaultFolderIcon();
-        } 
+        }
         icon.setOwner(this);
 
         if (folderViews == null) {
