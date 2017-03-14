@@ -129,6 +129,7 @@ public class ComputedFolderTest {
         assertEquals("{A=updated in round #5, B=created in round #5, C=updated in round #5, D=created in round #5}", descriptions.toString());
     }
 
+    @Issue("JENKINS-42680")
     @Test
     public void foldersAsChildren() throws Exception {
         final SampleComputedFolderWithFoldersAsChildren d = r.jenkins.createProject(SampleComputedFolderWithFoldersAsChildren.class, "d");
