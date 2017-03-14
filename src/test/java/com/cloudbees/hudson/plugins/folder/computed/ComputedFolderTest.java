@@ -100,6 +100,10 @@ public class ComputedFolderTest {
         d.recompute(Result.SUCCESS);
         d.assertItemNames(2, "A", "B", "C");
         assertEquals("[A, B, C]", d.created.toString());
+
+        // ComputedFolder page opens correctly
+        r.createWebClient().getPage(d);
+
         d.recompute(Result.SUCCESS);
         d.assertItemNames(3, "A", "B", "C");
         assertEquals("[A, B, C]", d.created.toString());
