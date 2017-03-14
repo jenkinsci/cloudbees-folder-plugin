@@ -59,7 +59,7 @@ public class EventOutputStreamsTest {
 
     @Test
     public void given_oneFlushing_when_twoThreads_then_outputCorrect() throws Exception {
-        test(false, false);
+        test(true, false);
     }
 
     public void test(final boolean aFlush, final boolean bFlush) throws Exception {
