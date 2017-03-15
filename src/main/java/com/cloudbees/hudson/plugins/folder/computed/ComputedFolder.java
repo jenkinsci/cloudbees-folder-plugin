@@ -285,33 +285,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void delete() throws IOException, InterruptedException {
-        checkPermission(DELETE);
-        FolderComputation<I> computation = getComputation();
-        Executor executor = Executor.of(computation);
-        if (executor != null) {
-            LOGGER.log(Level.INFO, "Interrupting {0} in order to delete it", this);
-            executor.interrupt(Result.ABORTED, new CauseOfInterruption.UserInterruption(User.current()));
-            // give it 15 seconds or so to respond to the interrupt
-            long expiration = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
-            // comparison with executor.getCurrentExecutable() == computation currently should always be true
-            // as we no longer recycle Executors, but safer to future-proof in case we ever revisit recycling
-            while (executor.isAlive()
-                    && executor.getCurrentExecutable() == computation
-                    && expiration - System.nanoTime() > 0L) {
-                Thread.sleep(50L);
-            }
-            if (executor.isAlive() && executor.getCurrentExecutable() == computation) {
-                throw new AbortException("Failed to stop computation of " + getFullDisplayName());
-            }
-        }
-        super.delete();
-    }
-
-    /**
      * Creates a {@link ChildObserver} that subclasses can use when handling events that might create new / update
      * existing child items. The handling of orphaned items is a responsibility of the {@link OrphanedItemStrategy}
      * which is only applied as part of a full computation.
