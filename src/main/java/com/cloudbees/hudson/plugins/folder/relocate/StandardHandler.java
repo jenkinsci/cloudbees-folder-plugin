@@ -83,6 +83,7 @@ import org.kohsuke.stapler.HttpResponses;
             // we can move to the root if there is none with the same name.
             return true;
         }
+        // TODO use Items.allItems(instance, Item.class) once baseline Jenkins 2.37+
         ITEM: for (Item g : instance.getAllItems()) {
             if (g instanceof DirectlyModifiableTopLevelItemGroup) {
                 DirectlyModifiableTopLevelItemGroup itemGroup = (DirectlyModifiableTopLevelItemGroup) g;
