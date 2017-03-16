@@ -25,12 +25,14 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
+import com.jcraft.jzlib.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
+import hudson.console.PlainTextConsoleOutputStream;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
@@ -51,9 +53,12 @@ import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
 import hudson.util.StreamTaskListener;
 import hudson.util.io.ReopenableRotatingFileOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -69,7 +74,10 @@ import javax.annotation.Nonnull;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 
 /**
@@ -344,6 +352,48 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             logText = getLogText();
             pos = logText.writeLogTo(pos, out);
         } while (!logText.isComplete());
+    }
+
+    /**
+     * Sends out the raw console output.
+     */
+    public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        rsp.setContentType("text/plain;charset=UTF-8");
+        PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
+        InputStream input = getLogInputStream();
+        try {
+            IOUtils.copy(input, out);
+            out.flush();
+        } finally {
+            IOUtils.closeQuietly(input);
+            IOUtils.closeQuietly(out);
+        }
+    }
+
+    /**
+     * Returns an input stream that reads from the log file.
+     * It will use a gzip-compressed log file (log.gz) if that exists.
+     *
+     * @return An input stream from the log file.
+     * If the log file does not exist, the error message will be returned to the output.
+     * @throws IOException if things go wrong
+     */
+    @Nonnull
+    public InputStream getLogInputStream() throws IOException {
+        File logFile = getLogFile();
+
+        if (logFile.exists()) {
+            // Checking if a ".gz" file was return
+            FileInputStream fis = new FileInputStream(logFile);
+            if (logFile.getName().endsWith(".gz")) {
+                return new GZIPInputStream(fis);
+            } else {
+                return fis;
+            }
+        }
+
+        String message = "No such file: " + logFile;
+        return new ByteArrayInputStream(message.getBytes(Charsets.UTF_8));
     }
 
     @CheckForNull

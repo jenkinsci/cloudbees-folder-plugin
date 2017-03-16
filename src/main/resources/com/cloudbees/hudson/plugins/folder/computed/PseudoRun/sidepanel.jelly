@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright 2013-2016 CloudBees, Inc.
+Copyright (c) 2017 CloudBees, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
+
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
-
-    <j:set var="computation" value="${it.computation}"/>
-
-    <j:if test="${h.hasPermission(it, it.BUILD) and it.buildable}">
-        <l:task icon="images/24x24/clock.png" href="${rootURL}/${it.url}build?delay=0" post="true" title="${%computeNow(computation.displayName)}"/>
-    </j:if>
-    <l:task icon="images/24x24/terminal.png" href="${rootURL}/${computation.url}console" title="${%computeLog(computation.displayName)}">
-        <l:task href="${rootURL}/${computation.url}consoleText" icon="icon-document icon-md" title="${%View as plain text}"/>
-    </l:task>
-    <j:if test="${it.hasEvents}">
-        <l:task icon="images/24x24/monitor.png" href="${rootURL}/${computation.url}events" title="${%events(it.pronoun)}"/>
-    </j:if>
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
+  <l:header/>
+  <l:side-panel>
+    <l:tasks>
+      <j:set var="buildUrl" value="${it.decompose(request)}"/>
+      <p:console-link/>
+      <st:include page="actions.jelly"/>
+      <t:actions actions="${it.transientActions}"/>
+    </l:tasks>
+  </l:side-panel>
 </j:jelly>

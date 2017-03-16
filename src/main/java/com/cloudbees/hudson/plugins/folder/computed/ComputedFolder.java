@@ -684,6 +684,36 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return computation;
     }
 
+    @Restricted(NoExternalUse.class) // used by stapler only
+    public PseudoRun<I> getLastSuccessfulBuild() {
+        FolderComputation<I> computation = getComputation();
+        Result result = computation.getResult();
+        if (result != null && Result.UNSTABLE.isWorseOrEqualTo(result)) {
+            return new PseudoRun(computation);
+        }
+        return null;
+    }
+
+    @Restricted(NoExternalUse.class) // used by stapler only
+    public PseudoRun<I> getLastStableBuild() {
+        FolderComputation<I> computation = getComputation();
+        Result result = computation.getResult();
+        if (result != null && Result.SUCCESS.isWorseOrEqualTo(result)) {
+            return new PseudoRun(computation);
+        }
+        return null;
+    }
+
+    @Restricted(NoExternalUse.class) // used by stapler only
+    public PseudoRun<I> getLastFailedBuild() {
+        FolderComputation<I> computation = getComputation();
+        Result result = computation.getResult();
+        if (result != null && Result.UNSTABLE.isBetterThan(result)) {
+            return new PseudoRun(computation);
+        }
+        return null;
+    }
+
     /**
      * {@inheritDoc}
      */
