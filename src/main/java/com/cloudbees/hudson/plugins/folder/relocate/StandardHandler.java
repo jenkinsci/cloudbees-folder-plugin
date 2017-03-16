@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.model.AbstractItem;
@@ -51,7 +52,10 @@ import org.kohsuke.stapler.HttpResponses;
 @Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
 
     public HandlingMode applicability(Item item) {
-        if (item instanceof TopLevelItem && item instanceof AbstractItem && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup && !validDestinations(item).isEmpty()) {
+        if (item instanceof TopLevelItem
+                && item instanceof AbstractItem
+                && item.getParent() instanceof DirectlyModifiableTopLevelItemGroup
+                && hasValidDestination(item)) {
             return HandlingMode.HANDLE;
         } else {
             return HandlingMode.SKIP;
@@ -73,7 +77,55 @@ import org.kohsuke.stapler.HttpResponses;
         return Items.move((I) item, destination);
     }
 
-    @Override public List<? extends ItemGroup<?>> validDestinations(Item item) {
+    public boolean hasValidDestination(Item item) {
+        Jenkins instance = Jenkins.getActiveInstance();
+        if (permitted(item, instance) && instance.getItem(item.getName()) == null) {
+            // we can move to the root if there is none with the same name.
+            return true;
+        }
+        // TODO use Items.allItems(instance, Item.class) once baseline Jenkins 2.37+
+        ITEM: for (Item g : instance.getAllItems()) {
+            if (g instanceof DirectlyModifiableTopLevelItemGroup) {
+                DirectlyModifiableTopLevelItemGroup itemGroup = (DirectlyModifiableTopLevelItemGroup) g;
+                if (!permitted(item, itemGroup)) {
+                    continue;
+                }
+                // Cannot move a folder into itself or a descendant
+                if (g == item) {
+                    continue;
+                }
+                // Cannot move an item into a Folder if there is already an item with the same name
+                if (g instanceof Folder) {
+                    // NOTE: test for Folder not AbstractFolder as Folder is mutable by users
+                    Folder folder = (Folder) g;
+                    if (folder.getItem(item.getName()) != null) {
+                        continue;
+                    }
+                }
+                // Cannot move a folder into a descendant
+                // Cannot move d1/ into say d1/d2/d3/
+                ItemGroup itemGroupSubElement = g.getParent();
+                while (itemGroupSubElement != instance) {
+                    if (item == itemGroupSubElement) {
+                        continue ITEM;
+                    }
+                    if (itemGroupSubElement instanceof Item) {
+                        itemGroupSubElement = ((Item) itemGroupSubElement).getParent();
+                    } else {
+                        // should never get here as this is an ItemGroup resolved from the root of Jenkins,
+                        // so there should be a parent chain ending at Jenkins but *if* we do end up here,
+                        // safer to say this one is not safe to move into and break the infinite loop
+                        continue ITEM;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public List<? extends ItemGroup<?>> validDestinations(Item item) {
         List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<DirectlyModifiableTopLevelItemGroup>();
         Jenkins instance = Jenkins.getActiveInstance();
         // ROOT context is only added in case there is not any item with the same name
@@ -88,42 +140,44 @@ import org.kohsuke.stapler.HttpResponses;
                 if (!permitted(item, itemGroup)) {
                     continue;
                 }
-                ItemGroup<?> p = itemGroup;
-                if (p instanceof Item) {
-                    Item i = (Item) p;
-                    // Cannot move a folder into itself or a descendant
-                    if (i == item) {
-                        continue ITEM;
-                    }
-                    // By default the move is a no-op in case you hit it by mistake
-                    if (item.getParent() == i) {
-                        result.add(itemGroup);
-                    }
-                    // Cannot move an item into a Folder if there is already an item with the same name
-                    if (i instanceof Folder) {
-                        Folder folder = (Folder) i;
-                        if (folder.getItem(item.getName()) != null) {
-                            continue ITEM;
-                        }
-                    }
-                    // Cannot move a folder into a descendant
-                    // Cannot move d1/ into say d1/d2/d3/
-                    ItemGroup itemGroupSubElement = i.getParent();
-                    while (itemGroupSubElement != instance) {
-                        if (itemGroupSubElement instanceof Folder) {
-                            Folder currentFolder = (Folder) itemGroupSubElement;
-                            if (item == currentFolder) {
-                                continue ITEM;
-                            }
-                            itemGroupSubElement = currentFolder.getParent();
-                        }
-                    }
+                // Cannot move a folder into itself or a descendant
+                if (g == item) {
+                    continue;
+                }
+                // By default the move is a no-op in case you hit it by mistake
+                if (item.getParent() == g) {
                     result.add(itemGroup);
                 }
+                // Cannot move an item into a Folder if there is already an item with the same name
+                if (g instanceof Folder) {
+                    // NOTE: test for Folder not AbstractFolder as Folder is mutable by users
+                    Folder folder = (Folder) g;
+                    if (folder.getItem(item.getName()) != null) {
+                        continue;
+                    }
+                }
+                // Cannot move a folder into a descendant
+                // Cannot move d1/ into say d1/d2/d3/
+                ItemGroup itemGroupSubElement = g.getParent();
+                while (itemGroupSubElement != instance) {
+                    if (item == itemGroupSubElement) {
+                        continue ITEM;
+                    }
+                    if (itemGroupSubElement instanceof Item) {
+                        itemGroupSubElement = ((Item) itemGroupSubElement).getParent();
+                    } else {
+                        // should never get here as this is an ItemGroup resolved from the root of Jenkins,
+                        // so there should be a parent chain ending at Jenkins but *if* we do end up here,
+                        // safer to say this one is not safe to move into and break the infinite loop
+                        continue ITEM;
+                    }
+                }
+                result.add(itemGroup);
             }
         }
         return result;
     }
+
     private boolean permitted(Item item, DirectlyModifiableTopLevelItemGroup itemGroup) {
         return itemGroup == item.getParent() || itemGroup.canAdd((TopLevelItem) item) && ((AccessControlled) itemGroup).hasPermission(Job.CREATE);
     }
