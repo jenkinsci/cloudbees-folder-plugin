@@ -1,0 +1,27 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <j:choose>
+    <j:when test="${instance.preset}">
+      <f:invisibleEntry>
+        <input type="hidden" name="bundle" value="${instance.bundle}"/>
+        <input type="hidden" name="key" value="${instance.key}"/>
+      </f:invisibleEntry>
+      <f:entry title="${%Title}" field="message">
+        <f:textbox disabled="true" readonly="true"/>
+        <j:set var="from" value="${instance.from}"/>
+        <j:if test="${from!=null}">
+          <div style="text-align: right">
+            <em>
+              <j:out value="${instance.from}"/>
+            </em>
+          </div>
+        </j:if>
+      </f:entry>
+    </j:when>
+    <j:otherwise>
+      <f:entry title="${%Title}" field="key">
+        <f:textbox default="${%Name}"/>
+      </f:entry>
+    </j:otherwise>
+  </j:choose>
+</j:jelly>
