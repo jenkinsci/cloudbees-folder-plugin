@@ -33,8 +33,11 @@ import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.ListBoxModel;
 import hudson.util.TimeUnit2;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -47,6 +50,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
     private static final Logger LOGGER = Logger.getLogger(PeriodicFolderTrigger.class.getName());
+
+    /**
+     * Captures the time that this class was loaded.
+     */
+    private static final long startup = System.currentTimeMillis();
 
     /**
      * The interval between successive indexings.
@@ -85,13 +93,13 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             return "* * * * *";
         }
         if (millis < TimeUnit2.MINUTES.toMillis(10)) {
-            return "*/12 * * * *";
+            return "H/12 * * * *";
         }
         if (millis < TimeUnit2.MINUTES.toMillis(30)) {
-            return "*/6 * * * *";
+            return "H/6 * * * *";
         }
         if (millis < TimeUnit2.HOURS.toMillis(1)) {
-            return "*/2 * * * *";
+            return "H/2 * * * *";
         }
         if (millis < TimeUnit2.HOURS.toMillis(8)) {
             return "H * * * *";
@@ -183,7 +191,14 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
                 return;
             }
         }
-        if (now - lastTriggered < interval) {
+        if (lastTriggered == 0) {
+            // on start-up set the last triggered to sometime within the interval of start-up
+            // for short intervals this will have no effect
+            // for longer intervals this will stagger all the computations on start-up
+            // when creating new instances this will be ignored as the computation result will be null
+            lastTriggered = startup + new Random().nextInt((int)Math.min(TimeUnit.DAYS.toMillis(1), interval));
+        }
+        if (now - lastTriggered < interval && (computation != null && computation.getResult() != null)) {
             LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
             return;
         }
