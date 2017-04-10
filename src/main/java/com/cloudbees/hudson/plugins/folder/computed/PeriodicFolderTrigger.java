@@ -24,6 +24,7 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import antlr.ANTLRException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Cause;
 import hudson.model.Item;
@@ -177,6 +178,8 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("ConstantConditions")
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     @Override
     public void run() {
         if (job == null) {
@@ -190,17 +193,17 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
                 LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
                 return;
             }
-        }
-        if (lastTriggered == 0) {
-            // on start-up set the last triggered to sometime within the interval of start-up
-            // for short intervals this will have no effect
-            // for longer intervals this will stagger all the computations on start-up
-            // when creating new instances this will be ignored as the computation result will be null
-            lastTriggered = startup + new Random().nextInt((int)Math.min(TimeUnit.DAYS.toMillis(1), interval));
-        }
-        if (now - lastTriggered < interval && (computation != null && computation.getResult() != null)) {
-            LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
-            return;
+            if (lastTriggered == 0) {
+                // on start-up set the last triggered to sometime within the interval of start-up
+                // for short intervals this will have no effect
+                // for longer intervals this will stagger all the computations on start-up
+                // when creating new instances this will be ignored as the computation result will be null
+                lastTriggered = startup + new Random().nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
+            }
+            if (now - lastTriggered < interval && computation.getResult() != null) {
+                LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
+                return;
+            }
         }
         if (job.scheduleBuild(0, new TimerTrigger.TimerTriggerCause())) {
             lastTriggered = now;
