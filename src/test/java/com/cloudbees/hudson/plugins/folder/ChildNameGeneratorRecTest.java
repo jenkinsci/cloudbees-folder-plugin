@@ -97,11 +97,11 @@ public class ChildNameGeneratorRecTest {
                         "child-one",
                         "child_two",
                         "child three",
-                        "leanbh cúig",
-                        "ребенок пять",
-                        "儿童六",
-                        "아이 7",
-                        "niño ocho"
+                        "leanbh c\u00FAig", // "leanbh cúig",
+                        "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                        "\u513F\u7AE5\u516D", // "儿童六",
+                        "\uC544\uC774 7", // "아이 7",
+                        "ni\u00F1o ocho" // "niño ocho"
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
@@ -166,11 +166,11 @@ public class ChildNameGeneratorRecTest {
                 "child-one",
                 "child_two",
                 "child three",
-                "leanbh cúig",
-                "ребенок пять",
-                "儿童六",
-                "아이 7",
-                "niño ocho"
+                "leanbh c\u00FAig", // "leanbh cúig",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u513F\u7AE5\u516D", // "儿童六",
+                "\uC544\uC774 7", // "아이 7",
+                "ni\u00F1o ocho" // "niño ocho"
         );
         instance.assertItemShortUrls(round,
                 "job/child-one/",
@@ -196,11 +196,11 @@ public class ChildNameGeneratorRecTest {
                 "child-one",
                 "child_two",
                 "child three",
-                "leanbh cúig",
-                "ребенок пять",
-                "儿童六",
-                "아이 7",
-                "niño ocho"
+                "leanbh c\u00FAig", // "leanbh cúig",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u513F\u7AE5\u516D", // "儿童六",
+                "\uC544\uC774 7", // "아이 7",
+                "ni\u00F1o ocho" // "niño ocho"
         )) {
             checkChild(instance, name);
         }
