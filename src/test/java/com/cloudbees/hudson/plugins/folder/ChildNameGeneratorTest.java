@@ -264,11 +264,11 @@ public class ChildNameGeneratorTest {
                     "child_on-1ec93354e47959489d1440d",
                     "child_tw-bca7d461e11f4f3ed12fd0d",
                     "child_th-b7a6e5662f26eb036090308",
-                    "leanbh_c-6a4aff24728835208c4407c",
-                    "n_______-c32361471db57dd48ce9754", // ребенок пять
-                    "a___c___-173d34e69e87347292c982f", // 儿童六
-                    "a___a___-85381e8f14ad52059109c0b", // 아이 7
-                    "nini__o_-0889cf5ec8353a74a312221"
+                    "leanbh_c-f20a7f57e8c40185b550296",
+                    "n_______-0cf1929f67ea2901a9bab2d", // ребенок пять
+                    "a___c___-5ef56a0f2914216ae5d5a49", // 儿童六
+                    "a___a___-0f5050ad36d8b4f8ccbf621", // 아이 7
+                    "nini__o_-7d5abd24952fd3011a7327b"
             );
             for (String name : Arrays.asList(
                     "$$child-one",
