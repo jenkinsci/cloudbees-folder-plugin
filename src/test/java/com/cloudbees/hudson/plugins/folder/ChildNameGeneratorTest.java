@@ -228,10 +228,10 @@ public class ChildNameGeneratorTest {
         assertThat("We detected the filesystem normalization form", form, notNullValue());
         boolean windows = false;
         for (FreeStyleProject p : instance.getItems()) {
-            if ("leanbh cu\u0301ig".equals(p.getName())) {
+            if ("$$leanbh cu\u0301ig".equals(p.getName())) {
                 windows = false;
                 break;
-            } else if ("leanbh cuI\u0300\ufffdig".equals(p.getName())) {
+            } else if ("$$leanbh cuI\u0300\ufffdig".equals(p.getName())) {
                 windows = true;
                 break;
             }
