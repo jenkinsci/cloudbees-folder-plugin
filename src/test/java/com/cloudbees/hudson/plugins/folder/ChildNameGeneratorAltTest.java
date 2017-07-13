@@ -43,6 +43,7 @@ import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +63,7 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -434,7 +436,7 @@ public class ChildNameGeneratorAltTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
         }
 
         public void assertItemShortUrls(int round, String... names) {
@@ -472,6 +474,18 @@ public class ChildNameGeneratorAltTest {
 
         }
 
+    }
+
+    static TreeSet<String> windowsFFS(String[] names) {
+        TreeSet<String> alternative = new TreeSet<>();
+        for (String name: names) {
+            try {
+                alternative.add(new String(name.getBytes("UTF-8"), "Windows-1252"));
+            } catch (UnsupportedEncodingException e) {
+                throw new AssertionError("UTF-8 and Windows-1252 are mandated by the JLS", e);
+            }
+        }
+        return alternative;
     }
 
     public static class NameProperty extends JobProperty<FreeStyleProject> {

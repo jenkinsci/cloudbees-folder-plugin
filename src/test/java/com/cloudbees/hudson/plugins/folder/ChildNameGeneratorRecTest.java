@@ -63,6 +63,8 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -434,7 +436,7 @@ public class ChildNameGeneratorRecTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
         }
 
         public void assertItemShortUrls(int round, String... names) {

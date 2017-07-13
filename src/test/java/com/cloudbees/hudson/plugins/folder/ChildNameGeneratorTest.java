@@ -54,6 +54,7 @@ import java.util.TreeSet;
 import javax.annotation.Nonnull;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;
@@ -62,6 +63,8 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -544,7 +547,7 @@ public class ChildNameGeneratorTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
         }
 
         public void assertItemShortUrls(int round, String... names) {
@@ -659,5 +662,15 @@ public class ChildNameGeneratorTest {
         }
     }
 
-
+    private CharSequence asJavaString(String rawString) {
+        StringBuilder b = new StringBuilder();
+        for (char c : rawString.toCharArray()) {
+            if (c >= 32 && c < 128) {
+                b.append(c);
+            } else {
+                b.append("\\u").append(StringUtils.leftPad(Integer.toHexString(c & 0xffff), 4, '0'));
+            }
+        }
+        return b;
+    }
 }
