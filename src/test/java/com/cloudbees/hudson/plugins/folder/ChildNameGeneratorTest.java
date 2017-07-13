@@ -547,6 +547,8 @@ public class ChildNameGeneratorTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
+            System.out.printf("actual=%s expected=%s or %s%n", asJavaStrings(actual), asJavaStrings(Arrays.asList(names)), asJavaStrings(windowsFFS(names)));
+            assertThat(asJavaStrings(actual), anyOf(is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))), is(asJavaStrings(windowsFFS(names)))));
             assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
         }
 
@@ -662,7 +664,7 @@ public class ChildNameGeneratorTest {
         }
     }
 
-    private CharSequence asJavaString(String rawString) {
+    static CharSequence asJavaString(String rawString) {
         StringBuilder b = new StringBuilder();
         for (char c : rawString.toCharArray()) {
             if (c >= 32 && c < 128) {
@@ -672,5 +674,13 @@ public class ChildNameGeneratorTest {
             }
         }
         return b;
+    }
+
+    static Set<String> asJavaStrings(Iterable<String> strings) {
+        Set<String> result = new TreeSet<>();
+        for (String s: strings) {
+            result.add(asJavaString(s).toString());
+        }
+        return result;
     }
 }
