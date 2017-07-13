@@ -152,8 +152,8 @@ public class FolderTest {
         r.jenkins.setCrumbIssuer(null);
 
         URL apiURL = new URL(MessageFormat.format(
-                "{0}createItem?mode=copy&from={1}&name={2}",
-                r.jenkins.getRootUrl() + "/" + f.getUrl().toString(), fromName, toName));
+                "{0}/{1}createItem?mode=copy&from={2}&name={3}",
+                r.jenkins.getRootUrl().toString(), f.getUrl().toString(), fromName, toName));
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
