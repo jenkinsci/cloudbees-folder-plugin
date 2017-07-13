@@ -41,8 +41,10 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * {@link hudson.triggers.Trigger.Cron} analogue for {@link ComputedFolder}.
- * TODO should introduce a core API defining an {@link Item} with a {@code public Map<TriggerDescriptor,Trigger<?>> getTriggers()} interface
- * (retrofit {@link jenkins.model.ParameterizedJobMixIn.ParameterizedJob} and {@link ComputedFolder} to extend it, and use it from {@link hudson.triggers.Trigger.Cron}).
+ * TODO should introduce a core API defining an {@link Item} with a {@code public Map<TriggerDescriptor,Trigger<?>>
+ *     getTriggers()} interface
+ * (retrofit {@link jenkins.model.ParameterizedJobMixIn.ParameterizedJob} and {@link ComputedFolder} to extend it,
+ * and use it from {@link hudson.triggers.Trigger.Cron}).
  */
 @SuppressWarnings("unused") // instantiated by Jenkins
 @Restricted(NoExternalUse.class)
@@ -64,7 +66,7 @@ public class FolderCron extends PeriodicWork {
     /**
      * Constructor.
      *
-     * @throws NoSuchFieldException
+     * @throws NoSuchFieldException if we cannot access the tabs field of {@link Trigger}.
      */
     // instantiated by Jenkins
     @SuppressWarnings("unused")
@@ -108,6 +110,8 @@ public class FolderCron extends PeriodicWork {
 
     /**
      * Checks the triggers.
+     *
+     * @param cal the date to check for.
      */
     public void checkTriggers(final Calendar cal) {
         Jenkins inst = Jenkins.getInstance();

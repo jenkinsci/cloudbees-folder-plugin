@@ -50,6 +50,7 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
      * <p>
      * If you are implementing {@link FolderIcon} that changes the behaviour based on the contents/properties
      * of the folder, store the folder object to a field and use that. 
+     * @param folder the folder.
      */
     protected void setOwner(AbstractFolder<?> folder) {
         if (folder instanceof Folder) {
@@ -87,7 +88,11 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
         return null;
     }
 
-    /** @deprecated */
+    /**
+     * @param folder the folder.
+     * @deprecated use {@link #setOwner(AbstractFolder)}
+     */
+    @Deprecated
     protected void setFolder(Folder folder) {}
 
     @Override

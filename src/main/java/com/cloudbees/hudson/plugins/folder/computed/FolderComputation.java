@@ -47,7 +47,6 @@ import hudson.model.StreamBuildListener;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
-import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
@@ -356,6 +355,10 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     /**
      * Sends out the raw console output.
+     *
+     * @param req the request
+     * @param rsp the response.
+     * @throws IOException if things go wrong.
      */
     public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
         rsp.setContentType("text/plain;charset=UTF-8");

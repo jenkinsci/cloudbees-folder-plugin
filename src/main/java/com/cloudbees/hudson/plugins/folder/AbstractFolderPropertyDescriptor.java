@@ -63,6 +63,7 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
      * The default implementation of this method checks if the given folder type is assignable to the type parameter of
      * {@link AbstractFolderProperty}, but subtypes can extend this to change this behavior.
      *
+     * @param containerType the type of folder.
      * @return
      *      true to indicate applicable, in which case the property will be
      *      displayed in the configuration screen of this folder.
@@ -81,6 +82,9 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
 
     /**
      * Gets the {@link FolderPropertyDescriptor}s applicable for a given folder type.
+     *
+     * @param containerType the type of folder.
+     * @return the applicable descriptors.
      */
     @SuppressWarnings("rawtypes") // erasure
     public static List<AbstractFolderPropertyDescriptor> getApplicableDescriptors(Class<? extends AbstractFolder> containerType) {

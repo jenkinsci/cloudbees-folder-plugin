@@ -42,13 +42,6 @@ import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import org.jenkins.ui.icon.Icon;
-import org.jenkins.ui.icon.IconSet;
-import org.jenkins.ui.icon.IconSpec;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-
-import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,9 +51,13 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * A mutable folder.
@@ -183,6 +180,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Used in "New Job" side menu.
+     * @return the pronoun for new item creation.
      * @see #NEW_PRONOUN
      */
     public String getNewPronoun() {
@@ -190,6 +188,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     /**
+     * @return the columns.
      * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
@@ -198,7 +197,12 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
                 ListViewColumn.createDefaultInitialColumnList());
     }
 
-    /** @deprecated use {@link #addProperty(AbstractFolderProperty)} instead */
+    /**
+     * Legacy binary compatibility method.
+     * @param p the property.
+     * @throws IOException if the folder could not be saved.
+     * @deprecated use {@link #addProperty(AbstractFolderProperty)} instead
+     */
     @Deprecated
     public void addProperty(FolderProperty<?> p) throws IOException {
         addProperty((AbstractFolderProperty) p);
@@ -278,6 +282,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Items that can be created in this {@link Folder}.
+     * @return the descriptors of items that can be created within this folder.
      * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
@@ -292,6 +297,9 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Returns true if the specified descriptor type is allowed for this container.
+     *
+     * @param tid the type of child item.
+     * @return {@code true} if it can be added.
      */
     public boolean isAllowedChildDescriptor(TopLevelItemDescriptor tid) {
         for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
@@ -305,7 +313,12 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return tid.isApplicableIn(this);
     }
 
-    /** Historical synonym for {@link #canAdd}. */
+    /**
+     * Historical synonym for {@link #canAdd}.
+     *
+     * @param tid the potential child item.
+     * @return {@code true} if it can be added.
+     */
     public boolean isAllowedChild(TopLevelItem tid) {
         for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
             if (!p.allowsParentToHave(tid)) {

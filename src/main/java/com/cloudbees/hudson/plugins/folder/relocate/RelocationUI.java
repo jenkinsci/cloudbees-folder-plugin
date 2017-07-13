@@ -98,7 +98,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      * @param itemClass the type of item.
      * @return {@code true} if this UI is applicable to the specified type of item.
      * @see ExtensionList
-     * @see Extension#ordinal()
+     * @see Extension Extension#ordinal() sorting
      */
     public abstract boolean isApplicableTo(Class<? extends Item> itemClass);
 
