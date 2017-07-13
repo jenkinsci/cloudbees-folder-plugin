@@ -212,7 +212,7 @@ public class ChildNameGeneratorRecTest {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
-        assertThat("The root directory if the item for name " + idealName + " is mangled",
+        assertThat("The root directory of the item for name " + idealName + " is mangled",
                 item.getRootDir().getName(), is(mangle(idealName)));
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
