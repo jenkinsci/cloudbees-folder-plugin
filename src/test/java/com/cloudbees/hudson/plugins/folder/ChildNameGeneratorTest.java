@@ -300,7 +300,7 @@ public class ChildNameGeneratorTest {
                 } else if ("leanbh-c\u00c3\u00baig.probe".equals(f.getName())) {
                     // Windows-1252
                     form = Normalizer.Form.NFC;
-                    System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
+                    System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is Windows-1252 NFC\n\n");
                     break;
                 } else if ("leanbh-cu\u0301ig.probe".equals(f.getName())) {
                     form = Normalizer.Form.NFD;
@@ -309,7 +309,7 @@ public class ChildNameGeneratorTest {
                 } else if ("leanbh-cu\u00cc\ufffdig.probe".equals(f.getName())) {
                     // Windows-1252
                     form = Normalizer.Form.NFD;
-                    System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
+                    System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is Windows-1252 NFD\n\n");
                     break;
                 }
             }
@@ -556,9 +556,11 @@ public class ChildNameGeneratorTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            System.out.printf("actual=%s expected=%s or %s%n", asJavaStrings(actual), asJavaStrings(Arrays.asList(names)), asJavaStrings(windowsFFS(names)));
-            assertThat(asJavaStrings(actual), anyOf(is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))), is(asJavaStrings(windowsFFS(names)))));
-            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
+            assertThat(asJavaStrings(actual), anyOf(
+                    is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))),
+                    is(asJavaStrings(windowsFFS(Normalizer.Form.NFC, names))),
+                    is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))
+            ));
         }
 
         public void assertItemShortUrls(int round, String... names) {

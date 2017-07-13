@@ -476,11 +476,23 @@ public class ChildNameGeneratorAltTest {
 
     }
 
-    static TreeSet<String> windowsFFS(String[] names) {
+    static TreeSet<String> windowsFFS(String... names) {
         TreeSet<String> alternative = new TreeSet<>();
         for (String name: names) {
             try {
                 alternative.add(new String(name.getBytes("UTF-8"), "Windows-1252"));
+            } catch (UnsupportedEncodingException e) {
+                throw new AssertionError("UTF-8 and Windows-1252 are mandated by the JLS", e);
+            }
+        }
+        return alternative;
+    }
+
+    static TreeSet<String> windowsFFS(Normalizer.Form form, String... names) {
+        TreeSet<String> alternative = new TreeSet<>();
+        for (String name: names) {
+            try {
+                alternative.add(new String(Normalizer.normalize(name, form).getBytes("UTF-8"), "Windows-1252"));
             } catch (UnsupportedEncodingException e) {
                 throw new AssertionError("UTF-8 and Windows-1252 are mandated by the JLS", e);
             }
