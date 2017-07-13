@@ -118,6 +118,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
@@ -1375,6 +1376,91 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /**
+     * Is this folder disabled. A disabled folder should have all child items disabled.
+     *
+     * @return {@code true} if and only if the folder is disabled.
+     * @since 6.1.0
+     * @see FolderJobQueueDecisionHandler
+     */
+    public boolean isDisabled() {
+        return false;
+    }
+
+    /**
+     * Sets the folder as disabled.
+     *
+     * @param disabled {@code true} if and only if the folder is to be disabled.
+     * @since 6.1.0
+     */
+    protected void setDisabled(boolean disabled) {
+        throw new UnsupportedOperationException("must be implemented if supportsMakeDisabled is overridden");
+    }
+
+    /**
+     * Determines whether the folder supports being made disabled.
+     * @return {@code true} if and only if {@link #setDisabled(boolean)} is implemented
+     * @since 6.1.0
+     */
+    protected boolean supportsMakeDisabled() {
+        return false;
+    }
+
+    /**
+     * Makes the folder disabled. Will have no effect if the folder type does not {@linkplain #supportsMakeDisabled()}.
+     * @param disabled {@code true} if the folder should be disabled.
+     * @throws IOException if the operation could not complete.
+     * @since 6.1.0
+     */
+    public void makeDisabled(boolean disabled) throws IOException {
+        if (isDisabled() == disabled) {
+            return; // noop
+        }
+        if (disabled && !supportsMakeDisabled()) {
+            return; // do nothing if the disabling is unsupported
+        }
+        setDisabled(disabled);
+        if (disabled && this instanceof Queue.Task) {
+            Jenkins.getActiveInstance().getQueue().cancel((Queue.Task)this);
+        }
+        save();
+        ItemListener.fireOnUpdated(this);
+    }
+
+    /**
+     * Stapler action method to disable the folder.
+     *
+     * @return the response.
+     * @throws IOException      if the folder could not be disabled.
+     * @throws ServletException if something goes wrong.
+     * @since 6.1.0
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    @SuppressWarnings("unused") // stapler action method
+    public HttpResponse doDisable() throws IOException, ServletException {
+        checkPermission(CONFIGURE);
+        makeDisabled(true);
+        return new HttpRedirect(".");
+    }
+
+    /**
+     * Stapler action method to enable the folder.
+     *
+     * @return the response.
+     * @throws IOException      if the folder could not be disabled.
+     * @throws ServletException if something goes wrong.
+     * @since 6.1.0
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    @SuppressWarnings("unused") // stapler action method
+    public HttpResponse doEnable() throws IOException, ServletException {
+        checkPermission(CONFIGURE);
+        makeDisabled(false);
+        return new HttpRedirect(".");
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -1437,6 +1523,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             icon.setOwner(this);
 
             submit(req, rsp);
+            makeDisabled(json.optBoolean("disable"));
 
             save();
             bc.commit();

@@ -42,4 +42,28 @@ THE SOFTWARE.
     <st:include page="summary" from="${a}" optional="true" it="${a}" />
   </j:forEach>
   <this:description />
+  <j:choose>
+    <j:when test="${!it.supportsMakeDisabled()}">
+      <!-- for now, quietly omit the option -->
+    </j:when>
+    <j:when test="${it.disabled}">
+      <div class="warning">
+        <form method="post" id='enable-project' action="enable">
+          ${%disabled(it.pronoun)}<st:nbsp/>
+          <l:hasPermission permission="${it.CONFIGURE}">
+            <f:submit value="${%Enable}"/>
+          </l:hasPermission>
+        </form>
+      </div>
+    </j:when>
+    <j:otherwise>
+      <div align="right">
+        <form method="post" id="disable-project" action="disable">
+          <l:hasPermission permission="${it.CONFIGURE}">
+            <f:submit value="${%disable(it.pronoun)}"/>
+          </l:hasPermission>
+        </form>
+      </div>
+    </j:otherwise>
+  </j:choose>
 </j:jelly>
