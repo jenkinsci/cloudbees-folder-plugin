@@ -271,15 +271,15 @@ public class ChildNameGeneratorTest {
                     "nini__o_-7d5abd24952fd3011a7327b"
             );
             for (String name : Arrays.asList(
-                    "$$child-one",
-                    "$$child_two",
-                    "$$child three",
-                    "$$leanbh cuI\u0300\ufffdig",
-                    "$$N\u0303\u20ac\u00d0\u00b5\u00d0\u00b1\u00d0\u00b5\u00d0\u00bd\u00d0\u00be\u00d0\u00ba "
+                    "child-one",
+                    "child_two",
+                    "child three",
+                    "leanbh cuI\u0300\ufffdig",
+                    "N\u0303\u20ac\u00d0\u00b5\u00d0\u00b1\u00d0\u00b5\u00d0\u00bd\u00d0\u00be\u00d0\u00ba "
                             + "\u00d0\u00bfN\u0303\ufffdN\u0303\u201aN\u0303\u0152", //"ребенок пять",
-                    "$$a\u030a\u201e\u00bfc\u0327\u00ab\u00a5a\u030a\u2026\u00ad", // "儿童六",
-                    "$$a\u0301\u201e\u2039a\u0301\u2026\u00a1a\u0301\u201e\u2039a\u0301\u2026\u00b5 7", // 아이 7
-                    "$$ninI\u0300\u0192o ocho"
+                    "a\u030a\u201e\u00bfc\u0327\u00ab\u00a5a\u030a\u2026\u00ad", // "儿童六",
+                    "a\u0301\u201e\u2039a\u0301\u2026\u00a1a\u0301\u201e\u2039a\u0301\u2026\u00b5 7", // 아이 7
+                    "ninI\u0300\u0192o ocho"
             )) {
                 checkChild(instance, Normalizer.normalize(name, form));
             }
