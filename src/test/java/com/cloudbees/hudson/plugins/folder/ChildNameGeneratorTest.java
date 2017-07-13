@@ -281,7 +281,7 @@ public class ChildNameGeneratorTest {
                     "a\u0301\u201e\u2039a\u0301\u2026\u00a1a\u0301\u201e\u2039a\u0301\u2026\u00b5 7", // 아이 7
                     "ninI\u0300\u0192o ocho"
             )) {
-                checkChild(instance, Normalizer.normalize(name, form));
+                checkChild(instance, name);
             }
 
         } else {
