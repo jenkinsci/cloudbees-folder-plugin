@@ -42,7 +42,7 @@ import jenkins.model.TransientActionFactory;
  * Do so by storing a file under {@link Folder#getRootDir()}.
  *
  * <p>
- * To register your implementation, put {@link Extension} on your subtype.
+ * To register your implementation, put {@code @Extension} on your subtype.
  *
  * @see Action
  * @deprecated Use {@link TransientActionFactory} on {@link Folder} instead.
