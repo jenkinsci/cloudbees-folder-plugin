@@ -95,11 +95,11 @@ public class ChildNameGeneratorAltTest {
                         "child-one",
                         "child_two",
                         "child three",
-                        "leanbh cúig",
-                        "ребенок пять",
-                        "儿童六",
-                        "아이 7",
-                        "niño ocho"
+                        "leanbh c\u00FAig", // "leanbh cúig",
+                        "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                        "\u513F\u7AE5\u516D", // "儿童六",
+                        "\uC544\uC774 7", // "아이 7",
+                        "ni\u00F1o ocho" // "niño ocho"
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
@@ -164,8 +164,8 @@ public class ChildNameGeneratorAltTest {
                 "child_two",
                 "child three",
                 "leanbh cu\u0301ig",
-                "ребенок пять",
-                "儿童六",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u513F\u7AE5\u516D", // "儿童六",
                 "\u110b\u1161\u110b\u1175 7",
                 "nin\u0303o ocho"
         );
@@ -193,11 +193,11 @@ public class ChildNameGeneratorAltTest {
                 "child-one",
                 "child_two",
                 "child three",
-                "leanbh cúig",
-                "ребенок пять",
-                "儿童六",
-                "아이 7",
-                "niño ocho"
+                "leanbh c\u00FAig", // "leanbh cúig",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u513F\u7AE5\u516D", // "儿童六",
+                "\uC544\uC774 7", // "아이 7",
+                "ni\u00F1o ocho" // "niño ocho"
         )) {
             checkChild(instance, name);
         }
