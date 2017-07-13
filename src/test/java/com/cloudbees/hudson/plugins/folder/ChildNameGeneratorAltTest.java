@@ -63,6 +63,7 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorTest.asJavaStrings;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -436,7 +437,10 @@ public class ChildNameGeneratorAltTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
+            assertThat(asJavaStrings(actual), anyOf(
+                    is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))),
+                    is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))
+            ));
         }
 
         public void assertItemShortUrls(int round, String... names) {
@@ -492,7 +496,7 @@ public class ChildNameGeneratorAltTest {
         TreeSet<String> alternative = new TreeSet<>();
         for (String name: names) {
             try {
-                alternative.add(new String(Normalizer.normalize(name, form).getBytes("UTF-8"), "Windows-1252"));
+                alternative.add(Normalizer.normalize(new String(name.getBytes("UTF-8"), "Windows-1252"), form));
             } catch (UnsupportedEncodingException e) {
                 throw new AssertionError("UTF-8 and Windows-1252 are mandated by the JLS", e);
             }

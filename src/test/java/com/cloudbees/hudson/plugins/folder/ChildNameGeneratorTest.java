@@ -558,7 +558,6 @@ public class ChildNameGeneratorTest {
             }
             assertThat(asJavaStrings(actual), anyOf(
                     is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))),
-                    is(asJavaStrings(windowsFFS(Normalizer.Form.NFC, names))),
                     is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))
             ));
         }
