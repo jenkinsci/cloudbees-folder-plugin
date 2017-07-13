@@ -257,7 +257,7 @@ public class ChildNameGeneratorTest {
                             + "%20%C3%90%C2%BFN%CC%83%EF%BF%BDN%CC%83%E2%80%9AN%CC%83%C5%92/", // ребенок пять
                     "job/$$a%CC%8A%E2%80%9E%C2%BFc%CC%A7%C2%AB%C2%A5a%CC%8A%E2%80%A6%C2%AD/", // 儿童六
                     "job/$$a%CC%81%E2%80%9E%E2%80%B9a%CC%81%E2%80%A6%C2%A1a%CC%81%E2%80%9E%E2%80%B9a%CC%81%E2%80%A6"
-                            + "%C2%B5%207", // 아이 7
+                            + "%C2%B5%207/", // 아이 7
                     "job/$$ninI%CC%80%C6%92o%20ocho/"
             );
             instance.assertItemDirs(round,
