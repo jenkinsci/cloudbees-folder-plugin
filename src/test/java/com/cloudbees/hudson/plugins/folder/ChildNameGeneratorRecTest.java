@@ -217,7 +217,7 @@ public class ChildNameGeneratorRecTest {
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
                 nameFile.isFile(), is(true));
-        String name = FileUtils.readFileToString(nameFile);
+        String name = FileUtils.readFileToString(nameFile, "UTF-8");
         assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
                 + " contains the encoded name", name, is(encodedName));
     }
