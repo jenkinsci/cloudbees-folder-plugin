@@ -134,6 +134,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
 
         /**
          * Returns the same page in the next build.
+         * @return the same page in the next build.
          */
         public String getNextBuildUrl() {
             return null;
@@ -141,6 +142,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
 
         /**
          * Returns the same page in the previous build.
+         * @return the same page in the previous build.
          */
         public String getPreviousBuildUrl() {
             return null;

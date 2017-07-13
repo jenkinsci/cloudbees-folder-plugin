@@ -225,7 +225,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     private transient volatile long nextHealthReportsRefreshMillis;
     private transient volatile List<HealthReport> healthReports;
 
-    /** Subclasses should also call {@link #init}. */
+    /**
+     * Subclasses should also call {@link #init}.
+     *
+     * @param parent the parent of this folder.
+     * @param name   the name
+     */
     protected AbstractFolder(ItemGroup parent, String name) {
         super(parent, name);
     }
@@ -478,7 +483,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * Loads all the child {@link Item}s.
      *
+     * @param parent     the parent of the children.
      * @param modulesDir Directory that contains sub-directories for each child item.
+     * @param key        the key generating function.
+     * @param <K>        the key type
+     * @param <V>        the child type.
+     * @return a map of the children keyed by the generated keys.
      */
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
@@ -752,6 +762,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * May be used to enumerate or remove properties.
      * To add properties, use {@link #addProperty}.
+     * @return the list of properties.
      */
     public DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> getProperties() {
         return properties;
@@ -766,7 +777,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         properties.add(p);
     }
 
-    /** May be overridden, but {@link #loadJobTotal} will be inaccurate in that case. */
+    /**
+     * May be overridden, but {@link #loadJobTotal} will be inaccurate in that case.
+     * @return the jobs directory.
+     */
     protected File getJobsDir() {
         return new File(getRootDir(), "jobs");
     }
@@ -800,6 +814,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * For URL binding.
+     *
+     * @param name the name of the child.
+     * @return the job or {@code null} if there is no such child.
      * @see #getUrlChildPrefix
      */
     public I getJob(String name) {
@@ -986,6 +1003,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Checks if a top-level view with the given name exists.
+     *
+     * @param value the name of the child.
+     * @return the validation results.
      */
     public FormValidation doViewExistsCheck(@QueryParameter String value) {
         checkPermission(View.CREATE);
@@ -1109,6 +1129,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Gets the icon used for this folder.
+     *
+     * @return the icon.
      */
     public FolderIcon getIcon() {
         return icon;

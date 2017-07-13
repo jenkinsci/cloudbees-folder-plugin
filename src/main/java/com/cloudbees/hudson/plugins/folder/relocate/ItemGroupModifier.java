@@ -32,12 +32,17 @@ import hudson.model.TopLevelItem;
 import java.io.IOException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 
-/** @deprecated Use {@link DirectlyModifiableTopLevelItemGroup} instead. */
+/**
+ * @deprecated Use {@link DirectlyModifiableTopLevelItemGroup} instead.
+ * @param <G>         the type of item group.
+ * @param <I>         the type of item,
+ */
 @Deprecated
 public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelItem> extends ExtensionPoint {
 
     /**
      * The type of group that this modifier works on.
+     * @return the type of group that this modifier works on.
      */
     Class<G> getTargetClass();
 
@@ -59,6 +64,7 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
      * @param <II>   the type of the item.
      * @return the item instance within the target, may be the same instance as the passed in parameter or may be a
      *         new instance, depending on the target container.
+     * @throws IOException if the addition could not be completed.
      */
     <II extends I> II add(G target, II item) throws IOException;
 
@@ -67,6 +73,7 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
      *
      * @param target the target.
      * @param item   the item
+     * @throws IOException if the removal could not be completed.
      */
     void remove(G target, I item) throws IOException;
 
@@ -85,8 +92,10 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
          * Returns the most appropriate {@link ItemGroupModifier} for the supplied type of {@link ItemGroup}.
          *
          * @param targetClass the {@link ItemGroup} to get the injector for.
+         * @param <G>         the type of item group.
+         * @param <I>         the type of item,
          * @return the most appropriate {@link ItemGroupModifier} for the supplied {@link ItemGroup} or
-         *         {@code null} if no injector is available.
+         * {@code null} if no injector is available.
          */
         public static <G extends ItemGroup<I>, I extends TopLevelItem> ItemGroupModifier<G, I> get(
                 Class<G> targetClass) {

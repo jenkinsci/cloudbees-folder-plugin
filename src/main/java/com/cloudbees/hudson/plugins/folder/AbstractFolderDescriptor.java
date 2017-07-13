@@ -93,6 +93,8 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
 
     /**
      * Properties that can be configured for this type of {@link AbstractFolder} subtype.
+     *
+     * @return the property descriptors.
      */
     public List<AbstractFolderPropertyDescriptor> getPropertyDescriptors() {
         return AbstractFolderPropertyDescriptor.getApplicableDescriptors(clazz.asSubclass(AbstractFolder.class));
@@ -100,6 +102,8 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
 
     /**
      * Health metrics that can be configured for this type of {@link AbstractFolder} subtype.
+     *
+     * @return the health metric descriptors.
      */
     public List<FolderHealthMetricDescriptor> getHealthMetricDescriptors() {
         List<FolderHealthMetricDescriptor> r = new ArrayList<FolderHealthMetricDescriptor>();
@@ -114,7 +118,8 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
     /**
      * Gets the {@link FolderIconDescriptor}s applicable for this folder type.
      *
-     * @since FIXME
+     * @return the icon descriptors.
+     * @since 5.14
      */
     public List<FolderIconDescriptor> getIconDescriptors() {
         List<FolderIconDescriptor> r = new ArrayList<FolderIconDescriptor>();

@@ -43,6 +43,7 @@ import hudson.model.ItemGroup;
 import hudson.model.Items;
 import hudson.model.Label;
 import hudson.model.Node;
+import hudson.model.ParametersAction;
 import hudson.model.Queue;
 import hudson.model.ResourceList;
 import hudson.model.Result;
@@ -245,7 +246,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * Do not call {@link Item#delete} or {@link ItemGroup#onDeleted} or {@link ItemListener#fireOnDeleted} yourself.
      * By default, uses {@link #getOrphanedItemStrategy}.
      * @param orphaned a nonempty set of items which no longer are supposed to be here
-     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder now; items not listed will be left alone for the time being
+     * @param listener the listener to report decisions to.
+     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder
+     * now; items not listed will be left alone for the time
+     * @throws IOException          if there was an I/O issue processing the items.
+     * @throws InterruptedException if interrupted while processing the items.
      */
     protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
@@ -454,7 +459,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return actions;
     }
 
-    /** Whether it is permissible to recompute this folder at this time. */
+    /**
+     * Whether it is permissible to recompute this folder at this time.
+     *
+     * @return {@code true} if this folder can currenty be recomputed.
+     */
     public boolean isBuildable() {
         return true;
     }
@@ -469,7 +478,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return HttpResponses.forwardToPreviousPage();
     }
 
-    /** Duck-types {@link ParameterizedJobMixIn#scheduleBuild2(int, Action...)}. */
+    /**
+     * Duck-types {@link ParameterizedJobMixIn#scheduleBuild2(int, Action...)}.
+     * @param quietPeriod seconds to wait before starting (normally 0)
+     * @param actions various actions to associate with the scheduling, such as {@link ParametersAction} or
+     * {@link CauseAction}
+     * @return a handle by which you may wait for the build to complete (or just start); or null if the build was not
+     * actually scheduled for some reason
+     */
     @CheckForNull
     public Queue.Item scheduleBuild2(int quietPeriod, Action... actions) {
         if (!isBuildable()) {
@@ -677,7 +693,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     /**
      * URL binding and other purposes.
-     * It may be null temporarily inside the constructor, so beware if you extend this class.
+     * It may be {@code null} temporarily inside the constructor, so beware if you extend this class.
+     *
+     * @return the computation.
      */
     @Nonnull
     public FolderComputation<I> getComputation() {
@@ -732,6 +750,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     /**
      * Gets the {@link OrphanedItemStrategyDescriptor}s applicable to this folder.
+     *
+     * @return the {@link OrphanedItemStrategyDescriptor}s applicable to this folder.
      */
     @Restricted(DoNotUse.class) // used by Jelly
     @NonNull

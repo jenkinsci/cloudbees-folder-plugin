@@ -358,6 +358,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * The Map of domain credentials.
          *
+         * @return The Map of domain credentials.
          * @since 3.10
          */
         @SuppressWarnings("deprecation")

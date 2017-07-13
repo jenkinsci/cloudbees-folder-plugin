@@ -23,22 +23,34 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
-
 import java.io.IOException;
 import java.util.Collection;
 
 /**
  * A strategy for removing children after they are no longer indexed by an owning {@link ComputedFolder}.
  */
-public abstract class OrphanedItemStrategy extends AbstractDescribableImpl<OrphanedItemStrategy> implements ExtensionPoint {
+public abstract class OrphanedItemStrategy extends AbstractDescribableImpl<OrphanedItemStrategy>
+        implements ExtensionPoint {
 
-    /** parameters and return value as in {@link ComputedFolder#orphanedItems} */
-    public abstract <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException,  InterruptedException;
+    /**
+     * parameters and return value as in {@link ComputedFolder#orphanedItems}
+     *
+     * @param owner    the owning folder.
+     * @param orphaned a nonempty set of items which no longer are supposed to be here
+     * @param listener the listener to report decisions to.
+     * @param <I>      the type of item.
+     * @return any subset of {@code orphaned}, representing those children which ought to be removed from the folder
+     * now; items not listed will be left alone for the time
+     * @throws IOException          if there was an I/O issue processing the items.
+     * @throws InterruptedException if interrupted while processing the items.
+     */
+    public abstract <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner,
+                                                                         Collection<I> orphaned, TaskListener listener)
+            throws IOException, InterruptedException;
 
     /**
      * {@inheritDoc}
