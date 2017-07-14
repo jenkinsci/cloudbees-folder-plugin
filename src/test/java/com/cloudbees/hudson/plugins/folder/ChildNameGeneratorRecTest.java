@@ -63,6 +63,8 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -97,11 +99,11 @@ public class ChildNameGeneratorRecTest {
                         "child-one",
                         "child_two",
                         "child three",
-                        "leanbh cúig",
-                        "ребенок пять",
-                        "儿童六",
-                        "아이 7",
-                        "niño ocho"
+                        "leanbh c\u00FAig", // "leanbh cúig",
+                        "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                        "\u513F\u7AE5\u516D", // "儿童六",
+                        "\uC544\uC774 7", // "아이 7",
+                        "ni\u00F1o ocho" // "niño ocho"
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
@@ -166,11 +168,11 @@ public class ChildNameGeneratorRecTest {
                 "child-one",
                 "child_two",
                 "child three",
-                "leanbh cúig",
-                "ребенок пять",
-                "儿童六",
-                "아이 7",
-                "niño ocho"
+                "leanbh c\u00FAig", // "leanbh cúig",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u513F\u7AE5\u516D", // "儿童六",
+                "\uC544\uC774 7", // "아이 7",
+                "ni\u00F1o ocho" // "niño ocho"
         );
         instance.assertItemShortUrls(round,
                 "job/child-one/",
@@ -196,11 +198,11 @@ public class ChildNameGeneratorRecTest {
                 "child-one",
                 "child_two",
                 "child three",
-                "leanbh cúig",
-                "ребенок пять",
-                "儿童六",
-                "아이 7",
-                "niño ocho"
+                "leanbh c\u00FAig", // "leanbh cúig",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u513F\u7AE5\u516D", // "儿童六",
+                "\uC544\uC774 7", // "아이 7",
+                "ni\u00F1o ocho" // "niño ocho"
         )) {
             checkChild(instance, name);
         }
@@ -210,12 +212,12 @@ public class ChildNameGeneratorRecTest {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
-        assertThat("The root directory if the item for name " + idealName + " is mangled",
+        assertThat("The root directory of the item for name " + idealName + " is mangled",
                 item.getRootDir().getName(), is(mangle(idealName)));
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
                 nameFile.isFile(), is(true));
-        String name = FileUtils.readFileToString(nameFile);
+        String name = FileUtils.readFileToString(nameFile, "UTF-8");
         assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
                 + " contains the encoded name", name, is(encodedName));
     }
@@ -434,7 +436,7 @@ public class ChildNameGeneratorRecTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
         }
 
         public void assertItemShortUrls(int round, String... names) {

@@ -43,6 +43,7 @@ import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,7 @@ import java.util.TreeSet;
 import javax.annotation.Nonnull;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;
@@ -62,6 +64,8 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -223,65 +227,124 @@ public class ChildNameGeneratorTest {
 
     private void checkComputedFolder(ComputedFolderImpl instance, int round, Normalizer.Form form) throws IOException {
         assertThat("We detected the filesystem normalization form", form, notNullValue());
-        instance.assertItemNames(round,
-                "$$child-one",
-                "$$child_two",
-                "$$child three",
-                "$$leanbh cu\u0301ig",
-                "$$ребенок пять",
-                "$$儿童六",
-                "$$\u110b\u1161\u110b\u1175 7",
-                "$$nin\u0303o ocho"
-        );
-        instance.assertItemShortUrls(round,
-                "job/$$child-one/",
-                "job/$$child_two/",
-                "job/$$child%20three/",
-                "job/$$leanbh%20cu%CC%81ig/",
-                "job/$$%D1%80%D0%B5%D0%B1%D0%B5%D0%BD%D0%BE%D0%BA%20%D0%BF%D1%8F%D1%82%D1%8C/", // ребенок пять
-                "job/$$%E5%84%BF%E7%AB%A5%E5%85%AD/", // 儿童六
-                "job/$$%E1%84%8B%E1%85%A1%E1%84%8B%E1%85%B5%207/", // 아이 7
-                "job/$$nin%CC%83o%20ocho/"
-        );
-        switch (form) {
-            case NFC:
-            case NFKC:
-                instance.assertItemDirs(round,
-                        "child_on-1ec93354e47959489d1440d",
-                        "child_tw-bca7d461e11f4f3ed12fd0d",
-                        "child_th-b7a6e5662f26eb036090308",
-                        "leanbh_c-cde398abd1bc432e87c49ca",
-                        "________-97e4b38574769f9d9968fe9", // ребенок пять
-                        "___-d22e9fe51690274d8262bda", // 儿童六
-                        "_____7-d57fff123224bd679e4213b", // 아이 7
-                        "nin_o_oc-1a0c91070942136ba398919"
-                );
+        boolean windows = false;
+        for (FreeStyleProject p : instance.getItems()) {
+            if ("$$leanbh cu\u0301ig".equals(p.getName())) {
+                windows = false;
                 break;
-            case NFD:
-            case NFKD:
-                instance.assertItemDirs(round,
-                        "child_on-1ec93354e47959489d1440d",
-                        "child_tw-bca7d461e11f4f3ed12fd0d",
-                        "child_th-b7a6e5662f26eb036090308",
-                        "leanbh_c-66fe5ac0be4a896280ef09f",
-                        "________-97e4b38574769f9d9968fe9", // ребенок пять
-                        "___-d22e9fe51690274d8262bda", // 儿童六
-                        "_____7-6d2219439eec0df19863ab8", // 아이 7
-                        "nin_o_oc-782e3bad2d233732a03f9dd"
-                );
+            } else if ("$$leanbh cuI\u0300\ufffdig".equals(p.getName())) {
+                windows = true;
                 break;
+            }
         }
-        for (String name: Arrays.asList(
-                "child-one",
-                "child_two",
-                "child three",
-                "leanbh cúig",
-                "ребенок пять",
-                "儿童六",
-                "아이 7",
-                "niño ocho"
-        )) {
-            checkChild(instance, Normalizer.normalize(name, form));
+        if (windows) {
+            instance.assertItemNames(round,
+                    "$$child-one",
+                    "$$child_two",
+                    "$$child three",
+                    "$$leanbh cuI\u0300\ufffdig",
+                    "$$N\u0303\u20ac\u00d0\u00b5\u00d0\u00b1\u00d0\u00b5\u00d0\u00bd\u00d0\u00be\u00d0\u00ba "
+                            + "\u00d0\u00bfN\u0303\ufffdN\u0303\u201aN\u0303\u0152", //"ребенок пять",
+                    "$$a\u030a\u201e\u00bfc\u0327\u00ab\u00a5a\u030a\u2026\u00ad", // "儿童六",
+                    "$$a\u0301\u201e\u2039a\u0301\u2026\u00a1a\u0301\u201e\u2039a\u0301\u2026\u00b5 7", // 아이 7
+                    "$$ninI\u0300\u0192o ocho"
+            );
+            instance.assertItemShortUrls(round,
+                    "job/$$child-one/",
+                    "job/$$child_two/",
+                    "job/$$child%20three/",
+                    "job/$$leanbh%20cuI%CC%80%EF%BF%BDig/",
+                    "job/$$N%CC%83%E2%82%AC%C3%90%C2%B5%C3%90%C2%B1%C3%90%C2%B5%C3%90%C2%BD%C3%90%C2%BE%C3%90%C2%BA"
+                            + "%20%C3%90%C2%BFN%CC%83%EF%BF%BDN%CC%83%E2%80%9AN%CC%83%C5%92/", // ребенок пять
+                    "job/$$a%CC%8A%E2%80%9E%C2%BFc%CC%A7%C2%AB%C2%A5a%CC%8A%E2%80%A6%C2%AD/", // 儿童六
+                    "job/$$a%CC%81%E2%80%9E%E2%80%B9a%CC%81%E2%80%A6%C2%A1a%CC%81%E2%80%9E%E2%80%B9a%CC%81%E2%80%A6"
+                            + "%C2%B5%207/", // 아이 7
+                    "job/$$ninI%CC%80%C6%92o%20ocho/"
+            );
+            instance.assertItemDirs(round,
+                    "child_on-1ec93354e47959489d1440d",
+                    "child_tw-bca7d461e11f4f3ed12fd0d",
+                    "child_th-b7a6e5662f26eb036090308",
+                    "leanbh_c-f20a7f57e8c40185b550296",
+                    "n_______-0cf1929f67ea2901a9bab2d", // ребенок пять
+                    "a___c___-5ef56a0f2914216ae5d5a49", // 儿童六
+                    "a___a___-0f5050ad36d8b4f8ccbf621", // 아이 7
+                    "nini__o_-7d5abd24952fd3011a7327b"
+            );
+            for (String name : Arrays.asList(
+                    "child-one",
+                    "child_two",
+                    "child three",
+                    "leanbh cu\u0301ig",
+                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "\u513F\u7AE5\u516D", // "儿童六",
+                    "\u110b\u1161\u110b\u1175 7",
+                    "nin\u0303o ocho"
+            )) {
+                checkChild(instance, new String(name.getBytes("UTF-8"), "Windows-1252"));
+            }
+
+        } else {
+            instance.assertItemNames(round,
+                    "$$child-one",
+                    "$$child_two",
+                    "$$child three",
+                    "$$leanbh cu\u0301ig",
+                    "$$\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "$$\u513F\u7AE5\u516D", // "儿童六",
+                    "$$\u110b\u1161\u110b\u1175 7",
+                    "$$nin\u0303o ocho"
+            );
+            instance.assertItemShortUrls(round,
+                    "job/$$child-one/",
+                    "job/$$child_two/",
+                    "job/$$child%20three/",
+                    "job/$$leanbh%20cu%CC%81ig/",
+                    "job/$$%D1%80%D0%B5%D0%B1%D0%B5%D0%BD%D0%BE%D0%BA%20%D0%BF%D1%8F%D1%82%D1%8C/", // ребенок пять
+                    "job/$$%E5%84%BF%E7%AB%A5%E5%85%AD/", // 儿童六
+                    "job/$$%E1%84%8B%E1%85%A1%E1%84%8B%E1%85%B5%207/", // 아이 7
+                    "job/$$nin%CC%83o%20ocho/"
+            );
+            switch (form) {
+                case NFC:
+                case NFKC:
+                    instance.assertItemDirs(round,
+                            "child_on-1ec93354e47959489d1440d",
+                            "child_tw-bca7d461e11f4f3ed12fd0d",
+                            "child_th-b7a6e5662f26eb036090308",
+                            "leanbh_c-cde398abd1bc432e87c49ca",
+                            "________-97e4b38574769f9d9968fe9", // ребенок пять
+                            "___-d22e9fe51690274d8262bda", // 儿童六
+                            "_____7-d57fff123224bd679e4213b", // 아이 7
+                            "nin_o_oc-1a0c91070942136ba398919"
+                    );
+                    break;
+                case NFD:
+                case NFKD:
+                    instance.assertItemDirs(round,
+                            "child_on-1ec93354e47959489d1440d",
+                            "child_tw-bca7d461e11f4f3ed12fd0d",
+                            "child_th-b7a6e5662f26eb036090308",
+                            "leanbh_c-66fe5ac0be4a896280ef09f",
+                            "________-97e4b38574769f9d9968fe9", // ребенок пять
+                            "___-d22e9fe51690274d8262bda", // 儿童六
+                            "_____7-6d2219439eec0df19863ab8", // 아이 7
+                            "nin_o_oc-782e3bad2d233732a03f9dd"
+                    );
+                    break;
+            }
+            for (String name : Arrays.asList(
+                    "child-one",
+                    "child_two",
+                    "child three",
+                    "leanbh c\u00FAig", // "leanbh cúig",
+                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "\u513F\u7AE5\u516D", // "儿童六",
+                    "\uC544\uC774 7", // "아이 7",
+                    "ni\u00F1o ocho" // "niño ocho"
+            )) {
+                checkChild(instance, Normalizer.normalize(name, form));
+            }
         }
     }
 
@@ -294,10 +357,19 @@ public class ChildNameGeneratorTest {
                     form = Normalizer.Form.NFC;
                     System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
                     break;
-                }
-                if ("leanbh-cu\u0301ig.probe".equals(f.getName())) {
+                } else if ("leanbh-c\u00c3\u00baig.probe".equals(f.getName())) {
+                    // Windows-1252
+                    form = Normalizer.Form.NFC;
+                    System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is Windows-1252 NFC\n\n");
+                    break;
+                } else if ("leanbh-cu\u0301ig.probe".equals(f.getName())) {
                     form = Normalizer.Form.NFD;
                     System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
+                    break;
+                } else if ("leanbh-cu\u00cc\ufffdig.probe".equals(f.getName())) {
+                    // Windows-1252
+                    form = Normalizer.Form.NFD;
+                    System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is Windows-1252 NFD\n\n");
                     break;
                 }
             }
@@ -323,7 +395,7 @@ public class ChildNameGeneratorTest {
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
                 nameFile.isFile(), is(true));
-        String name = FileUtils.readFileToString(nameFile);
+        String name = FileUtils.readFileToString(nameFile, "UTF-8");
         assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
                 + " contains the encoded name", name, is(encodedName));
     }
@@ -544,7 +616,10 @@ public class ChildNameGeneratorTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(asJavaStrings(actual), anyOf(
+                    is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))),
+                    is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))
+            ));
         }
 
         public void assertItemShortUrls(int round, String... names) {
@@ -659,5 +734,23 @@ public class ChildNameGeneratorTest {
         }
     }
 
+    static CharSequence asJavaString(String rawString) {
+        StringBuilder b = new StringBuilder();
+        for (char c : rawString.toCharArray()) {
+            if (c >= 32 && c < 128) {
+                b.append(c);
+            } else {
+                b.append("\\u").append(StringUtils.leftPad(Integer.toHexString(c & 0xffff), 4, '0'));
+            }
+        }
+        return b;
+    }
 
+    static Set<String> asJavaStrings(Iterable<String> strings) {
+        Set<String> result = new TreeSet<>();
+        for (String s: strings) {
+            result.add(asJavaString(s).toString());
+        }
+        return result;
+    }
 }
