@@ -26,10 +26,9 @@ package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.html.HtmlRadioButtonInput;
+import com.gargoylesoftware.htmlunit.HttpMethod;
+import com.gargoylesoftware.htmlunit.WebRequest;
+import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.Actionable;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -47,6 +46,8 @@ import hudson.tasks.BuildTrigger;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -137,22 +138,26 @@ public class FolderTest {
         JenkinsRule.WebClient wc = r.createWebClient();
 
         // "foo" should copy "child"
-        copyFromGUI(f, wc, "foo", "xyz");
+        copyViaHttp(f, wc, "foo", "xyz");
         assertEquals("child",((Job)f.getItem("xyz")).getDescription());
         
         // "/foo" should copy "top"
-        copyFromGUI(f, wc, "/foo", "uvw");
+        copyViaHttp(f, wc, "/foo", "uvw");
         assertEquals("top",((Job)f.getItem("uvw")).getDescription());
 
     }
 
-    private void copyFromGUI(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
-        HtmlPage page = wc.getPage(f, "newJob");
-        ((HtmlInput)page.getElementById("name")).type(toName);
-        HtmlInput fe = (HtmlInput) page.getElementById("from");
-        fe.focus();
-        fe.type(fromName);
-        r.submit(page.getFormByName("createItem"));
+    private void copyViaHttp(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
+        // Taken from https://github.com/jenkinsci/jenkins/blob/80aa2c8e4093df270193402c3933f3f1f16271da/test/src/test/java/hudson/jobs/CreateItemTest.java#L68
+        r.jenkins.setCrumbIssuer(null);
+
+        URL apiURL = new URL(
+                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, "UTF-8") + "&name=" + URLEncoder.encode(toName, "UTF-8"));
+
+        WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+        request.setEncodingType(null);
+        assertTrue("Copy Job request has failed", 200 == r.createWebClient()
+                    .getPage(request).getWebResponse().getStatusCode());
     }
 
     /**
@@ -336,7 +341,10 @@ public class FolderTest {
     @Issue("JENKINS-32487")
     @Test public void shouldAssignPropertyOwnerOnCreationAndReload() throws Exception {
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
-        r.jenkins.setAuthorizationStrategy(new ProjectMatrixAuthorizationStrategy());
+        ProjectMatrixAuthorizationStrategy as = new ProjectMatrixAuthorizationStrategy();
+        // Need to do this to avoid JENKINS-9774
+        as.add(Jenkins.ADMINISTER, "alice");
+        r.jenkins.setAuthorizationStrategy(as);
         
         // We add a stub property to generate the persisted list
         // Then we ensure owner is being assigned properly.
@@ -363,8 +371,11 @@ public class FolderTest {
         Set<String> sids = new HashSet<String>();
         sids.add("admin");
         grantedPermissions.put(Jenkins.ADMINISTER, sids);
-        folder = r.jenkins.getItemByFullName("myFolder", Folder.class); 
-        r.jenkins.setAuthorizationStrategy(new ProjectMatrixAuthorizationStrategy());
+        folder = r.jenkins.getItemByFullName("myFolder", Folder.class);
+        ProjectMatrixAuthorizationStrategy as = new ProjectMatrixAuthorizationStrategy();
+        // Need to do this to avoid JENKINS-9774
+        as.add(Jenkins.ADMINISTER, "alice");
+        r.jenkins.setAuthorizationStrategy(as);
         folder.addProperty(new com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty(grantedPermissions));
         
         // Reload folder from disk and check the state
