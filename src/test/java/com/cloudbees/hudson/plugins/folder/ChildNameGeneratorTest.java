@@ -271,11 +271,6 @@ public class ChildNameGeneratorTest {
                     "a___a___-0f5050ad36d8b4f8ccbf621", // 아이 7
                     "nini__o_-7d5abd24952fd3011a7327b"
             );
-            for (FreeStyleProject item: instance.getItems()) {
-                System.out.printf("\"%s\" -> \"%s\" -> \"%s\"%n", asJavaString(item.getDisplayName()),
-                        asJavaString(item.getName()), asJavaString(item.getRootDir().getName()));
-            }
-            System.out.println(Charset.defaultCharset().name());
             for (String name : Arrays.asList(
                     "child-one",
                     "child_two",
