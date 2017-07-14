@@ -277,7 +277,7 @@ public class ChildNameGeneratorTest {
                     "child-one",
                     "child_two",
                     "child three",
-                    "leanbh cuI\u00cc\ufffdig",
+                    "leanbh cu\u00cc\ufffdig",
                     "N\u0303\u20ac\u00d0\u00b5\u00d0\u00b1\u00d0\u00b5\u00d0\u00bd\u00d0\u00be\u00d0\u00ba "
                             + "\u00d0\u00bfN\u0303\ufffdN\u0303\u201aN\u0303\u0152", //"ребенок пять",
                     "a\u030a\u201e\u00bfc\u0327\u00ab\u00a5a\u030a\u2026\u00ad", // "儿童六",
