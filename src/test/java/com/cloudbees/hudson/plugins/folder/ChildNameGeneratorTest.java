@@ -43,6 +43,7 @@ import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -274,18 +275,18 @@ public class ChildNameGeneratorTest {
                 System.out.printf("\"%s\" -> \"%s\" -> \"%s\"%n", asJavaString(item.getDisplayName()),
                         asJavaString(item.getName()), asJavaString(item.getRootDir().getName()));
             }
+            System.out.println(Charset.defaultCharset().name());
             for (String name : Arrays.asList(
                     "child-one",
                     "child_two",
                     "child three",
-                    "leanbh cu\u00cc\ufffdig",
-                    "N\u0303\u20ac\u00d0\u00b5\u00d0\u00b1\u00d0\u00b5\u00d0\u00bd\u00d0\u00be\u00d0\u00ba "
-                            + "\u00d0\u00bfN\u0303\ufffdN\u0303\u201aN\u0303\u0152", //"ребенок пять",
-                    "a\u030a\u201e\u00bfc\u0327\u00ab\u00a5a\u030a\u2026\u00ad", // "儿童六",
-                    "a\u0301\u201e\u2039a\u0301\u2026\u00a1a\u0301\u201e\u2039a\u0301\u2026\u00b5 7", // 아이 7
-                    "ninI\u0300\u0192o ocho"
+                    "leanbh cu\u0301ig",
+                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "\u513F\u7AE5\u516D", // "儿童六",
+                    "\u110b\u1161\u110b\u1175 7",
+                    "nin\u0303o ocho"
             )) {
-                checkChild(instance, name);
+                checkChild(instance, new String(name.getBytes("UTF-8"), "Windows-1252"));
             }
 
         } else {
