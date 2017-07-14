@@ -43,6 +43,12 @@ THE SOFTWARE.
           <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
         </f:entry>
 
+        <j:if test="${it.supportsMakeDisabled()}">
+          <f:entry title="${%Disable}" field="disable">
+            <f:checkbox title="${%blurb(it.pronoun)}"/>
+          </f:entry>
+        </j:if>
+
         <st:include page="configure-details" optional="true"/>
 
         <j:choose>

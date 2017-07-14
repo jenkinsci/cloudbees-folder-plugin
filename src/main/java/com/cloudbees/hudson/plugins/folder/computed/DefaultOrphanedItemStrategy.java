@@ -23,15 +23,19 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.tasks.LogRotator;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -167,6 +171,10 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
 
     private static long lastBuildTime(TopLevelItem item) {
         long t = 0;
+        if (item instanceof ComputedFolder) {
+            // pick up special case of computed folders
+            t = ((ComputedFolder)item).getComputation().getTimestamp().getTimeInMillis();
+        }
         for (Job<?,?> j : item.getAllJobs()) {
             Run<?,?> b = j.getLastBuild();
             if (b != null) {
@@ -174,6 +182,23 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             }
         }
         return t;
+    }
+
+    private static boolean disabled(TopLevelItem item) {
+        // TODO revisit once https://github.com/jenkinsci/jenkins/pull/2866 available in baseline Jenkins
+        if (item instanceof AbstractFolder) {
+            return ((AbstractFolder) item).isDisabled();
+        } else if (item instanceof AbstractProject) {
+            return ((AbstractProject) item).isDisabled();
+        } else {
+            try {
+                Method isDisabled = item.getClass().getMethod("isDisabled");
+                return boolean.class.equals(isDisabled.getReturnType()) && (Boolean)isDisabled.invoke(item);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                // assume not disabled
+                return false;
+            }
+        }
     }
 
     @Override
@@ -185,10 +210,16 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             Collections.sort(candidates, new Comparator<I>() {
                 @Override
                 public int compare(I i1, I i2) {
+                    boolean disabled1 = disabled(i1);
+                    boolean disabled2 = disabled(i2);
+                    // prefer the not previously disabled ahead of the previously disabled
+                    if (disabled1 ^ disabled2) {
+                        return disabled2 ? -1 : +1;
+                    }
                     // most recent build first
                     long ms1 = lastBuildTime(i1);
                     long ms2 = lastBuildTime(i2);
-                    return (ms2 < ms1) ? -1 : ((ms2 == ms1) ? 0 : 1); // TODO Java 7+: Long.compare(ms2, ms1);
+                    return Long.compare(ms2, ms1);
                 }
             });
             CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {

@@ -77,6 +77,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.Issue;
@@ -127,6 +128,49 @@ public class ComputedFolderTest {
             descriptions.put(p.getName(), p.getDescription());
         }
         assertEquals("{A=updated in round #5, B=created in round #5, C=updated in round #5, D=created in round #5}", descriptions.toString());
+    }
+
+    @Test
+    public void disableOrphans() throws Exception {
+        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        d.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, "-1", "1"));
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(1);
+        d.kids.addAll(Arrays.asList("A", "B", "C"));
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(2, "A", "B", "C");
+        d.kids.remove("B");
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(3, "A", "B", "C");
+        assertThat(d.getItem("A").isDisabled(), is(false));
+        assertThat(d.getItem("B").isDisabled(), is(true));
+        assertThat(d.getItem("C").isDisabled(), is(false));
+        d.kids.remove("C");
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(4, "A", "C");
+        assertThat(d.getItem("A").isDisabled(), is(false));
+        assertThat(d.getItem("C").isDisabled(), is(true));
+    }
+
+    @Test
+    public void disableFolder() throws Exception {
+        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(1);
+        d.kids.addAll(Arrays.asList("A", "B", "C"));
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(2, "A", "B", "C");
+        assertThat(d.getItem("A").scheduleBuild2(0), not(nullValue()));
+
+        d.makeDisabled(true);
+        assertThat(d.scheduleBuild2(0), is(nullValue()));
+        assertThat(d.getItem("A").scheduleBuild2(0), is(nullValue()));
+        d.assertItemNames(2, "A", "B", "C");
+
+        d.makeDisabled(false);
+        d.recompute(Result.SUCCESS);
+        assertThat(d.getItem("A").scheduleBuild2(0), not(nullValue()));
+        d.assertItemNames(3, "A", "B", "C");
     }
 
     @Issue("JENKINS-42680")
@@ -753,6 +797,10 @@ public class ComputedFolderTest {
     }
 
     static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
+        if (d.isDisabled()) {
+            assertEquals("Folder " + d.getFullName() + " is disabled", result, Result.NOT_BUILT);
+            return "DISABLED";
+        }
         d.scheduleBuild2(0).getFuture().get();
         FolderComputation<?> computation = d.getComputation();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -798,10 +846,10 @@ public class ComputedFolderTest {
         }
 
         String assertItemNames(String... names) throws Exception {
-            String log = doRecompute(this, Result.SUCCESS);
+            String log = doRecompute(this, this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
             Set<String> actual = new TreeSet<String>();
             for (SampleComputedFolder d : getItems()) {
-                d.recompute(Result.SUCCESS);
+                d.recompute(d.isDisabled() || this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
                 d.assertItemNames(d.round, d.kids.toArray(new String[0]));
                 actual.add(d.getName());
             }

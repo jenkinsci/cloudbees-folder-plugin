@@ -28,16 +28,15 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.thoughtworks.xstream.XStreamException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.XmlFile;
+import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.Descriptor;
-import hudson.model.Executor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Items;
@@ -49,7 +48,6 @@ import hudson.model.ResourceList;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
-import hudson.model.User;
 import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.SubTask;
@@ -60,6 +58,8 @@ import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -69,7 +69,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -77,7 +76,6 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import jenkins.model.CauseOfInterruption;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.util.TimeDuration;
@@ -121,6 +119,13 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * Our {@link Trigger}s.
      */
     private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
+
+    /**
+     * Is this folder disabled.
+     *
+     * @since 6.1.0
+     */
+    private volatile boolean disabled;
 
     /**
      * Our {@link FolderComputation}.
@@ -275,17 +280,49 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                     LOGGER.log(Level.FINE, "{0}: orphaned {1}",
                             new Object[]{getFullName(), orphaned.keySet()});
                 }
-                for (I existing : orphanedItems(orphaned.values(), listener)) {
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
+                Collection<I> forRemoval = orphanedItems(orphaned.values(), listener);
+                for (I existing : orphaned.values()) {
+                    if (forRemoval.contains(existing)) {
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
+                        }
+                        existing.delete();
+                        // super.onDeleted handles removal from items
+                    } else {
+                        applyDisabled(existing, true);
                     }
-                    existing.delete();
-                    // super.onDeleted handles removal from items
                 }
             }
         }
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "finished updating {0}", getFullName());
+        }
+    }
+
+    private void applyDisabled(I item, boolean disabled) {
+        try {
+            // TODO revisit once https://github.com/jenkinsci/jenkins/pull/2866 available in baseline Jenkins
+            if (item instanceof AbstractFolder) {
+                ((AbstractFolder) item).makeDisabled(disabled);
+            } else if (item instanceof AbstractProject) {
+                ((AbstractProject) item).makeDisabled(disabled);
+            } else {
+                try {
+                    Method makeDisabled = item.getClass().getMethod("makeDisabled", boolean.class);
+                    makeDisabled.invoke(item, disabled);
+                } catch (NoSuchMethodException | IllegalAccessException e) {
+                    // it's just not supported, so we cannot expect it to succeed
+                    LOGGER.log(Level.FINE,
+                            "Cannot not " + (disabled ? "disable " : "enanble ") + item.getFullName(), e);
+                } catch (InvocationTargetException e) {
+                    // it's supported but something went wrong
+                    LOGGER.log(Level.WARNING,
+                            "Could not " + (disabled ? "disable " : "enanble ") + item.getFullName(), e);
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING,
+                    "Could not " + (disabled ? "disable " : "enanble ") + item.getFullName(), e);
         }
     }
 
@@ -326,6 +363,32 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     protected final ChildObserver<I> openEventsChildObserver() {
         return new EventChildObserver();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean supportsMakeDisabled() {
+        return true;
+
     }
 
     /**
@@ -465,6 +528,16 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @return {@code true} if this folder can currenty be recomputed.
      */
     public boolean isBuildable() {
+        if (isDisabled()) {
+            return false;
+        }
+        // TODO revisit logic when Jenkins core allows ItemGroups to expose their disabled state
+        // until then we just need to check if a parent is disabled
+        for (ItemGroup p = getParent(); p instanceof Item; p = (((Item) p).getParent())) {
+            if (p instanceof AbstractFolder && ((AbstractFolder) p).isDisabled()) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -640,6 +713,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Override
     public final FolderComputation<I> createExecutable() throws IOException {
+        if (isDisabled()) {
+            return null;
+        }
         FolderComputation<I> c = createComputation(computation);
         computation = c;
         LOGGER.log(Level.FINE, "Recording {0} @{1}", new Object[] {c, c.getTimestamp()});
@@ -805,6 +881,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             }
             if (existing != null) {
                 observed.add(name);
+                applyDisabled(existing, false);
             }
             LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
             return existing;
@@ -921,6 +998,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             I existing = items.get(name);
             if (existing != null) {
                 observed.add(name);
+                applyDisabled(existing, false);
             }
             LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[]{fullName, name, existing});
             return existing;
