@@ -797,6 +797,10 @@ public class ComputedFolderTest {
     }
 
     static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
+        if (d.isDisabled()) {
+            assertEquals("Folder " + d.getFullName() + " is disabled", result, Result.NOT_BUILT);
+            return "DISABLED";
+        }
         d.scheduleBuild2(0).getFuture().get();
         FolderComputation<?> computation = d.getComputation();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -842,10 +846,10 @@ public class ComputedFolderTest {
         }
 
         String assertItemNames(String... names) throws Exception {
-            String log = doRecompute(this, Result.SUCCESS);
+            String log = doRecompute(this, this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
             Set<String> actual = new TreeSet<String>();
             for (SampleComputedFolder d : getItems()) {
-                d.recompute(Result.SUCCESS);
+                d.recompute(d.isDisabled() || this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
                 d.assertItemNames(d.round, d.kids.toArray(new String[0]));
                 actual.add(d.getName());
             }
