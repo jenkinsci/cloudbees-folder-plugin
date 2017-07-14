@@ -47,7 +47,7 @@ import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
 import java.io.IOException;
 import java.net.URL;
-import java.text.MessageFormat;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -151,9 +151,8 @@ public class FolderTest {
         // Taken from https://github.com/jenkinsci/jenkins/blob/80aa2c8e4093df270193402c3933f3f1f16271da/test/src/test/java/hudson/jobs/CreateItemTest.java#L68
         r.jenkins.setCrumbIssuer(null);
 
-        URL apiURL = new URL(MessageFormat.format(
-                "{0}/{1}createItem?mode=copy&from={2}&name={3}",
-                r.jenkins.getRootUrl().toString(), f.getUrl().toString(), fromName, toName));
+        URL apiURL = new URL(
+                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, "UTF-8") + "&name=" + URLEncoder.encode(toName, "UTF-8"));
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
