@@ -38,18 +38,15 @@ import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
-import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Items;
 import hudson.model.Queue;
 import hudson.model.Result;
-import hudson.model.Run;
 import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
-import hudson.model.queue.Executables;
 import hudson.model.queue.QueueTaskDispatcher;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
@@ -75,7 +72,6 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import jenkins.model.Jenkins;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
@@ -84,7 +80,6 @@ import org.apache.commons.jelly.XMLOutput;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -390,14 +385,6 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     @RequirePOST
     public synchronized HttpResponse doStop() throws IOException, ServletException {
         Executor e = Executor.of(this);
-        if (e == null) {
-            for (Computer c : Jenkins.getActiveInstance().getComputers()) {
-                for (Executor e1 : c.getOneOffExecutors()) {
-                    if (e1.getCurrentExecutable() == this)
-                        e = e1;
-                }
-            }
-        }
         if (e != null) {
             return e.doStop();
         } else {
