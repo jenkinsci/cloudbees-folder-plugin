@@ -50,6 +50,7 @@ import hudson.model.listeners.SaveableListener;
 import hudson.model.queue.QueueTaskDispatcher;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
+import hudson.util.HttpResponses;
 import hudson.util.StreamTaskListener;
 import hudson.util.io.ReopenableRotatingFileOutputStream;
 import java.io.ByteArrayInputStream;
@@ -70,14 +71,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * A particular “run” of {@link ComputedFolder}.
@@ -370,6 +374,22 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         } finally {
             IOUtils.closeQuietly(input);
             IOUtils.closeQuietly(out);
+        }
+    }
+
+    /**
+     * Stops this build if it's still going.
+     *
+     * @return the Http response.
+     */
+    @RequirePOST
+    public synchronized HttpResponse doStop() throws IOException, ServletException {
+        Executor e = Executor.of(this);
+        if (e != null) {
+            return e.doStop();
+        } else {
+            // nothing is building
+            return HttpResponses.forwardToPreviousPage();
         }
     }
 
