@@ -34,6 +34,7 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.tasks.LogRotator;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -84,6 +85,32 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
         this.numToKeep = pruneDeadBranches ? fromString(numToKeepStr) : -1;
+    }
+
+    /**
+     * Programmatic constructor.
+     *
+     * @param pruneDeadBranches remove dead branches.
+     * @param daysToKeep     how old a branch must be to remove.
+     * @param numToKeep      how many branches to keep.
+     */
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
+        this.pruneDeadBranches = pruneDeadBranches;
+        this.daysToKeep = pruneDeadBranches && daysToKeep > 0? daysToKeep : -1;
+        this.numToKeep = pruneDeadBranches && numToKeep > 0 ? numToKeep : -1;
+    }
+
+    /**
+     * Migrate legacy configurations to correct configuration.
+     *
+     * @return the deserialized object.
+     * @throws ObjectStreamException if something goes wrong.
+     */
+    private Object readResolve() throws ObjectStreamException {
+        if (daysToKeep == 0 || numToKeep == 0) {
+            return new DefaultOrphanedItemStrategy(pruneDeadBranches, daysToKeep, numToKeep);
+        }
+        return this;
     }
 
     /**
@@ -204,7 +231,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         List<I> toRemove = new ArrayList<I>();
-        if (pruneDeadBranches && (numToKeep != -1 || daysToKeep != -1)) {
+        if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
             List<I> candidates = new ArrayList<I>(orphaned);
             Collections.sort(candidates, new Comparator<I>() {
@@ -265,6 +292,13 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                         continue;
                     }
                     listener.getLogger().printf("Will remove %s as it is too old%n", item.getDisplayName());
+                    toRemove.add(item);
+                }
+            }
+            if (daysToKeep == -1 && numToKeep == -1) {
+                // special case, we have not said to keep for any count or duration, hence remove them all
+                for (I item : candidates) {
+                    listener.getLogger().printf("Will remove %s%n", item.getDisplayName());
                     toRemove.add(item);
                 }
             }

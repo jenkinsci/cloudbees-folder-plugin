@@ -186,7 +186,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     protected final void init() {
         super.init();
         if (orphanedItemStrategy == null) {
-            orphanedItemStrategy = new DefaultOrphanedItemStrategy(true, "0", "0");
+            orphanedItemStrategy = new DefaultOrphanedItemStrategy(true, "", "");
         }
         if (triggers == null) {
             triggers = new DescribableList<Trigger<?>,TriggerDescriptor>(this);
