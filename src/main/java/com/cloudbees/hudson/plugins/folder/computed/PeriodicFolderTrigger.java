@@ -38,7 +38,6 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -56,6 +55,16 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      * Captures the time that this class was loaded.
      */
     private static final long startup = System.currentTimeMillis();
+    /**
+     * A constant to subtract from interval comparisons to prevent sympathetic harmonization.
+     * The thread will wake a multiple of every 60 seconds. {@link #interval} can only ever be a multiple of 60 seconds.
+     * Unless the system is under heavy thread contention, we will likely see 60 seconds since last run as not more
+     * than 60 second interval by subtracting this factor, we catch the issue and save 1 minute on each interval
+     * otherwise 1 min interval == run every 2 min; 2 min interval == run every 3, etc.
+     * We could probably increase this to 29.999 seconds but that would risk early scheduling on a system with
+     * high thread contention.
+     */
+    private static final long ANTI_SYMPATHETIC_HARMONIZATION = TimeUnit2.SECONDS.toMillis(1);
 
     /**
      * The interval between successive indexings.
@@ -189,7 +198,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         FolderComputation<?> computation = job.getComputation();
         if (computation != null) {
             long delay = now - computation.getTimestamp().getTimeInMillis();
-            if (delay < interval) {
+            if (delay < interval - ANTI_SYMPATHETIC_HARMONIZATION) {
                 LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
                 return;
             }
@@ -200,7 +209,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
                 // when creating new instances this will be ignored as the computation result will be null
                 lastTriggered = startup + new Random().nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
             }
-            if (now - lastTriggered < interval && computation.getResult() != null) {
+            if (now - lastTriggered < interval - ANTI_SYMPATHETIC_HARMONIZATION && computation.getResult() != null) {
                 LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
                 return;
             }
