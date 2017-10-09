@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
-import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.model.AbstractItem;
@@ -33,6 +32,7 @@ import hudson.model.ItemGroup;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.TopLevelItem;
+import hudson.security.ACL;
 import hudson.security.AccessControlled;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,9 +48,11 @@ import org.kohsuke.stapler.HttpResponses;
 /**
  * Handler which can move items which are both {@link AbstractItem} and {@link TopLevelItem} into a {@link DirectlyModifiableTopLevelItemGroup}.
  */
+@SuppressWarnings("rawtypes")
 @Restricted(NoExternalUse.class)
 @Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
 
+    @Override
     public HandlingMode applicability(Item item) {
         if (item instanceof TopLevelItem
                 && item instanceof AbstractItem
@@ -78,16 +80,15 @@ import org.kohsuke.stapler.HttpResponses;
     }
 
     public boolean hasValidDestination(Item item) {
-        Jenkins instance = Jenkins.getActiveInstance();
+        Jenkins instance = Jenkins.getInstance();
         if (permitted(item, instance) && instance.getItem(item.getName()) == null) {
             // we can move to the root if there is none with the same name.
             return true;
         }
-        // TODO use Items.allItems(instance, Item.class) once baseline Jenkins 2.37+
-        ITEM: for (Item g : instance.getAllItems()) {
+        ITEM: for (Item g : Items.allItems(ACL.SYSTEM, instance, Item.class)) {
             if (g instanceof DirectlyModifiableTopLevelItemGroup) {
                 DirectlyModifiableTopLevelItemGroup itemGroup = (DirectlyModifiableTopLevelItemGroup) g;
-                if (!permitted(item, itemGroup)) {
+                if (!permitted(item, itemGroup) || /* unlikely since we just checked CREATE, but just in case: */ !g.hasPermission(Item.READ)) {
                     continue;
                 }
                 // Cannot move a folder into itself or a descendant
@@ -126,8 +127,8 @@ import org.kohsuke.stapler.HttpResponses;
 
     @Override
     public List<? extends ItemGroup<?>> validDestinations(Item item) {
-        List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<DirectlyModifiableTopLevelItemGroup>();
-        Jenkins instance = Jenkins.getActiveInstance();
+        List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<>();
+        Jenkins instance = Jenkins.getInstance();
         // ROOT context is only added in case there is not any item with the same name
         // But we add it in case the one is there is the item itself and not a different job with the same name
         // No-op by default
