@@ -64,9 +64,21 @@
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.icon-shim</groupId>
-      <artifactId>icon-shim</artifactId>
+      <artifactId>icon-set</artifactId>
+      <version>1.0.5</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.jenkins-ci.plugins.icon-shim</groupId>
+       <artifactId>icon-shim</artifactId>
       <version>2.0.3</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.jenkins-ci.plugins.icon-shim</groupId>
+          <artifactId>icon-set</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
