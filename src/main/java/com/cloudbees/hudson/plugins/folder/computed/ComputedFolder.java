@@ -564,11 +564,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         if (!isBuildable()) {
             return null;
         }
-        Jenkins j = Jenkins.getInstance();
-        if (j == null) {
-            return null;
-        }
-        return j.getQueue().schedule2(this, quietPeriod, Arrays.asList(actions)).getItem();
+        return Queue.getInstance().schedule2(this, quietPeriod, Arrays.asList(actions)).getItem();
     }
 
     /**
@@ -685,7 +681,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Override
     public Label getAssignedLabel() {
-        Jenkins j = Jenkins.getInstance();
+        Jenkins j = Jenkins.getInstanceOrNull();
         if (j == null) {
             return null;
         }

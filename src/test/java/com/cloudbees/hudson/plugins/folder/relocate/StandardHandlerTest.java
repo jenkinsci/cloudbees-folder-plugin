@@ -29,10 +29,9 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import java.util.Arrays;
 import jenkins.model.Jenkins;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,15 +51,12 @@ public class StandardHandlerTest {
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
             grant(Jenkins.READ, Item.READ).everywhere().to("joe").
             grant(Item.CREATE).onItems(d2).to("joe"));
-        SecurityContext sc = ACL.impersonate(User.get("joe").impersonate());
-        try {
+        try (ACLContext ctx = ACL.as(User.get("joe"))) {
             assertEquals(Arrays.asList(d1, d2), new StandardHandler().validDestinations(j));
             assertEquals(Arrays.asList(r.jenkins, d2), new StandardHandler().validDestinations(d1));
 
             assertNotEquals(Arrays.asList(r.jenkins, d3), new StandardHandler().validDestinations(j));
             assertNotEquals(Arrays.asList(d1, d3), new StandardHandler().validDestinations(d1));
-        } finally {
-            SecurityContextHolder.setContext(sc);
         }
     }
 

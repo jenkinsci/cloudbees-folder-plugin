@@ -114,11 +114,7 @@ public class FolderCron extends PeriodicWork {
      * @param cal the date to check for.
      */
     public void checkTriggers(final Calendar cal) {
-        Jenkins inst = Jenkins.getInstance();
-        if (inst == null) {
-            return;
-        }
-        for (ComputedFolder<?> p : inst.getAllItems(ComputedFolder.class)) {
+        for (ComputedFolder<?> p : Jenkins.getInstance().allItems(ComputedFolder.class)) {
             for (Trigger<?> t : p.getTriggers().values()) {
                 LOGGER.log(Level.FINE, "cron checking {0}", p.getName());
                 CronTabList tabs;
