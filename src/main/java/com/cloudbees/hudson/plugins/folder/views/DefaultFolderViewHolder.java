@@ -24,19 +24,15 @@
 
 package com.cloudbees.hudson.plugins.folder.views;
 
-import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AllView;
 import hudson.model.View;
 import hudson.views.ViewsTabBar;
 import java.io.ObjectStreamException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -134,19 +130,7 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
 
     private Object readResolve() throws ObjectStreamException {
         if (primaryView != null) {
-            // TODO replace reflection with direct access once baseline core has JENKINS-38606 fix merged
-            try {
-                Method migrateLegacyPrimaryAllViewLocalizedName = AllView.class
-                        .getMethod("migrateLegacyPrimaryAllViewLocalizedName", List.class, String.class);
-                primaryView =
-                        (String) migrateLegacyPrimaryAllViewLocalizedName.invoke(null, views, primaryView);
-            } catch (NoSuchMethodException e) {
-                // ignore, Jenkins core does not have JENKINS-38606 fix merged
-            } catch (IllegalAccessException e) {
-                // ignore, Jenkins core does not have JENKINS-38606 fix merged
-            } catch (InvocationTargetException e) {
-                // ignore, Jenkins core does not have JENKINS-38606 fix merged
-            }
+            primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
         }
         return this;
     }
