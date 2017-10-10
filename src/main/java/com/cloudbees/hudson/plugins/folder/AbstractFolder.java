@@ -1110,41 +1110,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 // a complete set of builds in flight
                 Map<Executor, Queue.Executable> buildsInProgress = new LinkedHashMap<>();
                 for (Computer c : Jenkins.getActiveInstance().getComputers()) {
-                    for (Executor e : c.getExecutors()) {
+                    for (Executor e : c.getAllExecutors()) {
                         WorkUnit workUnit = e.getCurrentWorkUnit();
                         if (workUnit != null) {
-                            Item item = ItemDeletion.getItemOf(getParentOf(workUnit.getExecutable()));
-                            if (item != null) {
-                                while (item != null) {
-                                    if (item == this) {
-                                        buildsInProgress.put(e, e.getCurrentExecutable());
-                                        e.interrupt(Result.ABORTED);
-                                        break;
-                                    }
-                                    if (item.getParent() instanceof Item) {
-                                        item = (Item) item.getParent();
-                                    } else {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    for (Executor e : c.getOneOffExecutors()) {
-                        WorkUnit workUnit = e.getCurrentWorkUnit();
-                        if (workUnit != null) {
-                            Item item = ItemDeletion.getItemOf(getParentOf(workUnit.getExecutable()));
-                            if (item != null) {
-                                while (item != null) {
-                                    if (item == this) {
-                                        buildsInProgress.put(e, e.getCurrentExecutable());
-                                        e.interrupt(Result.ABORTED);
-                                        break;
-                                    }
-                                    if (item.getParent() instanceof Item) {
-                                        item = (Item) item.getParent();
-                                    } else {
-                                        break;
+                            Queue.Executable executable = workUnit.getExecutable();
+                            if (executable != null) {
+                                Item item = ItemDeletion.getItemOf(getParentOf(executable));
+                                if (item != null) {
+                                    while (item != null) {
+                                        if (item == this) {
+                                            buildsInProgress.put(e, e.getCurrentExecutable());
+                                            e.interrupt(Result.ABORTED);
+                                            break;
+                                        }
+                                        if (item.getParent() instanceof Item) {
+                                            item = (Item) item.getParent();
+                                        } else {
+                                            break;
+                                        }
                                     }
                                 }
                             }
