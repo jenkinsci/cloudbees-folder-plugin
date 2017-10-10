@@ -46,7 +46,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -54,8 +54,11 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
+import jenkins.model.TransientActionFactory;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -90,8 +93,10 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * <p>
      * We don't want to persist them separately, and these actions
      * come and go as configuration change, so it's kept separate.
+     * @deprecated Use {@link TransientActionFactory} instead.
      */
     @CopyOnWrite
+    @Deprecated
     protected transient volatile List<Action> transientActions = new Vector<Action>();
 
     public Folder(ItemGroup parent, String name) {
@@ -138,33 +143,32 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         updateTransientActions();
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Note that this method returns a read-only view of {@link Action}s.
-     *
-     * @see TransientFolderActionFactory
-     * @see FolderProperty#getFolderActions
-     */
-    @SuppressWarnings("deprecation")
-    @Override
-    public synchronized List<Action> getActions() {
-        // add all the transient actions, too
-        List<Action> actions = new Vector<Action>(super.getActions());
-        actions.addAll(transientActions);
-        // return the read only list to cause a failure on plugins who try to add an action here
-        return Collections.unmodifiableList(actions);
+    @Restricted(DoNotUse.class)
+    @Deprecated
+    @Extension
+    public static class DeprecatedTransientActions extends TransientActionFactory<Folder> {
+
+        @Override
+        public Class<Folder> type() {
+            return Folder.class;
+        }
+
+        @Override
+        public Collection<? extends Action> createFor(Folder target) {
+            return target.transientActions;
+        }
+
     }
 
     /**
-     * effectively deprecated. Since using updateTransientActions correctly
-     * under concurrent environment requires a lock that can too easily cause deadlocks.
+     * @deprecated Use {@link TransientActionFactory} instead.
      */
+    @Deprecated
     protected void updateTransientActions() {
         transientActions = createTransientActions();
     }
 
-    @SuppressWarnings("deprecation")
+    @Deprecated
     protected List<Action> createTransientActions() {
         Vector<Action> ta = new Vector<Action>();
 
