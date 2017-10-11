@@ -212,7 +212,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     }
 
     private static boolean disabled(TopLevelItem item) {
-        // TODO revisit once https://github.com/jenkinsci/jenkins/pull/2866 available in baseline Jenkins
+        // TODO revisit once on 2.61+ for https://github.com/jenkinsci/jenkins/pull/2866
         if (item instanceof AbstractFolder) {
             return ((AbstractFolder) item).isDisabled();
         } else if (item instanceof AbstractProject) {

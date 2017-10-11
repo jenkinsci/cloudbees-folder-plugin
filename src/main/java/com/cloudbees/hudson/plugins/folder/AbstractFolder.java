@@ -30,11 +30,11 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.Util;
+import static hudson.Util.fixEmpty;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
@@ -61,6 +61,7 @@ import hudson.model.View;
 import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
+import static hudson.model.queue.Executables.getParentOf;
 import hudson.model.queue.WorkUnit;
 import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
@@ -79,8 +80,6 @@ import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -103,7 +102,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -127,9 +125,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
-import static hudson.Util.fixEmpty;
-import static hudson.model.queue.Executables.getParentOf;
 
 /**
  * A general-purpose {@link ItemGroup}.
@@ -253,19 +248,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (folderViews == null) {
             if (views != null && !views.isEmpty()) {
                 if (primaryView != null) {
-                    // TODO replace reflection with direct access once baseline core has JENKINS-38606 fix merged
-                    try {
-                        Method migrateLegacyPrimaryAllViewLocalizedName = AllView.class
-                                .getMethod("migrateLegacyPrimaryAllViewLocalizedName", List.class, String.class);
-                        primaryView =
-                                (String) migrateLegacyPrimaryAllViewLocalizedName.invoke(null, views, primaryView);
-                    } catch (NoSuchMethodException e) {
-                        // ignore, Jenkins core does not have JENKINS-38606 fix merged
-                    } catch (IllegalAccessException e) {
-                        // ignore, Jenkins core does not have JENKINS-38606 fix merged
-                    } catch (InvocationTargetException e) {
-                        // ignore, Jenkins core does not have JENKINS-38606 fix merged
-                    }
+                    primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
                 }
                 folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
                         : viewsTabBar);
@@ -340,145 +323,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     protected void initViews(List<View> views) throws IOException {
         AllView v = new AllView("All", this);
         views.add(v);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    // TODO remove once baseline has JENKINS-39404
-    @Override
-    @SuppressWarnings("deprecation")
-    public void addAction(Action a) {
-        super.getActions().add(a);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    // TODO remove once baseline has JENKINS-39404
-    @Override
-    @SuppressWarnings("deprecation")
-    public void replaceAction(Action a) {
-        addOrReplaceAction(a);
-    }
-
-    /**
-     * Add an action, replacing any existing actions of the (exact) same class.
-     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
-     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
-     *
-     * @param a an action to add/replace
-     * @return {@code true} if this actions changed as a result of the call
-     * @since FIXME
-     */
-    // TODO remove once baseline has JENKINS-39404
-    @SuppressWarnings({"ConstantConditions", "deprecation"})
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public boolean addOrReplaceAction(@Nonnull Action a) {
-        if (a == null) {
-            throw new IllegalArgumentException("Action must be non-null");
-        }
-        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
-        List<Action> old = new ArrayList<Action>(1);
-        List<Action> current = super.getActions();
-        boolean found = false;
-        for (Action a2 : current) {
-            if (!found && a.equals(a2)) {
-                found = true;
-            } else if (a2.getClass() == a.getClass()) {
-                old.add(a2);
-            }
-        }
-        current.removeAll(old);
-        if (!found) {
-            addAction(a);
-        }
-        return !found || !old.isEmpty();
-    }
-
-    /**
-     * Remove an action.
-     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
-     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
-     *
-     * @param a an action to remove (if {@code null} then this will be a no-op)
-     * @return {@code true} if this actions changed as a result of the call
-     * @since FIXME
-     */
-    // TODO remove once baseline has JENKINS-39404
-    @SuppressWarnings("deprecation")
-    public boolean removeAction(@Nullable Action a) {
-        if (a == null) {
-            return false;
-        }
-        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
-        return super.getActions().removeAll(Collections.singleton(a));
-    }
-
-    /**
-     * Removes any actions of the specified type.
-     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
-     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
-     *
-     * @param clazz the type of actions to remove
-     * @return {@code true} if this actions changed as a result of the call
-     * @since FIXME
-     */
-    // TODO remove once baseline has JENKINS-39404
-    @SuppressWarnings({"ConstantConditions", "deprecation"})
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public boolean removeActions(@Nonnull Class<? extends Action> clazz) {
-        if (clazz == null) {
-            throw new IllegalArgumentException("Action type must be non-null");
-        }
-        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
-        List<Action> old = new ArrayList<Action>();
-        List<Action> current = super.getActions();
-        for (Action a : current) {
-            if (clazz.isInstance(a)) {
-                old.add(a);
-            }
-        }
-        return current.removeAll(old);
-    }
-
-    /**
-     * Replaces any actions of the specified type by the supplied action.
-     * Note: calls to {@link #getAllActions()} that happen before calls to this method may not see the update.
-     * Note: this method does not affect transient actions contributed by a {@link TransientActionFactory}
-     *
-     * @param clazz the type of actions to replace (note that the action you are replacing this with need not extend
-     *              this class)
-     * @param a     the action to replace with
-     * @return {@code true} if this actions changed as a result of the call
-     * @since FIXME
-     */
-    // TODO remove once baseline has JENKINS-39404
-    @SuppressWarnings({"ConstantConditions", "deprecation"})
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public boolean replaceActions(@Nonnull Class<? extends Action> clazz, Action a) {
-        if (clazz == null) {
-            throw new IllegalArgumentException("Action type must be non-null");
-        }
-        if (a == null) {
-            throw new IllegalArgumentException("Action must be non-null");
-        }
-        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
-        List<Action> old = new ArrayList<Action>();
-        List<Action> current = super.getActions();
-        boolean found = false;
-        for (Action a1 : current) {
-            if (!found && a.equals(a1)) {
-                found = true;
-            } else if (clazz.isInstance(a1) && !a.equals(a1)) {
-                old.add(a1);
-            }
-        }
-        current.removeAll(old);
-        if (!found) {
-            addAction(a);
-        }
-        return !(old.isEmpty() && found);
     }
 
     /**
@@ -1231,7 +1075,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     public void delete() throws IOException, InterruptedException {
         // Some parts copied from AbstractItem.
         checkPermission(DELETE);
-        // TODO remove once baseline core has JENKINS-35160
+        // TODO JENKINS-35160 core API is not reusable: we need part of AbstractItem.delete but with the deletion of children interjected (and not inside a monitor)
         boolean responsibleForAbortingBuilds = !ItemDeletion.contains(this);
         boolean ownsRegistration = ItemDeletion.register(this);
         if (!ownsRegistration && ItemDeletion.isRegistered(this)) {
@@ -1266,41 +1110,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 // a complete set of builds in flight
                 Map<Executor, Queue.Executable> buildsInProgress = new LinkedHashMap<>();
                 for (Computer c : Jenkins.getActiveInstance().getComputers()) {
-                    for (Executor e : c.getExecutors()) {
+                    for (Executor e : c.getAllExecutors()) {
                         WorkUnit workUnit = e.getCurrentWorkUnit();
                         if (workUnit != null) {
-                            Item item = ItemDeletion.getItemOf(getParentOf(workUnit.getExecutable()));
-                            if (item != null) {
-                                while (item != null) {
-                                    if (item == this) {
-                                        buildsInProgress.put(e, e.getCurrentExecutable());
-                                        e.interrupt(Result.ABORTED);
-                                        break;
-                                    }
-                                    if (item.getParent() instanceof Item) {
-                                        item = (Item) item.getParent();
-                                    } else {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    for (Executor e : c.getOneOffExecutors()) {
-                        WorkUnit workUnit = e.getCurrentWorkUnit();
-                        if (workUnit != null) {
-                            Item item = ItemDeletion.getItemOf(getParentOf(workUnit.getExecutable()));
-                            if (item != null) {
-                                while (item != null) {
-                                    if (item == this) {
-                                        buildsInProgress.put(e, e.getCurrentExecutable());
-                                        e.interrupt(Result.ABORTED);
-                                        break;
-                                    }
-                                    if (item.getParent() instanceof Item) {
-                                        item = (Item) item.getParent();
-                                    } else {
-                                        break;
+                            Queue.Executable executable = workUnit.getExecutable();
+                            if (executable != null) {
+                                Item item = ItemDeletion.getItemOf(getParentOf(executable));
+                                if (item != null) {
+                                    while (item != null) {
+                                        if (item == this) {
+                                            buildsInProgress.put(e, e.getCurrentExecutable());
+                                            e.interrupt(Result.ABORTED);
+                                            break;
+                                        }
+                                        if (item.getParent() instanceof Item) {
+                                            item = (Item) item.getParent();
+                                        } else {
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -1340,7 +1167,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     }
                 }
             }
-            // END remove once baseline core has JENKINS-35160
+            // END of attempted reuse from JENKINS-35160
 
             // delete individual items first
             // (disregard whether they would be deletable in isolation)
@@ -1364,13 +1191,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             synchronized (this) {
                 performDelete();
             }
-            // TODO remove once baseline core has JENKINS-35160
+            // TODO start of attempted reuse of JENKINS-35160
         } finally {
             if (ownsRegistration) {
                 ItemDeletion.deregister(this);
             }
         }
-        // END remove once baseline core has JENKINS-35160
+        // END of attempted reuse of JENKINS-35160
         getParent().onDeleted(AbstractFolder.this);
         Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }

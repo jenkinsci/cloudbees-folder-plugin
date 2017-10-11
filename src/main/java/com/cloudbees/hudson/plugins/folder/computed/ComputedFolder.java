@@ -301,7 +301,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private void applyDisabled(I item, boolean disabled) {
         try {
-            // TODO revisit once https://github.com/jenkinsci/jenkins/pull/2866 available in baseline Jenkins
+            // TODO revisit once on 2.61+ for https://github.com/jenkinsci/jenkins/pull/2866
             if (item instanceof AbstractFolder) {
                 ((AbstractFolder) item).makeDisabled(disabled);
             } else if (item instanceof AbstractProject) {

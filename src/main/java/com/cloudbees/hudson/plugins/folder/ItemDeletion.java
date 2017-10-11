@@ -46,7 +46,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  *
  * @since TODO
  */
-@Restricted(NoExternalUse.class) // TODO remove once baseline core has JENKINS-35160
+@Restricted(NoExternalUse.class) // TODO see comment in AbstractFolder.delete
 @Extension
 public class ItemDeletion extends Queue.QueueDecisionHandler {
 

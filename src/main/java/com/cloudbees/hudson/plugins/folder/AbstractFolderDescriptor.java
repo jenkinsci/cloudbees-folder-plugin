@@ -32,23 +32,14 @@ import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.views.ViewsTabBar;
 import java.io.File;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
-import org.apache.commons.jelly.Script;
-import org.apache.commons.jelly.XMLOutput;
 import org.jenkins.ui.icon.IconSpec;
-import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.WebApp;
-import org.kohsuke.stapler.jelly.DefaultScriptInvoker;
-import org.kohsuke.stapler.jelly.JellyClassTearOff;
 
 /**
  * Category of {@link AbstractFolder}.
@@ -82,11 +73,11 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
     /**
      * Needed if it wants AbstractFolderDescriptor implementations are categorized in Jenkins 2.x.
      *
-     * TODO: Override when the baseline is upgraded to 2.x
-     * TODO: Replace to {@code NestedProjectsCategory.ID}
+     * TODO rather move {@code NestedProjectsCategory} here
      *
      * @return A string it represents a ItemCategory identifier.
      */
+    @Override
     public String getCategoryId() {
         return "nested-projects";
     }
@@ -138,38 +129,12 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
         return r;
     }
 
-    // TODO remove once baseline 2.0
-    public String getDescription() {
-        Stapler stapler = Stapler.getCurrent();
-        if (stapler != null) {
-            try {
-                WebApp webapp = WebApp.getCurrent();
-                MetaClass meta = webapp.getMetaClass(this);
-                Script s = meta.loadTearOff(JellyClassTearOff.class).findScript("newInstanceDetail");
-                if (s == null) {
-                    return "";
-                }
-                DefaultScriptInvoker dsi = new DefaultScriptInvoker();
-                StringWriter sw = new StringWriter();
-                XMLOutput xml = dsi.createXMLOutput(sw, true);
-                dsi.invokeScript(Stapler.getCurrentRequest(), Stapler.getCurrentResponse(), s, this, xml);
-                return sw.toString();
-            } catch (Exception e) {
-                Logger.getLogger(clazz.getName()).log(Level.WARNING, e.getMessage(), e);
-                return "";
-            }
-        } else {
-            return "";
-        }
-    }
-
     /**
      * Needed if it wants Folder are categorized in Jenkins 2.x.
      *
-     * TODO: Override when the baseline is upgraded to 2.x
-     *
      * @return A string it represents a URL pattern to get the Item icon in different sizes.
      */
+    @Override
     public String getIconFilePathPattern() {
         return "plugin/cloudbees-folder/images/:size/folder.png";
     }
