@@ -87,8 +87,10 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
                 // TODO make the limit configurable
                 return CauseOfBlockage.fromMessage(Messages._ThrottleComputationQueueTaskDispatcher_MaxConcurrentIndexing());
             }
-            synchronized (nonBlocked) {
-                nonBlocked.add(new NonBlockedDetails(now, item));
+            if (!found) {
+                synchronized (nonBlocked) {
+                    nonBlocked.add(new NonBlockedDetails(now, item));
+                }
             }
         }
         return null;
