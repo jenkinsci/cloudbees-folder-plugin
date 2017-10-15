@@ -32,6 +32,14 @@ import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import jenkins.model.Jenkins;
 
 /**
@@ -40,15 +48,47 @@ import jenkins.model.Jenkins;
 @SuppressWarnings("unused") // instantiated by Jenkins
 @Extension
 public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher {
+
+    private static final long ONE_SECOND_OF_NANOS = TimeUnit.SECONDS.toNanos(1);
+    private static int LIMIT = Math.max(1,
+            Math.min(
+                    Integer.getInteger(ThrottleComputationQueueTaskDispatcher.class.getName() + ".LIMIT", 5),
+                    Runtime.getRuntime().availableProcessors() * 4
+            )
+    );
+    private final List<NonBlockedDetails> nonBlocked = new ArrayList<>();
+
     /**
      * {@inheritDoc}
      */
     @Override
     public CauseOfBlockage canRun(Queue.Item item) {
         if (item.task instanceof ComputedFolder) {
-            if (indexingCount() > 5) {
+            long now = System.nanoTime();
+            int approvedCount;
+            boolean found;
+            synchronized (nonBlocked) {
+                approvedCount = 0;
+                found = false;
+                for (Iterator<NonBlockedDetails> i = nonBlocked.iterator(); i.hasNext(); ) {
+                    NonBlockedDetails details = i.next();
+                    Queue.Item task = details.task.get();
+                    if (task == null) {
+                        i.remove();
+                    } else if (now - details.when > ONE_SECOND_OF_NANOS) {
+                        i.remove();
+                    } else {
+                        approvedCount++;
+                        found = found || task == item;
+                    }
+                }
+            }
+            if (!found && indexingCount() + approvedCount > LIMIT) {
                 // TODO make the limit configurable
                 return CauseOfBlockage.fromMessage(Messages._ThrottleComputationQueueTaskDispatcher_MaxConcurrentIndexing());
+            }
+            synchronized (nonBlocked) {
+                nonBlocked.add(new NonBlockedDetails(now, item));
             }
         }
         return null;
@@ -90,6 +130,16 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
             }
         }
         return result;
+    }
+
+    private static class NonBlockedDetails {
+        private final long when;
+        private final WeakReference<Queue.Item> task;
+
+        public NonBlockedDetails(long when, Queue.Item task) {
+            this.when = when;
+            this.task = new WeakReference<Queue.Item>(task);
+        }
     }
 
 }
