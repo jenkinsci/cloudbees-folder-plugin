@@ -248,7 +248,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (folderViews == null) {
             if (views != null && !views.isEmpty()) {
                 if (primaryView != null) {
-                    primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
+                    primaryView = DefaultFolderViewHolder.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
                 }
                 folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
                         : viewsTabBar);
