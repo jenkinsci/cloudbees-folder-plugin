@@ -143,7 +143,7 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
         return this;
     }
 
-    // TODO use method in AllView once baseline has https://github.com/jenkinsci/jenkins/pull/3088
+    // TODO 2.86 JENKINS-47416: use method in AllView
     @Restricted(NoExternalUse.class)
     @Nonnull
     public static String migrateLegacyPrimaryAllViewLocalizedName(@Nonnull List<View> views,
