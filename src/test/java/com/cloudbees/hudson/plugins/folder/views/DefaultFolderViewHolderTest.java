@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc., Stephen Connolly.
+ * Copyright 2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,35 +21,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider
 
-import com.cloudbees.plugins.credentials.CredentialsProvider
-import hudson.security.ACL;
+package com.cloudbees.hudson.plugins.folder.views;
 
-div() {
-    text(_("Provides credentials scoped to a folder. "));
-    text(_("Credentials will be available to: "));
-    ul() {
-        li() {
-            text(_("Authentication: "))
-            code() {
-                text(ACL.SYSTEM.name);
-            }
-        }
-        def p = CredentialsProvider.USE_ITEM;
-        while (p != null && !p.enabled) {
-            p = p.impliedBy
-        };
-        if (p != null) {
-            li() {
-                text(_("Users with permission: "))
-                code() {
-                    text(p.group.title);
-                    text("/");
-                    text(p.name);
-                }
-            }
+import com.cloudbees.hudson.plugins.folder.Folder;
+import hudson.diagnosis.OldDataMonitor;
+import hudson.model.AdministrativeMonitor;
+import hudson.model.AllView;
+import org.junit.Test;
+import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.recipes.LocalData;
+
+public class DefaultFolderViewHolderTest {
+
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
+
+    @Issue("JENKINS-47416")
+    @LocalData
+    @Test
+    public void oldData() throws Exception {
+        Folder d = r.jenkins.getItemByFullName("d", Folder.class);
+        assertEquals(AllView.DEFAULT_VIEW_NAME, d.getPrimaryView().getViewName());
+        for (OldDataMonitor.VersionRange problem : AdministrativeMonitor.all().get(OldDataMonitor.class).getData().values()) {
+            fail(problem.extra);
         }
     }
-    text(_("Credentials will be available all items within the folder"));
+
 }

@@ -39,19 +39,28 @@ public class StockFolderIcon extends FolderIcon {
     public StockFolderIcon() {
     }
 
+    @Override
+    public String getIconClassName() {
+        return "icon-folder";
+    }
+
     public String getImageOf(String size) {
-        return Stapler.getCurrentRequest().getContextPath()+ Hudson.RESOURCE_PATH+"/images/"+size+"/folder.png";
+        String image = iconClassNameImageOf(size);
+        return image != null
+                ? image
+                : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
+                + "/plugin/cloudbees-folder/images/"+size+"/folder.png");
     }
 
     public String getDescription() {
-        return "Folder";
+        return Messages.StockFolderIcon_Description();
     }
 
     @Extension(ordinal=100)
     public static class DescriptorImpl extends FolderIconDescriptor {
         @Override
         public String getDisplayName() {
-            return "Default Icon";
+            return Messages.StockFolderIcon_DisplayName();
         }
     }
 }

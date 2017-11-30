@@ -28,27 +28,41 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
+import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
+import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import hudson.AbortException;
 import hudson.BulkChange;
+import hudson.Extension;
 import hudson.Util;
 import static hudson.Util.fixEmpty;
+import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.AllView;
+import hudson.model.Computer;
 import hudson.model.Descriptor;
+import hudson.model.Executor;
+import hudson.model.Failure;
 import hudson.model.HealthReport;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
-import static hudson.model.ItemGroupMixIn.loadChildren;
+import hudson.model.ItemGroupMixIn;
 import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
+import hudson.model.Queue;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
+import hudson.model.listeners.RunListener;
+import static hudson.model.queue.Executables.getParentOf;
+import hudson.model.queue.WorkUnit;
 import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
@@ -64,18 +78,24 @@ import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -91,9 +111,12 @@ import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
@@ -106,11 +129,11 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * A general-purpose {@link ItemGroup}.
  * Base for {@link Folder} and {@link ComputedFolder}.
- * <p/>
- * <b>Extending Folders UI</b><br/>
+ * <p>
+ * <b>Extending Folders UI</b><br>
  * As any other {@link Item} type, folder types support extension of UI via {@link Action}s.
  * These actions can be persisted or added via {@link TransientActionFactory}.
- * See <a href="https://wiki.jenkins-ci.org/display/JENKINS/Action+and+its+family+of+subtypes">this page</a> 
+ * See <a href="https://wiki.jenkins-ci.org/display/JENKINS/Action+and+its+family+of+subtypes">this page</a>
  * for more details about actions.
  * In folders actions provide the following features:
  * <ul>
@@ -122,7 +145,14 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
+    private static final Random ENTROPY = new Random();
+    private static final int HEALTH_REPORT_CACHE_REFRESH_MIN = Math.max(10, Math.min(1440, Integer.getInteger(
+            AbstractFolder.class.getName()+".healthReportCacheRefreshMin", 60
+    )));
 
     private static long loadingTick;
     private static final AtomicInteger jobTotal = new AtomicInteger();
@@ -162,20 +192,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
+    private /*almost final*/ AbstractFolderViewHolder folderViews;
+
     /**
      * {@link View}s.
      */
-    private /*almost final*/ CopyOnWriteArrayList<View> views;
+    @Deprecated
+    private transient /*almost final*/ CopyOnWriteArrayList<View> views;
 
     /**
      * Currently active Views tab bar.
      */
-    private volatile ViewsTabBar viewsTabBar;
+    @Deprecated
+    private transient volatile ViewsTabBar viewsTabBar;
 
     /**
      * Name of the primary view.
      */
-    private volatile String primaryView;
+    @Deprecated
+    private transient volatile String primaryView;
 
     private transient /*almost final*/ ViewGroupMixIn viewGroupMixIn;
 
@@ -183,7 +218,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     private FolderIcon icon;
 
-    /** Subclasses should also call {@link #init}. */
+    private transient volatile long nextHealthReportsRefreshMillis;
+    private transient volatile List<HealthReport> healthReports;
+
+    /**
+     * Subclasses should also call {@link #init}.
+     *
+     * @param parent the parent of this folder.
+     * @param name   the name
+     */
     protected AbstractFolder(ItemGroup parent, String name) {
         super(parent, name);
     }
@@ -198,35 +241,55 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             p.setOwner(this);
         }
         if (icon == null) {
-            icon = new StockFolderIcon();
+            icon = newDefaultFolderIcon();
         }
-        if (views == null) {
-            views = new CopyOnWriteArrayList<View>();
-        }
-        if (viewsTabBar == null) {
-            viewsTabBar = new DefaultViewsTabBar();
+        icon.setOwner(this);
+
+        if (folderViews == null) {
+            if (views != null && !views.isEmpty()) {
+                if (primaryView != null) {
+                    primaryView = DefaultFolderViewHolder.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
+                }
+                folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
+                        : viewsTabBar);
+            } else {
+                folderViews = newFolderViewHolder();
+            }
+            views = null;
+            primaryView = null;
+            viewsTabBar = null;
         }
         viewGroupMixIn = new ViewGroupMixIn(this) {
             @Override
             protected List<View> views() {
-                return views;
+                return folderViews.getViews();
             }
             @Override
             protected String primaryView() {
-                return primaryView == null ? views.get(0).getViewName() : primaryView;
+                String primaryView = folderViews.getPrimaryView();
+                return primaryView == null ? folderViews.getViews().get(0).getViewName() : primaryView;
             }
             @Override
             protected void primaryView(String name) {
-                primaryView = name;
+                folderViews.setPrimaryView(name);
+            }
+            @Override
+            public void addView(View v) throws IOException {
+                if (folderViews.isViewsModifiable()) {
+                    super.addView(v);
+                }
+            }
+            @Override
+            public boolean canDelete(View view) {
+                return folderViews.isViewsModifiable() && super.canDelete(view);
+            }
+            @Override
+            public synchronized void deleteView(View view) throws IOException {
+                if (folderViews.isViewsModifiable()) {
+                    super.deleteView(view);
+                }
             }
         };
-        if (views.isEmpty()) {
-            try {
-                initViews(views);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
-            }
-        }
         if (healthMetrics == null) {
             List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
             for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
@@ -239,30 +302,249 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    protected DefaultViewsTabBar newDefaultViewsTabBar() {
+        return new DefaultViewsTabBar();
+    }
+
+    protected AbstractFolderViewHolder newFolderViewHolder() {
+        CopyOnWriteArrayList views = new CopyOnWriteArrayList<View>();
+        try {
+            initViews(views);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
+        }
+        return new DefaultFolderViewHolder(views, null, newDefaultViewsTabBar());
+    }
+
+    protected FolderIcon newDefaultFolderIcon() {
+        return new StockFolderIcon();
+    }
+
     protected void initViews(List<View> views) throws IOException {
         AllView v = new AllView("All", this);
         views.add(v);
     }
 
-    @Override
-    public void addAction(Action a) {
-        super.getActions().add(a);
-    }
+    /**
+     * Loads all the child {@link Item}s.
+     *
+     * @param parent     the parent of the children.
+     * @param modulesDir Directory that contains sub-directories for each child item.
+     * @param key        the key generating function.
+     * @param <K>        the key type
+     * @param <V>        the child type.
+     * @return a map of the children keyed by the generated keys.
+     */
+    // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
+    public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
+                                                             Function1<? extends K, ? super V> key) {
+        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<K, V>();
+        if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
+            LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
+                    new Object[]{modulesDir, parent.getFullName()});
+            return configurations;
+        }
 
-    @Override
-    public void replaceAction(Action a) {
-        // CopyOnWriteArrayList does not support Iterator.remove, so need to do it this way:
-        List<Action> old = new ArrayList<Action>(1);
-        List<Action> current = super.getActions();
-        for (Action a2 : current) {
-            if (a2.getClass() == a.getClass()) {
-                old.add(a2);
+        File[] subdirs = modulesDir.listFiles(new FileFilter() {
+            public boolean accept(File child) {
+                return child.isDirectory();
+            }
+        });
+        if (subdirs == null) {
+            return configurations;
+        }
+        final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
+        Map<String,V> byDirName = new HashMap<String, V>();
+        if (parent.items != null) {
+            if (childNameGenerator == null) {
+                for (V item : parent.items.values()) {
+                    byDirName.put(item.getName(), item);
+                }
+            } else {
+                for (V item : parent.items.values()) {
+                    String itemName = childNameGenerator.dirNameFromItem(parent, item);
+                    if (itemName == null) {
+                        itemName = childNameGenerator.dirNameFromLegacy(parent, item.getName());
+                    }
+                    byDirName.put(itemName, item);
+                }
             }
         }
-        current.removeAll(old);
-        addAction(a);
+        for (File subdir : subdirs) {
+            try {
+                boolean legacy;
+                String childName;
+                if (childNameGenerator == null) {
+                    // the directory name is the item name
+                    childName = subdir.getName();
+                    legacy = false;
+                } else {
+                    File nameFile = new File(subdir, ChildNameGenerator.CHILD_NAME_FILE);
+                    if (nameFile.isFile()) {
+                        childName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                        if (childName == null) {
+                            LOGGER.log(Level.WARNING, "{0} was empty, assuming child name is {1}",
+                                            new Object[]{nameFile, subdir.getName()});
+                            legacy = true;
+                            childName = subdir.getName();
+                        } else {
+                            legacy = false;
+                        }
+                    } else {
+                        // this is a legacy name
+                        legacy = true;
+                        childName = subdir.getName();
+                    }
+                }
+                // Try to retain the identity of an existing child object if we can.
+                V item = byDirName.get(childName);
+                boolean itemNeedsSave = false;
+                if (item == null) {
+                    XmlFile xmlFile = Items.getConfigFile(subdir);
+                    if (xmlFile.exists()) {
+                        item = (V) xmlFile.read();
+                        String name;
+                        if (childNameGenerator == null) {
+                            name = subdir.getName();
+                        } else {
+                            String dirName = childNameGenerator.dirNameFromItem(parent, item);
+                            if (dirName == null) {
+                                dirName = childNameGenerator.dirNameFromLegacy(parent, childName);
+                                BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
+                                try {
+                                    childNameGenerator.recordLegacyName(parent, item, childName);
+                                    itemNeedsSave = true;
+                                } catch (IOException e) {
+                                    LOGGER.log(Level.WARNING, "Ignoring {0} as could not record legacy name",
+                                            subdir);
+                                    continue;
+                                } finally {
+                                    bc.abort();
+                                }
+                            }
+                            if (!subdir.getName().equals(dirName)) {
+                                File newSubdir = parent.getRootDirFor(dirName);
+                                if (newSubdir.exists()) {
+                                    LOGGER.log(Level.WARNING, "Ignoring {0} as folder naming rules collide with {1}",
+                                                    new Object[]{subdir, newSubdir});
+                                    continue;
+
+                                }
+                                LOGGER.log(Level.INFO, "Moving {0} to {1} in accordance with folder naming rules",
+                                        new Object[]{subdir, newSubdir});
+                                if (!subdir.renameTo(newSubdir)) {
+                                    LOGGER.log(Level.WARNING, "Failed to move {0} to {1}. Ignoring this item",
+                                            new Object[]{subdir, newSubdir});
+                                    continue;
+                                }
+                            }
+                            File nameFile = new File(parent.getRootDirFor(dirName), ChildNameGenerator.CHILD_NAME_FILE);
+                            name = childNameGenerator.itemNameFromItem(parent, item);
+                            if (name == null) {
+                                name = childNameGenerator.itemNameFromLegacy(parent, childName);
+                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                                BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
+                                try {
+                                    childNameGenerator.recordLegacyName(parent, item, childName);
+                                    itemNeedsSave = true;
+                                } catch (IOException e) {
+                                    LOGGER.log(Level.WARNING, "Ignoring {0} as could not record legacy name",
+                                            subdir);
+                                    continue;
+                                } finally {
+                                    bc.abort();
+                                }
+                            } else if (!childName.equals(name) || legacy) {
+                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            }
+                        }
+                        item.onLoad(parent, name);
+                    } else {
+                        LOGGER.log(Level.WARNING, "could not find file " + xmlFile.getFile());
+                        continue;
+                    }
+                } else {
+                    String name;
+                    if (childNameGenerator == null) {
+                        name = subdir.getName();
+                    } else {
+                        File nameFile = new File(subdir, ChildNameGenerator.CHILD_NAME_FILE);
+                        name = childNameGenerator.itemNameFromItem(parent, item);
+                        if (name == null) {
+                            name = childNameGenerator.itemNameFromLegacy(parent, childName);
+                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
+                            try {
+                                childNameGenerator.recordLegacyName(parent, item, childName);
+                                itemNeedsSave = true;
+                            } catch (IOException e) {
+                                LOGGER.log(Level.WARNING, "Ignoring {0} as could not record legacy name",
+                                        subdir);
+                                continue;
+                            } finally {
+                                bc.abort();
+                            }
+                        } else if (!childName.equals(name) || legacy) {
+                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                        }
+                        if (!subdir.getName().equals(name) && item instanceof AbstractItem
+                                && ((AbstractItem) item).getDisplayNameOrNull() == null) {
+                            BulkChange bc = new BulkChange(item);
+                            try {
+                                ((AbstractItem) item).setDisplayName(childName);
+                            } finally {
+                                bc.abort();
+                            }
+                        }
+                    }
+                    item.onLoad(parent, name);
+                }
+                if (itemNeedsSave) {
+                    try {
+                        item.save();
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Could not update {0} after applying folder naming rules",
+                                item.getFullName());
+                    }
+                }
+                configurations.put(key.call(item), item);
+            } catch (Exception e) {
+                Logger.getLogger(ItemGroupMixIn.class.getName()).log(Level.WARNING, "could not load " + subdir, e);
+            }
+        }
+
+        return configurations;
     }
 
+
+    protected final I itemsPut(String name, I item) {
+        ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator = childNameGenerator();
+        if (childNameGenerator != null) {
+            File nameFile = new File(getRootDirFor(item), ChildNameGenerator.CHILD_NAME_FILE);
+            String oldName;
+            if (nameFile.isFile()) {
+                try {
+                    oldName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                } catch (IOException e) {
+                    oldName = null;
+                }
+            } else {
+                oldName = null;
+            }
+            if (!name.equals(oldName)) {
+                try {
+                    FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Could not create " + nameFile);
+                }
+            }
+        }
+        return items.put(name, item);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
@@ -280,6 +562,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
             }
 
+            final ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
             items = loadChildren(this, getJobsDir(), new Function1<String,I>() {
                 @Override
                 public String call(I item) {
@@ -293,8 +576,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
                         loadingTick = now;
                     }
-                    // TODO loadChildren does not support decoding folder names
-                    return item.getName();
+                    if (childNameGenerator == null) {
+                        return item.getName();
+                    } else {
+                        String name = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
+                        if (name == null) {
+                            return childNameGenerator.itemNameFromLegacy(AbstractFolder.this, item.getName());
+                        }
+                        return name;
+                    }
                 }
             });
         } finally {
@@ -302,6 +592,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    private ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+        return getDescriptor().childNameGenerator();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public AbstractFolderDescriptor getDescriptor() {
         return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
@@ -310,6 +607,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * May be used to enumerate or remove properties.
      * To add properties, use {@link #addProperty}.
+     * @return the list of properties.
      */
     public DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> getProperties() {
         return properties;
@@ -324,7 +622,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         properties.add(p);
     }
 
-    /** May be overridden, but {@link #loadJobTotal} will be inaccurate in that case. */
+    /**
+     * May be overridden, but {@link #loadJobTotal} will be inaccurate in that case.
+     * @return the jobs directory.
+     */
     protected File getJobsDir() {
         return new File(getRootDir(), "jobs");
     }
@@ -335,7 +636,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public File getRootDirFor(I child) {
-        return getRootDirFor(child.getName()); // TODO see comment regarding loadChildren and encoding
+        ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
+        if (childNameGenerator == null) {
+            return getRootDirFor(child.getName());
+        }
+        String name = childNameGenerator.dirNameFromItem(this, child);
+        if (name == null) {
+            name = childNameGenerator.dirNameFromLegacy(this, child.getName());
+        }
+        return getRootDirFor(name);
     }
 
     /**
@@ -350,12 +659,18 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * For URL binding.
+     *
+     * @param name the name of the child.
+     * @return the job or {@code null} if there is no such child.
      * @see #getUrlChildPrefix
      */
     public I getJob(String name) {
         return getItem(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getPronoun() {
         return AlternativeUiTextProvider.get(PRONOUN, this, getDescriptor().getDisplayName());
@@ -373,32 +688,58 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return r;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void addView(View v) throws IOException {
         viewGroupMixIn.addView(v);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean canDelete(View view) {
         return viewGroupMixIn.canDelete(view);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteView(View view) throws IOException {
         viewGroupMixIn.deleteView(view);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public View getView(String name) {
         return viewGroupMixIn.getView(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported
     @Override
     public Collection<View> getViews() {
         return viewGroupMixIn.getViews();
     }
 
+    public AbstractFolderViewHolder getFolderViews() {
+        return folderViews;
+    }
+
+    public void resetFolderViews() {
+        folderViews = newFolderViewHolder();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Exported
     @Override
     public View getPrimaryView() {
@@ -406,24 +747,38 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     public void setPrimaryView(View v) {
-        primaryView = v.getViewName();
+        if (folderViews.isPrimaryModifiable()) {
+            folderViews.setPrimaryView(v.getViewName());
+        }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onViewRenamed(View view, String oldName, String newName) {
         viewGroupMixIn.onViewRenamed(view, oldName, newName);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ViewsTabBar getViewsTabBar() {
-        return viewsTabBar;
+        return folderViews.getTabBar();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ItemGroup<? extends TopLevelItem> getItemGroup() {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Action> getViewActions() {
         return Collections.emptyList();
@@ -437,17 +792,31 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return getPrimaryView();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected SearchIndexBuilder makeSearchIndex() {
         return super.makeSearchIndex().add(new CollectionSearchIndex<TopLevelItem>() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected SearchItem get(String key) {
                 return Jenkins.getActiveInstance().getItem(key, grp());
             }
+
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected Collection<TopLevelItem> all() {
                 return Items.getAllItems(grp(), TopLevelItem.class);
             }
+
+            /**
+             * {@inheritDoc}
+             */
             @Override
             protected String getName(TopLevelItem j) {
                 return j.getRelativeNameFrom(grp());
@@ -459,6 +828,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
         ContextMenu menu = new ContextMenu();
@@ -476,6 +848,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Checks if a top-level view with the given name exists.
+     *
+     * @param value the name of the child.
+     * @return the validation results.
      */
     public FormValidation doViewExistsCheck(@QueryParameter String value) {
         checkPermission(View.CREATE);
@@ -492,6 +867,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+
     /**
      * Get the current health report for a folder.
      *
@@ -502,30 +878,77 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return reports.isEmpty() ? new HealthReport() : reports.get(0);
     }
 
+    /**
+     * Invalidates the cache of build health reports.
+     *
+     * @since FIXME
+     */
+    public void invalidateBuildHealthReports() {
+        healthReports = null;
+    }
+
     @Exported(name = "healthReport")
     public List<HealthReport> getBuildHealthReports() {
         if (healthMetrics == null || healthMetrics.isEmpty()) {
             return Collections.<HealthReport>emptyList();
         }
-        List<HealthReport> reports = new ArrayList<HealthReport>();
+        List<HealthReport> reports = healthReports;
+        if (reports != null && nextHealthReportsRefreshMillis > System.currentTimeMillis()) {
+            // cache is still valid
+            return reports;
+        }
+        // ensure we refresh on average once every HEALTH_REPORT_CACHE_REFRESH_MIN but not all at once
+        nextHealthReportsRefreshMillis = System.currentTimeMillis()
+                + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
+                + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
+        reports = new ArrayList<HealthReport>();
         List<FolderHealthMetric.Reporter> reporters = new ArrayList<FolderHealthMetric.Reporter>(healthMetrics.size());
+        boolean recursive = false;
+        boolean topLevelOnly = true;
         for (FolderHealthMetric metric : healthMetrics) {
+            recursive = recursive || metric.getType().isRecursive();
+            topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
             reporters.add(metric.reporter());
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
+                recursive = recursive || metric.getType().isRecursive();
+                topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
                 reporters.add(metric.reporter());
             }
         }
-        Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
-        stack.push(getItems());
-        while (!stack.isEmpty()) {
-            for (Item item : stack.pop()) {
+        if (recursive) {
+            Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
+            stack.push(getItems());
+            if (topLevelOnly) {
+                while (!stack.isEmpty()) {
+                    for (Item item : stack.pop()) {
+                        if (item instanceof TopLevelItem) {
+                            for (FolderHealthMetric.Reporter reporter : reporters) {
+                                reporter.observe(item);
+                            }
+                            if (item instanceof Folder) {
+                                stack.push(((Folder) item).getItems());
+                            }
+                        }
+                    }
+                }
+            } else {
+                while (!stack.isEmpty()) {
+                    for (Item item : stack.pop()) {
+                        for (FolderHealthMetric.Reporter reporter : reporters) {
+                            reporter.observe(item);
+                        }
+                        if (item instanceof Folder) {
+                            stack.push(((Folder) item).getItems());
+                        }
+                    }
+                }
+            }
+        } else {
+            for (Item item: getItems()) {
                 for (FolderHealthMetric.Reporter reporter : reporters) {
                     reporter.observe(item);
-                }
-                if (item instanceof Folder) {
-                    stack.push(((Folder) item).getItems());
                 }
             }
         }
@@ -537,6 +960,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
 
         Collections.sort(reports);
+        healthReports = reports; // idempotent write
         return reports;
     }
 
@@ -550,6 +974,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     /**
      * Gets the icon used for this folder.
+     *
+     * @return the icon.
      */
     public FolderIcon getIcon() {
         return icon;
@@ -564,6 +990,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return icon;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Collection<? extends Job> getAllJobs() {
         Set<Job> jobs = new HashSet<Job>();
@@ -573,6 +1002,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return jobs;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Exported(name="jobs")
     @Override
     public Collection<I> getItems() {
@@ -585,6 +1017,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return viewableItems;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public I getItem(String name) throws AccessDeniedException {
         if (items == null) {
@@ -603,62 +1038,263 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return item;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
-    public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
+    public void onRenamed(I item, String oldName, String newName) throws IOException {
         items.remove(oldName);
-        items.put(newName, (I) item);
+        items.put(newName, item);
         // For compatibility with old views:
-        for (View v : views) {
+        for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, oldName, newName);
         }
         save();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("deprecation")
     @Override
-    public void onDeleted(TopLevelItem item) throws IOException {
+    public void onDeleted(I item) throws IOException {
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
         // For compatibility with old views:
-        for (View v : views) {
+        for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, item.getName(), null);
         }
         save();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void delete() throws IOException, InterruptedException {
         // Some parts copied from AbstractItem.
         checkPermission(DELETE);
-        // delete individual items first
-        // (disregard whether they would be deletable in isolation)
-        // JENKINS-34939: do not hold the monitor on this folder while deleting them
-        // (thus we cannot do this inside performDelete)
-        SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
+        // TODO JENKINS-35160 core API is not reusable: we need part of AbstractItem.delete but with the deletion of children interjected (and not inside a monitor)
+        boolean responsibleForAbortingBuilds = !ItemDeletion.contains(this);
+        boolean ownsRegistration = ItemDeletion.register(this);
+        if (!ownsRegistration && ItemDeletion.isRegistered(this)) {
+            // we are not the owning thread and somebody else is concurrently deleting this exact item
+            throw new Failure(Messages.AbstractFolder_BeingDeleted(getPronoun()));
+        }
         try {
-            for (Item i : new ArrayList<Item>(items.values())) {
-                try {
-                    i.delete();
-                } catch (AbortException e) {
-                    throw (AbortException) new AbortException(
-                            "Failed to delete " + i.getFullDisplayName() + " : " + e.getMessage()).initCause(e);
-                } catch (IOException e) {
-                    throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
+            // if a build is in progress. Cancel it.
+            if (responsibleForAbortingBuilds || ownsRegistration) {
+                Queue queue = Queue.getInstance();
+                if (this instanceof Queue.Task) {
+                    // clear any items in the queue so they do not get picked up
+                    queue.cancel((Queue.Task) this);
+                }
+                // now cancel any child items - this happens after ItemDeletion registration, so we can use a snapshot
+                for (Queue.Item i : queue.getItems()) {
+                    Item item = ItemDeletion.getItemOf(i.task);
+                    while (item != null) {
+                        if (item == this) {
+                            queue.cancel(i);
+                            break;
+                        }
+                        if (item.getParent() instanceof Item) {
+                            item = (Item) item.getParent();
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                // interrupt any builds in progress (and this should be a recursive test so that folders do not pay
+                // the 15 second delay for every child item). This happens after queue cancellation, so will be
+                // a complete set of builds in flight
+                Map<Executor, Queue.Executable> buildsInProgress = new LinkedHashMap<>();
+                for (Computer c : Jenkins.getActiveInstance().getComputers()) {
+                    for (Executor e : c.getAllExecutors()) {
+                        WorkUnit workUnit = e.getCurrentWorkUnit();
+                        if (workUnit != null) {
+                            Queue.Executable executable = workUnit.getExecutable();
+                            if (executable != null) {
+                                Item item = ItemDeletion.getItemOf(getParentOf(executable));
+                                if (item != null) {
+                                    while (item != null) {
+                                        if (item == this) {
+                                            buildsInProgress.put(e, e.getCurrentExecutable());
+                                            e.interrupt(Result.ABORTED);
+                                            break;
+                                        }
+                                        if (item.getParent() instanceof Item) {
+                                            item = (Item) item.getParent();
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!buildsInProgress.isEmpty()) {
+                    // give them 15 seconds or so to respond to the interrupt
+                    long expiration = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+                    // comparison with executor.getCurrentExecutable() == computation currently should always be true
+                    // as we no longer recycle Executors, but safer to future-proof in case we ever revisit recycling
+                    while (!buildsInProgress.isEmpty() && expiration - System.nanoTime() > 0L) {
+                        // we know that ItemDeletion will prevent any new builds in the queue
+                        // ItemDeletion happens-before Queue.cancel so we know that the Queue will stay clear
+                        // Queue.cancel happens-before collecting the buildsInProgress list
+                        // thus buildsInProgress contains the complete set we need to interrupt and wait for
+                        for (Iterator<Map.Entry<Executor, Queue.Executable>> iterator =
+                             buildsInProgress.entrySet().iterator();
+                             iterator.hasNext(); ) {
+                            Map.Entry<Executor, Queue.Executable> entry = iterator.next();
+                            // comparison with executor.getCurrentExecutable() == executable currently should always be
+                            // true as we no longer recycle Executors, but safer to future-proof in case we ever
+                            // revisit recycling.
+                            if (!entry.getKey().isAlive()
+                                    || entry.getValue() != entry.getKey().getCurrentExecutable()) {
+                                iterator.remove();
+                            }
+                            // I don't know why, but we have to keep interrupting
+                            entry.getKey().interrupt(Result.ABORTED);
+                        }
+                        Thread.sleep(50L);
+                    }
+                    if (!buildsInProgress.isEmpty()) {
+                        throw new Failure(Messages.AbstractFolder_FailureToStopBuilds(
+                                buildsInProgress.size(), getFullDisplayName()
+                        ));
+                    }
                 }
             }
+            // END of attempted reuse from JENKINS-35160
+
+            // delete individual items first
+            // (disregard whether they would be deletable in isolation)
+            // JENKINS-34939: do not hold the monitor on this folder while deleting them
+            // (thus we cannot do this inside performDelete)
+            SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
+            try {
+                for (Item i : new ArrayList<Item>(items.values())) {
+                    try {
+                        i.delete();
+                    } catch (AbortException e) {
+                        throw (AbortException) new AbortException(
+                                "Failed to delete " + i.getFullDisplayName() + " : " + e.getMessage()).initCause(e);
+                    } catch (IOException e) {
+                        throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
+                    }
+                }
+            } finally {
+                SecurityContextHolder.setContext(orig);
+            }
+            synchronized (this) {
+                performDelete();
+            }
+            // TODO start of attempted reuse of JENKINS-35160
         } finally {
-            SecurityContextHolder.setContext(orig);
+            if (ownsRegistration) {
+                ItemDeletion.deregister(this);
+            }
         }
-        synchronized (this) {
-            performDelete();
-        }
+        // END of attempted reuse of JENKINS-35160
         getParent().onDeleted(AbstractFolder.this);
         Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
     }
 
+    /**
+     * Is this folder disabled. A disabled folder should have all child items disabled.
+     *
+     * @return {@code true} if and only if the folder is disabled.
+     * @since 6.1.0
+     * @see FolderJobQueueDecisionHandler
+     */
+    public boolean isDisabled() {
+        return false;
+    }
+
+    /**
+     * Sets the folder as disabled.
+     *
+     * @param disabled {@code true} if and only if the folder is to be disabled.
+     * @since 6.1.0
+     */
+    protected void setDisabled(boolean disabled) {
+        throw new UnsupportedOperationException("must be implemented if supportsMakeDisabled is overridden");
+    }
+
+    /**
+     * Determines whether the folder supports being made disabled.
+     * @return {@code true} if and only if {@link #setDisabled(boolean)} is implemented
+     * @since 6.1.0
+     */
+    protected boolean supportsMakeDisabled() {
+        return false;
+    }
+
+    /**
+     * Makes the folder disabled. Will have no effect if the folder type does not {@linkplain #supportsMakeDisabled()}.
+     * @param disabled {@code true} if the folder should be disabled.
+     * @throws IOException if the operation could not complete.
+     * @since 6.1.0
+     */
+    public void makeDisabled(boolean disabled) throws IOException {
+        if (isDisabled() == disabled) {
+            return; // noop
+        }
+        if (disabled && !supportsMakeDisabled()) {
+            return; // do nothing if the disabling is unsupported
+        }
+        setDisabled(disabled);
+        if (disabled && this instanceof Queue.Task) {
+            Jenkins.getActiveInstance().getQueue().cancel((Queue.Task)this);
+        }
+        save();
+        ItemListener.fireOnUpdated(this);
+    }
+
+    /**
+     * Stapler action method to disable the folder.
+     *
+     * @return the response.
+     * @throws IOException      if the folder could not be disabled.
+     * @throws ServletException if something goes wrong.
+     * @since 6.1.0
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    @SuppressWarnings("unused") // stapler action method
+    public HttpResponse doDisable() throws IOException, ServletException {
+        checkPermission(CONFIGURE);
+        makeDisabled(true);
+        return new HttpRedirect(".");
+    }
+
+    /**
+     * Stapler action method to enable the folder.
+     *
+     * @return the response.
+     * @throws IOException      if the folder could not be disabled.
+     * @throws ServletException if something goes wrong.
+     * @since 6.1.0
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    @SuppressWarnings("unused") // stapler action method
+    public HttpResponse doEnable() throws IOException, ServletException {
+        checkPermission(CONFIGURE);
+        makeDisabled(false);
+        return new HttpRedirect(".");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void save() throws IOException {
+        if (folderViews != null) {
+            folderViews.invalidateCaches();
+        }
         if (BulkChange.contains(this)) {
             return;
         }
@@ -675,6 +1311,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         super.renameTo(newName);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
@@ -692,12 +1331,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         try {
             description = json.getString("description");
             displayName = Util.fixEmpty(json.optString("displayNameOrNull"));
-            if (json.has("viewsTabBar")) {
-                viewsTabBar = req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar"));
+            if (folderViews.isTabBarModifiable() && json.has("viewsTabBar")) {
+                folderViews.setTabBar(req.bindJSON(ViewsTabBar.class, json.getJSONObject("viewsTabBar")));
             }
 
-            if (json.has("primaryView")) {
-                primaryView = json.getString("primaryView");
+            if (folderViews.isPrimaryModifiable() && json.has("primaryView")) {
+                folderViews.setPrimaryView(json.getString("primaryView"));
             }
 
             properties.rebuild(req, json, getDescriptor().getPropertyDescriptors());
@@ -711,6 +1350,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             icon.setOwner(this);
 
             submit(req, rsp);
+            makeDisabled(json.optBoolean("disable"));
 
             save();
             bc.commit();
@@ -742,7 +1382,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
      */
     @Restricted(NoExternalUse.class)
-    protected @Nonnull String getSuccessfulDestination() {
+    @Nonnull
+    protected String getSuccessfulDestination() {
         return ".";
     }
 
@@ -776,13 +1417,84 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * Allows a subclass to block renames under dynamic conditions.
      * @return a message if rename should currently be prohibited, or null to allow
      */
-    protected @CheckForNull String renameBlocker() {
+    @CheckForNull
+    protected String renameBlocker() {
         for (Job<?,?> job : getAllJobs()) {
             if (job.isBuilding()) {
                 return "Unable to rename a folder while a job inside it is building.";
             }
         }
         return null;
+    }
+
+    private static void invalidateBuildHealthReports(Item item) {
+        while (item != null) {
+            if (item instanceof AbstractFolder) {
+                ((AbstractFolder) item).invalidateBuildHealthReports();
+            }
+            if (item.getParent() instanceof Item) {
+                item = (Item) item.getParent();
+            } else {
+                break;
+            }
+        }
+    }
+
+    @Extension
+    public static class ItemListenerImpl extends ItemListener {
+        @Override
+        public void onCreated(Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onCopied(Item src, Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onDeleted(Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onRenamed(Item item, String oldName, String newName) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onLocationChanged(Item item, String oldFullName, String newFullName) {
+            invalidateBuildHealthReports(item);
+        }
+
+        @Override
+        public void onUpdated(Item item) {
+            invalidateBuildHealthReports(item);
+        }
+
+    }
+
+    @Extension
+    public static class RunListenerImpl extends RunListener<Run> {
+        @Override
+        public void onCompleted(Run run, @Nonnull TaskListener listener) {
+            invalidateBuildHealthReports(run.getParent());
+        }
+
+        @Override
+        public void onFinalized(Run run) {
+            invalidateBuildHealthReports(run.getParent());
+        }
+
+        @Override
+        public void onStarted(Run run, TaskListener listener) {
+            invalidateBuildHealthReports(run.getParent());
+        }
+
+        @Override
+        public void onDeleted(Run run) {
+            invalidateBuildHealthReports(run.getParent());
+        }
     }
 
 }

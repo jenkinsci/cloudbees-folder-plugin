@@ -60,9 +60,6 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
      */
     public int indexingCount() {
         Jenkins j = Jenkins.getInstance();
-        if (j == null) {
-            return 0;
-        }
         int result = indexingCount(j);
         for (Node n : j.getNodes()) {
             result += indexingCount(n);

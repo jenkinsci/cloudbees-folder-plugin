@@ -27,10 +27,13 @@ THE SOFTWARE.
 
     <j:set var="computation" value="${it.computation}"/>
 
-    <l:task icon="images/24x24/notepad.png" href="${rootURL}/${computation.url}" title="${computation.displayName}">
-        <j:if test="${h.hasPermission(it, it.BUILD) and it.buildable}">
-            <l:task icon="images/24x24/clock.png" href="${rootURL}/${it.url}build?delay=0" post="true" title="${%Run Now}"/>
-        </j:if>
-        <l:task icon="images/24x24/terminal.png" href="${rootURL}/${computation.url}console" title="${%Log}"/>
+    <j:if test="${h.hasPermission(it, it.BUILD) and it.buildable}">
+        <l:task icon="images/24x24/clock.png" href="${rootURL}/${it.url}build?delay=0" post="true" title="${%computeNow(computation.displayName)}"/>
+    </j:if>
+    <l:task icon="images/24x24/terminal.png" href="${rootURL}/${computation.url}console" title="${%computeLog(computation.displayName)}">
+        <l:task href="${rootURL}/${computation.url}consoleText" icon="icon-document icon-md" title="${%View as plain text}"/>
     </l:task>
+    <j:if test="${it.hasEvents}">
+        <l:task icon="images/24x24/monitor.png" href="${rootURL}/${computation.url}events" title="${%events(it.pronoun)}"/>
+    </j:if>
 </j:jelly>

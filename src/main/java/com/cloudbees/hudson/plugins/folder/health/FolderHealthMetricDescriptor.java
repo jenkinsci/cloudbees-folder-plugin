@@ -34,6 +34,9 @@ public abstract class FolderHealthMetricDescriptor extends Descriptor<FolderHeal
     /**
      * Returns true if this {@link FolderHealthMetric} type is applicable to the
      * given folder type.
+     *
+     * @param containerType the container type.
+     * @return {@code true} if this metric is applicable.
      */
     @SuppressWarnings("rawtypes") // erasure
     public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
@@ -42,10 +45,12 @@ public abstract class FolderHealthMetricDescriptor extends Descriptor<FolderHeal
 
     /**
      * Optionally create a default health metric to be used in new folders.
+     *
      * @return a default configuration of the associated metric, or null to not include by default
      * @since 4.0
      */
-    @CheckForNull public FolderHealthMetric createDefault() {
+    @CheckForNull
+    public FolderHealthMetric createDefault() {
         return null;
     }
 

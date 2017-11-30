@@ -24,11 +24,16 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
+import com.jcraft.jzlib.GZIPInputStream;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
+import hudson.console.PlainTextConsoleOutputStream;
+import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -39,27 +44,44 @@ import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
+import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
+import hudson.model.queue.QueueTaskDispatcher;
+import hudson.util.AlternativeUiTextProvider;
+import hudson.util.AlternativeUiTextProvider.Message;
+import hudson.util.HttpResponses;
+import hudson.util.StreamTaskListener;
+import hudson.util.io.ReopenableRotatingFileOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import hudson.util.AlternativeUiTextProvider;
-import hudson.util.AlternativeUiTextProvider.Message;
-import hudson.util.io.ReopenableRotatingFileOutputStream;
+import javax.servlet.ServletException;
+import net.jcip.annotations.GuardedBy;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.framework.io.ByteBuffer;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * A particular “run” of {@link ComputedFolder}.
@@ -67,23 +89,40 @@ import org.apache.commons.jelly.XMLOutput;
  */
 public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(FolderComputation.class.getName());
 
     /** If defined, a number of backup log files to keep. */
     @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
     private static @CheckForNull Integer BACKUP_LOG_COUNT = Integer.getInteger(FolderComputation.class.getName() + ".BACKUP_LOG_COUNT");
 
+    /** If defined, a number of kB that the event log can grow to before rotation. */
+    @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
+    @Nonnull
+    private static int EVENT_LOG_MAX_SIZE = Math.max(1,Integer.getInteger(FolderComputation.class.getName() + ".EVENT_LOG_MAX_SIZE", 150));
+
     /** The associated folder. */
-    private transient final @Nonnull ComputedFolder<I> folder;
+    @Nonnull
+    private transient final ComputedFolder<I> folder;
 
     /** The previous run, if any. */
-    private transient final @CheckForNull FolderComputation<I> previous;
+    @CheckForNull
+    private transient final FolderComputation<I> previous;
+
+    /** The events output stream handler */
+    @CheckForNull
+    @GuardedBy("this")
+    private transient EventOutputStreams eventStreams;
 
     /** The result of the build, if finished. */
-    private volatile @CheckForNull Result result;
+    @CheckForNull
+    private volatile Result result;
 
     /** The past few durations for purposes of estimation. */
-    private @CheckForNull List<Long> durations;
+    @CheckForNull
+    private List<Long> durations;
 
     /** Start time. */
     private long timestamp;
@@ -96,11 +135,15 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         this.previous = previous;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void run() {
         StreamBuildListener listener;
         try {
             File logFile = getLogFile();
+            FileUtils.forceMkdir(logFile.getParentFile());
             OutputStream os;
             if (BACKUP_LOG_COUNT != null) {
                 os = new ReopenableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
@@ -153,6 +196,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void save() throws IOException {
         if (BulkChange.contains(this)) {
@@ -163,11 +209,59 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         SaveableListener.fireOnChange(this, dataFile);
     }
 
-    public @Nonnull File getLogFile() {
+    @Nonnull
+    public File getLogFile() {
         return new File(folder.getComputationDir(), "computation.log");
     }
 
-    protected @Nonnull XmlFile getDataFile() {
+    @Nonnull
+    public File getEventsFile() {
+        return new File(folder.getComputationDir(), "events.log");
+    }
+
+    @WithBridgeMethods(TaskListener.class)
+    @Nonnull
+    public synchronized StreamTaskListener createEventsListener() {
+        File eventsFile = getEventsFile();
+        if (!eventsFile.getParentFile().isDirectory() && !eventsFile.getParentFile().mkdirs()) {
+            LOGGER.log(Level.WARNING, "Could not create directory {0} for {1}",
+                    new Object[]{eventsFile.getParentFile(), folder.getFullName()});
+            // TODO return a StreamTaskListener sending output to a log, for now this will just try and fail to write
+        }
+        if (eventStreams == null) {
+            eventStreams = new EventOutputStreams(new EventOutputStreams.OutputFile() {
+                @NonNull
+                @Override
+                public File get() {
+                    return getEventsFile();
+                }
+
+                @Override
+                public boolean canWriteNow() {
+                    // TODO rework once JENKINS-42248 is solved
+                    GregorianCalendar timestamp = new GregorianCalendar();
+                    timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
+                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.<Action>emptyList());
+                    for (QueueTaskDispatcher d: QueueTaskDispatcher.all()) {
+                        if (d.canRun(probe) != null) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            },
+                    250, TimeUnit.MILLISECONDS,
+                    1024,
+                    true,
+                    EVENT_LOG_MAX_SIZE * 1024,
+                    BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT)
+            );
+        }
+        return new StreamTaskListener(eventStreams.get(), Charsets.UTF_8);
+    }
+
+    @Nonnull
+    protected XmlFile getDataFile() {
         return new XmlFile(Items.XSTREAM, new File(folder.getComputationDir(), "computation.xml"));
     }
 
@@ -179,21 +273,34 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return Collections.unmodifiableList(a.getCauses());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getDisplayName() {
         return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getSearchUrl() {
         return "computation/";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
+    @Nonnull
     public ComputedFolder<I> getParent() {
         return folder;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long getEstimatedDuration() {
         if (durations == null || durations.isEmpty()) {
@@ -214,8 +321,27 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return result == null;
     }
 
-    public @Nonnull AnnotatedLargeText<FolderComputation<I>> getLogText() {
+    @Nonnull
+    public AnnotatedLargeText<FolderComputation<I>> getLogText() {
         return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), Charsets.UTF_8, !isLogUpdated(), this);
+    }
+
+    @Nonnull
+    public AnnotatedLargeText<FolderComputation<I>> getEventsText() {
+        File eventsFile = getEventsFile();
+        if (eventsFile.length() <= 0) {
+            ByteBuffer buffer = new ByteBuffer();
+            try {
+                buffer.write(
+                        String.format("No events as of %tc, waiting for events...%n", new Date())
+                                .getBytes(Charsets.UTF_8)
+                );
+                return new AnnotatedLargeText<FolderComputation<I>>(buffer, Charsets.UTF_8, false, this);
+            } catch (IOException e) {
+                // ignore and fall through
+            }
+        }
+        return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, Charsets.UTF_8, false, this);
     }
 
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
@@ -231,17 +357,82 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         } while (!logText.isComplete());
     }
 
-    public @CheckForNull Result getResult() {
+    /**
+     * Sends out the raw console output.
+     *
+     * @param req the request
+     * @param rsp the response.
+     * @throws IOException if things go wrong.
+     */
+    public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        rsp.setContentType("text/plain;charset=UTF-8");
+        PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
+        InputStream input = getLogInputStream();
+        try {
+            IOUtils.copy(input, out);
+            out.flush();
+        } finally {
+            IOUtils.closeQuietly(input);
+            IOUtils.closeQuietly(out);
+        }
+    }
+
+    /**
+     * Stops this build if it's still going.
+     *
+     * @return the Http response.
+     */
+    @RequirePOST
+    public synchronized HttpResponse doStop() throws IOException, ServletException {
+        Executor e = Executor.of(this);
+        if (e != null) {
+            return e.doStop();
+        } else {
+            // nothing is building
+            return HttpResponses.forwardToPreviousPage();
+        }
+    }
+
+    /**
+     * Returns an input stream that reads from the log file.
+     * It will use a gzip-compressed log file (log.gz) if that exists.
+     *
+     * @return An input stream from the log file.
+     * If the log file does not exist, the error message will be returned to the output.
+     * @throws IOException if things go wrong
+     */
+    @Nonnull
+    public InputStream getLogInputStream() throws IOException {
+        File logFile = getLogFile();
+
+        if (logFile.exists()) {
+            // Checking if a ".gz" file was return
+            FileInputStream fis = new FileInputStream(logFile);
+            if (logFile.getName().endsWith(".gz")) {
+                return new GZIPInputStream(fis);
+            } else {
+                return fis;
+            }
+        }
+
+        String message = "No such file: " + logFile;
+        return new ByteArrayInputStream(message.getBytes(Charsets.UTF_8));
+    }
+
+    @CheckForNull
+    public Result getResult() {
         return result;
     }
 
-    public @Nonnull Calendar getTimestamp() {
+    @Nonnull
+    public Calendar getTimestamp() {
         GregorianCalendar c = new GregorianCalendar();
         c.setTimeInMillis(timestamp);
         return c;
     }
 
-    public @Nonnull String getDurationString() {
+    @Nonnull
+    public String getDurationString() {
         if (isBuilding()) {
             return hudson.model.Messages.Run_InProgressDuration(Util.getTimeSpanString(System.currentTimeMillis() - timestamp));
         } else {
@@ -249,30 +440,36 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
-    public @Nonnull String getUrl() {
+    @Nonnull
+    public String getUrl() {
         return folder.getUrl() + "computation/";
     }
 
-    public @CheckForNull Result getPreviousResult() {
+    @CheckForNull
+    public Result getPreviousResult() {
         return previous == null ? null : previous.result;
     }
 
-    public @Nonnull BallColor getIconColor() {
+    @Nonnull
+    public BallColor getIconColor() {
         Result _result = result;
         if (_result != null) {
             return _result.color;
         }
         Result previousResult = getPreviousResult();
         if (previousResult == null) {
-            return BallColor.GREY_ANIME;
+            return isBuilding() ? BallColor.GREY_ANIME : BallColor.GREY;
         }
-        return previousResult.color.anime();
+        return isBuilding() ? previousResult.color.anime() : previousResult.color;
     }
 
     public String getBuildStatusIconClassName() {
         return getIconColor().getIconClassName();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + folder.getFullName() + "]";

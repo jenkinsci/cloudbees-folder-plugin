@@ -1,7 +1,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <h1><img src="${resURL}/plugin/cloudbees-folder/images/48x48/move.png" alt=""/>${%Move}</h1>
+  <h1><l:icon class="icon-item-move-folder icon-xlg"/>${%Move}</h1>
   <form method="post" action="move">
     ${%blurb(item.pronoun, item.displayName)}
     <select name="destination" class="select setting-input">

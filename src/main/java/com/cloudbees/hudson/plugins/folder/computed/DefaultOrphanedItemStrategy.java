@@ -23,15 +23,20 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.tasks.LogRotator;
 import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -80,6 +85,32 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
         this.numToKeep = pruneDeadBranches ? fromString(numToKeepStr) : -1;
+    }
+
+    /**
+     * Programmatic constructor.
+     *
+     * @param pruneDeadBranches remove dead branches.
+     * @param daysToKeep     how old a branch must be to remove.
+     * @param numToKeep      how many branches to keep.
+     */
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
+        this.pruneDeadBranches = pruneDeadBranches;
+        this.daysToKeep = pruneDeadBranches && daysToKeep > 0? daysToKeep : -1;
+        this.numToKeep = pruneDeadBranches && numToKeep > 0 ? numToKeep : -1;
+    }
+
+    /**
+     * Migrate legacy configurations to correct configuration.
+     *
+     * @return the deserialized object.
+     * @throws ObjectStreamException if something goes wrong.
+     */
+    private Object readResolve() throws ObjectStreamException {
+        if (daysToKeep == 0 || numToKeep == 0) {
+            return new DefaultOrphanedItemStrategy(pruneDeadBranches, daysToKeep, numToKeep);
+        }
+        return this;
     }
 
     /**
@@ -167,6 +198,10 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
 
     private static long lastBuildTime(TopLevelItem item) {
         long t = 0;
+        if (item instanceof ComputedFolder) {
+            // pick up special case of computed folders
+            t = ((ComputedFolder)item).getComputation().getTimestamp().getTimeInMillis();
+        }
         for (Job<?,?> j : item.getAllJobs()) {
             Run<?,?> b = j.getLastBuild();
             if (b != null) {
@@ -176,19 +211,42 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         return t;
     }
 
+    private static boolean disabled(TopLevelItem item) {
+        // TODO revisit once on 2.61+ for https://github.com/jenkinsci/jenkins/pull/2866
+        if (item instanceof AbstractFolder) {
+            return ((AbstractFolder) item).isDisabled();
+        } else if (item instanceof AbstractProject) {
+            return ((AbstractProject) item).isDisabled();
+        } else {
+            try {
+                Method isDisabled = item.getClass().getMethod("isDisabled");
+                return boolean.class.equals(isDisabled.getReturnType()) && (Boolean)isDisabled.invoke(item);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                // assume not disabled
+                return false;
+            }
+        }
+    }
+
     @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         List<I> toRemove = new ArrayList<I>();
-        if (pruneDeadBranches && (numToKeep != -1 || daysToKeep != -1)) {
+        if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
             List<I> candidates = new ArrayList<I>(orphaned);
             Collections.sort(candidates, new Comparator<I>() {
                 @Override
                 public int compare(I i1, I i2) {
+                    boolean disabled1 = disabled(i1);
+                    boolean disabled2 = disabled(i2);
+                    // prefer the not previously disabled ahead of the previously disabled
+                    if (disabled1 ^ disabled2) {
+                        return disabled2 ? -1 : +1;
+                    }
                     // most recent build first
                     long ms1 = lastBuildTime(i1);
                     long ms2 = lastBuildTime(i2);
-                    return (ms2 < ms1) ? -1 : ((ms2 == ms1) ? 0 : 1); // TODO Java 7+: Long.compare(ms2, ms1);
+                    return Long.compare(ms2, ms1);
                 }
             });
             CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
@@ -234,6 +292,13 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                         continue;
                     }
                     listener.getLogger().printf("Will remove %s as it is too old%n", item.getDisplayName());
+                    toRemove.add(item);
+                }
+            }
+            if (daysToKeep == -1 && numToKeep == -1) {
+                // special case, we have not said to keep for any count or duration, hence remove them all
+                for (I item : candidates) {
+                    listener.getLogger().printf("Will remove %s%n", item.getDisplayName());
                     toRemove.add(item);
                 }
             }

@@ -24,7 +24,10 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Messages;
+import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
@@ -33,6 +36,7 @@ import hudson.model.ItemGroup;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
 import jenkins.model.TransientActionFactory;
+import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerFallback;
@@ -46,7 +50,7 @@ import java.util.Collections;
  * Does the actual work of relocating an item.
  */
 @Restricted(NoExternalUse.class)
-public class RelocationAction implements Action, StaplerFallback {
+public class RelocationAction implements Action, StaplerFallback, IconSpec {
 
     /**
      * The permission required to move an item.
@@ -88,6 +92,14 @@ public class RelocationAction implements Action, StaplerFallback {
     @Override 
     public String getIconFileName() {
         return !item.hasPermission(RELOCATE) || ui == null || !ui.isAvailable(item) ? null : ui.getIconFileName();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getIconClassName() {
+        return !item.hasPermission(RELOCATE) || ui == null || !ui.isAvailable(item) ? null : ui.getIconClassName();
     }
 
     /**
@@ -159,6 +171,10 @@ public class RelocationAction implements Action, StaplerFallback {
 
         @Override
         public Collection<? extends Action> createFor(@Nonnull Item target) {
+            if (target.getParent() instanceof ComputedFolder) {
+                // cannot move from a computed folder
+                return Collections.emptySet();
+            }
             return Collections.singleton(new RelocationAction(target));
         }
     }

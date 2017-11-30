@@ -42,22 +42,25 @@ import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-
-import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
+import jenkins.model.TransientActionFactory;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * A mutable folder.
@@ -90,8 +93,10 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * <p>
      * We don't want to persist them separately, and these actions
      * come and go as configuration change, so it's kept separate.
+     * @deprecated Use {@link TransientActionFactory} instead.
      */
     @CopyOnWrite
+    @Deprecated
     protected transient volatile List<Action> transientActions = new Vector<Action>();
 
     public Folder(ItemGroup parent, String name) {
@@ -138,33 +143,32 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         updateTransientActions();
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Note that this method returns a read-only view of {@link Action}s.
-     *
-     * @see TransientFolderActionFactory
-     * @see FolderProperty#getFolderActions
-     */
-    @SuppressWarnings("deprecation")
-    @Override
-    public synchronized List<Action> getActions() {
-        // add all the transient actions, too
-        List<Action> actions = new Vector<Action>(super.getActions());
-        actions.addAll(transientActions);
-        // return the read only list to cause a failure on plugins who try to add an action here
-        return Collections.unmodifiableList(actions);
+    @Restricted(DoNotUse.class)
+    @Deprecated
+    @Extension
+    public static class DeprecatedTransientActions extends TransientActionFactory<Folder> {
+
+        @Override
+        public Class<Folder> type() {
+            return Folder.class;
+        }
+
+        @Override
+        public Collection<? extends Action> createFor(Folder target) {
+            return target.transientActions;
+        }
+
     }
 
     /**
-     * effectively deprecated. Since using updateTransientActions correctly
-     * under concurrent environment requires a lock that can too easily cause deadlocks.
+     * @deprecated Use {@link TransientActionFactory} instead.
      */
+    @Deprecated
     protected void updateTransientActions() {
         transientActions = createTransientActions();
     }
 
-    @SuppressWarnings("deprecation")
+    @Deprecated
     protected List<Action> createTransientActions() {
         Vector<Action> ta = new Vector<Action>();
 
@@ -180,6 +184,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Used in "New Job" side menu.
+     * @return the pronoun for new item creation.
      * @see #NEW_PRONOUN
      */
     public String getNewPronoun() {
@@ -187,6 +192,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     /**
+     * @return the columns.
      * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
@@ -195,7 +201,12 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
                 ListViewColumn.createDefaultInitialColumnList());
     }
 
-    /** @deprecated use {@link #addProperty(AbstractFolderProperty)} instead */
+    /**
+     * Legacy binary compatibility method.
+     * @param p the property.
+     * @throws IOException if the folder could not be saved.
+     * @deprecated use {@link #addProperty(AbstractFolderProperty)} instead
+     */
     @Deprecated
     public void addProperty(FolderProperty<?> p) throws IOException {
         addProperty((AbstractFolderProperty) p);
@@ -275,6 +286,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Items that can be created in this {@link Folder}.
+     * @return the descriptors of items that can be created within this folder.
      * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
@@ -289,6 +301,9 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     /**
      * Returns true if the specified descriptor type is allowed for this container.
+     *
+     * @param tid the type of child item.
+     * @return {@code true} if it can be added.
      */
     public boolean isAllowedChildDescriptor(TopLevelItemDescriptor tid) {
         for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
@@ -302,7 +317,12 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return tid.isApplicableIn(this);
     }
 
-    /** Historical synonym for {@link #canAdd}. */
+    /**
+     * Historical synonym for {@link #canAdd}.
+     *
+     * @param tid the potential child item.
+     * @return {@code true} if it can be added.
+     */
     public boolean isAllowedChild(TopLevelItem tid) {
         for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
             if (!p.allowsParentToHave(tid)) {
@@ -328,7 +348,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         if (items.containsKey(name)) {
             throw new IllegalArgumentException("already an item '" + name + "'");
         }
-        items.put(item.getName(), item);
+        itemsPut(item.getName(), item);
         return item;
     }
 
@@ -342,23 +362,11 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         /**
          * Needed if it wants Folders are categorized in Jenkins 2.x.
          *
-         * TODO: Override when the baseline is upgraded to 2.x
-         *
          * @return A string with the Item description.
          */
+        @Override
         public String getDescription() {
             return Messages.Folder_Description();
-        }
-
-        /**
-         * Needed if it wants Folder are categorized in Jenkins 2.x.
-         *
-         * TODO: Override when the baseline is upgraded to 2.x
-         *
-         * @return A string it represents a URL pattern to get the Item icon in different sizes.
-         */
-        public String getIconFilePathPattern() {
-            return "plugin/cloudbees-folder/images/:size/folder.png";
         }
 
         @Override
@@ -366,6 +374,21 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             return new Folder(parent, name);
         }
 
+        static {
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-sm", "plugin/cloudbees-folder/images/16x16/move.png", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-md", "plugin/cloudbees-folder/images/24x24/move.png", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-lg", "plugin/cloudbees-folder/images/32x32/move.png", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-xlg", "plugin/cloudbees-folder/images/48x48/move.png", Icon.ICON_XLARGE_STYLE));
+            // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and not in core
+            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/16x16/folder.png", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/24x24/folder.png", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/32x32/folder.png", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/48x48/folder.png", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/16x16/folder-disabled.png", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/24x24/folder-disabled.png", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/32x32/folder-disabled.png", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/48x48/folder-disabled.png", Icon.ICON_XLARGE_STYLE));
+        }
     }
 
     private class MixInImpl extends ItemGroupMixIn {
@@ -375,7 +398,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
         @Override
         protected void add(TopLevelItem item) {
-            items.put(item.getName(), item);
+            itemsPut(item.getName(), item);
         }
 
         @Override

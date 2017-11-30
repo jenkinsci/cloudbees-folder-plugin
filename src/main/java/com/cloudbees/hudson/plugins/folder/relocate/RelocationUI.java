@@ -30,17 +30,17 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;
 import hudson.model.Item;
-import jenkins.model.Jenkins;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import jenkins.model.Jenkins;
+import org.jenkins.ui.icon.IconSpec;
 
 /**
  * Extension point to provide a plugable UI for moving {@link Item} instances.
  *
  * @since 4.9
  */
-public abstract class RelocationUI implements ExtensionPoint {
+public abstract class RelocationUI implements ExtensionPoint, IconSpec {
 
     /**
      * The {@link Action#getDisplayName()} to present for this UI.
@@ -76,6 +76,14 @@ public abstract class RelocationUI implements ExtensionPoint {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getIconClassName() {
+        return "icon-item-move-folder";
+    }
+
+    /**
      * Checks if the relocation operation is currently available for the specific item 
      * (as {@link Jenkins#getAuthentication()} if the user is a factor). You can assume that the current user
      * has {@link RelocationAction#RELOCATE} permission.
@@ -90,7 +98,7 @@ public abstract class RelocationUI implements ExtensionPoint {
      * @param itemClass the type of item.
      * @return {@code true} if this UI is applicable to the specified type of item.
      * @see ExtensionList
-     * @see Extension#ordinal()
+     * @see Extension Extension#ordinal() sorting
      */
     public abstract boolean isApplicableTo(Class<? extends Item> itemClass);
 

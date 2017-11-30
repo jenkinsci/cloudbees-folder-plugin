@@ -55,6 +55,7 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
 
     /**
      * Hook for performing post-initialization action.
+     * @param owner the owner.
      */
     protected void setOwner(@NonNull C owner) {
         this.owner = owner;
@@ -80,6 +81,7 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
      * Provides stapler override objects to {@link Folder} so that its URL space can be partially
      * overridden by properties.
      *
+     * @return the overrides.
      * @see StaplerOverridable
      */
     public Collection<?> getItemContainerOverrides() {

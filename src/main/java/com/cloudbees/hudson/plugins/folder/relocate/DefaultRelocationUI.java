@@ -30,18 +30,17 @@ import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.util.HttpResponses;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.interceptor.RequirePOST;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Default implementation of {@link RelocationUI}
@@ -92,12 +91,15 @@ public class DefaultRelocationUI extends RelocationUI {
      * Does the move.
      *
      * @param req         the request.
+     * @param item        the item
      * @param destination the destination.
      * @return the response.
+     * @throws IOException          if things go wrong.
+     * @throws InterruptedException if interrupted.
      */
     @RequirePOST
-    public HttpResponse doMove(StaplerRequest req, @AncestorInPath Item item, @QueryParameter String destination) throws
-            IOException, InterruptedException {
+    public HttpResponse doMove(StaplerRequest req, @AncestorInPath Item item, @QueryParameter String destination)
+            throws IOException, InterruptedException {
         item.checkPermission(RelocationAction.RELOCATE);
         ItemGroup dest = null;
         for (ItemGroup itemGroup : listDestinations(item)) {

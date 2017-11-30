@@ -24,9 +24,9 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import antlr.ANTLRException;
-import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
-import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.model.Cause;
 import hudson.model.Item;
 import hudson.model.Items;
 import hudson.triggers.TimerTrigger;
@@ -34,6 +34,11 @@ import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.ListBoxModel;
 import hudson.util.TimeUnit2;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -45,10 +50,24 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
+    private static final Logger LOGGER = Logger.getLogger(PeriodicFolderTrigger.class.getName());
+
+    /**
+     * Captures the time that this class was loaded.
+     */
+    private static final long startup = System.currentTimeMillis();
+
     /**
      * The interval between successive indexings.
      */
     private final long interval;
+
+    /**
+     * Timestamp when we last {@link #run}.
+     * Normally we rely on {@link FolderComputation#getTimestamp} but there is a slight delay
+     * between {@link ComputedFolder#scheduleBuild(int, Cause)} and {@link ComputedFolder#createExecutable}.
+     */
+    private transient long lastTriggered; // could be volatile or AtomicLong, but FolderCron will not run >1 concurrently anyway
 
     /**
      * Constructor.
@@ -75,13 +94,13 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             return "* * * * *";
         }
         if (millis < TimeUnit2.MINUTES.toMillis(10)) {
-            return "*/12 * * * *";
+            return "H/12 * * * *";
         }
         if (millis < TimeUnit2.MINUTES.toMillis(30)) {
-            return "*/6 * * * *";
+            return "H/6 * * * *";
         }
         if (millis < TimeUnit2.HOURS.toMillis(1)) {
-            return "*/2 * * * *";
+            return "H/2 * * * *";
         }
         if (millis < TimeUnit2.HOURS.toMillis(8)) {
             return "H * * * *";
@@ -159,16 +178,38 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("ConstantConditions")
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     @Override
     public void run() {
+        if (job == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
         FolderComputation<?> computation = job.getComputation();
         if (computation != null) {
-            long delay = System.currentTimeMillis() - computation.getTimestamp().getTimeInMillis();
+            long delay = now - computation.getTimestamp().getTimeInMillis();
             if (delay < interval) {
+                LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
+                return;
+            }
+            if (lastTriggered == 0) {
+                // on start-up set the last triggered to sometime within the interval of start-up
+                // for short intervals this will have no effect
+                // for longer intervals this will stagger all the computations on start-up
+                // when creating new instances this will be ignored as the computation result will be null
+                lastTriggered = startup + new Random().nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
+            }
+            if (now - lastTriggered < interval && computation.getResult() != null) {
+                LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
                 return;
             }
         }
-        job.scheduleBuild(0, new TimerTrigger.TimerTriggerCause());
+        if (job.scheduleBuild(0, new TimerTrigger.TimerTriggerCause())) {
+            lastTriggered = now;
+        } else {
+            LOGGER.log(Level.WARNING, "Queue refused to schedule {0}", job);
+        }
     }
 
     /**
@@ -188,7 +229,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
          * {@inheritDoc}
          */
         public String getDisplayName() {
-            return "Periodically if not otherwise run";
+            return Messages.PeriodicFolderTrigger_DisplayName();
         }
 
         /**

@@ -34,8 +34,26 @@ import java.util.Collections;
 import java.util.List;
 
 public class WorstChildHealthMetric extends FolderHealthMetric {
-    @DataBoundConstructor
+
+    private boolean nonRecursive;
+
+    @Deprecated
     public WorstChildHealthMetric() {
+        nonRecursive = false;
+    }
+
+    @DataBoundConstructor
+    public WorstChildHealthMetric(boolean recursive) {
+        nonRecursive = !recursive;
+    }
+
+    public boolean isRecursive() {
+        return !nonRecursive;
+    }
+
+    @Override
+    public Type getType() {
+        return nonRecursive ? Type.IMMEDIATE_TOP_LEVEL_ITEMS : Type.RECURSIVE_TOP_LEVEL_ITEMS;
     }
 
     @Override
@@ -48,11 +66,11 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
 
         @Override
         public String getDisplayName() {
-            return "Child item with worst health";
+            return Messages.WorstChildHealthMetric_DisplayName();
         }
 
         @Override public FolderHealthMetric createDefault() {
-            return new WorstChildHealthMetric();
+            return new WorstChildHealthMetric(true);
         }
 
     }
