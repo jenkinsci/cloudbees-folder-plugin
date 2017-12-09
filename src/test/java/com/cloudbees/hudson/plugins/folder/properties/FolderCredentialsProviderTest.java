@@ -32,13 +32,11 @@ import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.FreeStyleBuild;
@@ -48,8 +46,6 @@ import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.User;
 import hudson.security.ACL;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.util.Collections;
@@ -65,11 +61,9 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockQueueItemAuthenticator;
-import org.jvnet.hudson.test.TestExtension;
-import org.kohsuke.stapler.DataBoundConstructor;
+import org.jvnet.hudson.test.TestBuilder;
 
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -286,27 +280,18 @@ public class FolderCredentialsProviderTest {
         }
     }
 
-    public static class HasCredentialBuilder extends Builder {
+    private static class HasCredentialBuilder extends TestBuilder {
 
         private final String id;
-        private Matcher<?> matcher;
+        private final Matcher<?> matcher;
 
-        @DataBoundConstructor
-        public HasCredentialBuilder(String id) {
-            this.id = id;
+        HasCredentialBuilder(String id) {
+            this(id, null);
         }
 
-        public HasCredentialBuilder(String id, Matcher<?> matcher) {
+        HasCredentialBuilder(String id, Matcher<?> matcher) {
             this.id = id;
             this.matcher = matcher;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public Matcher<?> getMatcher() {
-            return matcher;
         }
 
         @Override
@@ -334,19 +319,6 @@ public class FolderCredentialsProviderTest {
             }
         }
 
-        @TestExtension
-        public static class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
-            @Override
-            public boolean isApplicable(Class<? extends AbstractProject> jobType) {
-                return true;
-            }
-
-            @Override
-            public String getDisplayName() {
-                return "Probe credentials exist";
-            }
-        }
     }
 
     private CredentialsStore getFolderStore(Folder f) {
