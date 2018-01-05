@@ -32,7 +32,13 @@ import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import jenkins.model.Jenkins;
+import net.jcip.annotations.GuardedBy;
 
 /**
  * We need to be able to limit concurrent indexing.
@@ -40,39 +46,113 @@ import jenkins.model.Jenkins;
 @SuppressWarnings("unused") // instantiated by Jenkins
 @Extension
 public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher {
+
+    /**
+     * One second expressed as nanoseconds.
+     */
+    private static final long ONE_SECOND_OF_NANOS = TimeUnit.SECONDS.toNanos(1);
+    /**
+     * How many concurrent computations to permit.
+     */
+    static int LIMIT = Math.max(1,
+            Math.min(
+                    Integer.getInteger(ThrottleComputationQueueTaskDispatcher.class.getName() + ".LIMIT", 5),
+                    Runtime.getRuntime().availableProcessors() * 4
+            )
+    );
+    /**
+     * A list of recently permitted computations. This list should never grow above {@link #LIMIT} entries.
+     */
+    @GuardedBy("self")
+    private final List<TimestamppedWeakReference> recent = new ArrayList<>(LIMIT);
+
     /**
      * {@inheritDoc}
      */
     @Override
     public CauseOfBlockage canRun(Queue.Item item) {
         if (item.task instanceof ComputedFolder) {
-            if (indexingCount() > 5) {
-                // TODO make the limit configurable
+            long now = System.nanoTime();
+            int approvedCount;
+            boolean found;
+            Queue queue = Queue.getInstance();
+            synchronized (recent) {
+                approvedCount = 0;
+                found = false;
+                for (Iterator<TimestamppedWeakReference> i = recent.iterator(); i.hasNext(); ) {
+                    TimestamppedWeakReference details = i.next();
+                    Queue.Item task = details.get();
+                    if (task == null) {
+                        i.remove();
+                    } else {
+                        if (now - details.when > ONE_SECOND_OF_NANOS
+                                || queue.getItem(task.getId()) instanceof Queue.LeftItem) {
+                            i.remove();
+                        } else {
+                            approvedCount++;
+                            found = found || task == item;
+                        }
+                    }
+                }
+            }
+            if (!found && computationCount() + approvedCount >= LIMIT) {
                 return CauseOfBlockage.fromMessage(Messages._ThrottleComputationQueueTaskDispatcher_MaxConcurrentIndexing());
+            }
+            if (!found) {
+                synchronized (recent) {
+                    // use the nanoTime we pruned recent with in order to ensure we don't have more than LIMIT entries
+                    // note that this is not a constraint, just nice to know the list will not grow too big.
+                    recent.add(new TimestamppedWeakReference(now, item));
+                }
             }
         }
         return null;
     }
+
     /**
-     * Gets the number of current indexing tasks.
+     * Gets the number of current computation tasks.
      *
-     * @return number of current indexing tasks.
+     * @return number of current computation tasks.
+     * @deprecated use {@link #computationCount()}
      */
+    @Deprecated
     public int indexingCount() {
+        return computationCount();
+    }
+
+    /**
+     * Gets the number of current computation tasks.
+     *
+     * @return number of current computation tasks.
+     */
+    public int computationCount() {
         Jenkins j = Jenkins.getInstance();
-        int result = indexingCount(j);
+        int result = computationCount(j);
         for (Node n : j.getNodes()) {
-            result += indexingCount(n);
+            result += computationCount(n);
         }
         return result;
     }
+
     /**
-     * Gets the number of current indexing tasks on the specified node.
+     * Gets the number of current computation tasks on the specified node.
      *
      * @param node the node.
-     * @return number of current indexing tasks on the specified node.
+     * @return number of current computation tasks on the specified node.
+     * @deprecated use {@link #computationCount(Node)}
      */
+    @Deprecated
     public int indexingCount(@CheckForNull Node node) {
+        return computationCount(node);
+    }
+
+    /**
+     * Gets the number of current computation tasks on the specified node.
+     *
+     * @param node the node.
+     * @return number of current computation tasks on the specified node.
+     */
+    public int computationCount(@CheckForNull Node node) {
         int result = 0;
         @CheckForNull
         Computer computer = node == null ? null : node.toComputer();
@@ -90,6 +170,22 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
             }
         }
         return result;
+    }
+
+    /**
+     * Extend {@link WeakReference} to allow association of secondary data without requiring excessive boxing of
+     * {@link Long}s
+     */
+    private static class TimestamppedWeakReference extends WeakReference<Queue.Item> {
+        /**
+         * The {@link System#nanoTime()} comparable timestamp.
+         */
+        final long when;
+
+        TimestamppedWeakReference(long when, Queue.Item task) {
+            super(task);
+            this.when = when;
+        }
     }
 
 }
