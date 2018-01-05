@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>cloudbees-folder</artifactId>
-  <version>6.2.2-SNAPSHOT</version>
+  <version>6.3-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Folders Plugin</name>
