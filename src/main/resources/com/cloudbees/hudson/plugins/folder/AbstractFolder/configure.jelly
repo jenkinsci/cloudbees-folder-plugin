@@ -23,16 +23,29 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <l:layout title="${it.displayName} Config" norefresh="true" permission="${it.EXTENDED_READ}">
-    <st:include page="sidepanel.jelly" />
+  <l:layout title="${it.displayName} Config" norefresh="true" type="one-column" permission="${it.EXTENDED_READ}">
+    <l:js src="jsbundles/config-scrollspy.js"/>
+    <l:css src="jsbundles/config-scrollspy.css"/>
     <l:main-panel>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-offset-2 col-md-20">
       <div class="behavior-loading">${%LOADING}</div>
-      <f:form method="post" action="configSubmit" name="config">
+      <f:form method="post" action="configSubmit" name="config" tableClass="config-table scrollspy">
         <j:set var="descriptor" value="${it.descriptor}" />
         <j:set var="instance" value="${it}" />
 
         <f:entry title="${%Name}" field="name">
-          <f:textbox />
+          <!--
+          TODO Remove block-control class
+
+          Having this forces application of the 2.x UI but it is glitchy if no f:optionalBlock or f:radioBlock
+          elements are in the form (such is the case for the standard Folder implementation).
+
+          The save/apply buttons are out of place until the DOM is modified by expanding config elements or by
+          resizing the browser window.
+          -->
+          <f:textbox clazz="block-control"/>
         </f:entry>
 
         <f:entry title="${%Display Name}" field="displayNameOrNull">
@@ -135,6 +148,9 @@ THE SOFTWARE.
         </j:if>
       </f:form>
       <st:adjunct includes="lib.form.confirm" />
+          </div>
+        </div>
+      </div>
     </l:main-panel>
   </l:layout>
 </j:jelly>
