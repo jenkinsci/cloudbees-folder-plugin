@@ -87,10 +87,10 @@ public class FolderTest {
 
         String oldName = f.getName();
 
-        HtmlForm cfg = r.createWebClient().getPage(f, "configure").getFormByName("config");
-        cfg.getInputByName("_.name").setValueAttribute("newName");
+        HtmlForm cfg = r.createWebClient().getPage(f, "rename2").getFormByName("config");
+        cfg.getInputByName("newName").setValueAttribute("newName");
         for (HtmlForm form : r.submit(cfg).getForms()) {
-            if (form.getActionAttribute().equals("doRename")) {
+            if (form.getActionAttribute().equals("doRename2")) {
                 r.submit(form);
                 break;
             }
