@@ -19,7 +19,9 @@
   </description>
   <url>https://wiki.jenkins.io/display/JENKINS/CloudBees+Folders+Plugin</url>
   <properties>
-    <jenkins.version>2.60.3</jenkins.version>
+    <!-- TODO: Update to non-snapshots before merge. -->
+    <jenkins-core.version>2.109-20180222.205843-6</jenkins-core.version>
+    <jenkins-war.version>2.109-20180222.205903-6</jenkins-war.version>
     <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
   </properties>

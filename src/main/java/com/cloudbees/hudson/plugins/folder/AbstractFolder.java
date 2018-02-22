@@ -80,7 +80,6 @@ import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -114,7 +113,6 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
@@ -1358,20 +1356,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             bc.abort();
         }
 
-        // TODO boilerplate
-        String newName = json.getString("name");
         ProjectNamingStrategy namingStrategy = Jenkins.getActiveInstance().getProjectNamingStrategy();
-        if (newName != null && !newName.equals(name)) {
-            // check this error early to avoid HTTP response splitting.
-            Jenkins.checkGoodName(newName);
-            namingStrategy.checkName(newName);
-            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
-        } else {
             if (namingStrategy.isForceExistingJobs()) {
                 namingStrategy.checkName(name);
             }
             FormApply.success(getSuccessfulDestination()).generateResponse(req, rsp, this);
-        }
     }
 
     /**
@@ -1389,41 +1378,39 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
 
-    // TODO boilerplate like this should not be necessary: JENKINS-22936
-    @Restricted(DoNotUse.class)
-    @RequirePOST
-    public void doDoRename(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isNameEditable() {
+        return true;
+    }
 
-        if (!hasPermission(CONFIGURE)) {
-            // rename is essentially delete followed by a create
-            checkPermission(CREATE);
-            checkPermission(DELETE);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void checkRename(String newName) {
+        for (Job<?,?> job : getAllJobs()) {
+            if (job.isBuilding()) {
+                throw new Failure("Unable to rename a folder while a job inside it is building.");
+            }
         }
-
-        String newName = req.getParameter("newName");
-        Jenkins.checkGoodName(newName);
 
         String blocker = renameBlocker();
         if (blocker != null) {
-            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8") + "&blocker=" + URLEncoder.encode(blocker, "UTF-8"));
-            return;
+            throw new Failure(blocker);
         }
-
-        renameTo(newName);
-        rsp.sendRedirect2("../" + newName);
     }
 
     /**
      * Allows a subclass to block renames under dynamic conditions.
      * @return a message if rename should currently be prohibited, or null to allow
+     * @deprecated Override {@link #checkRename} instead.
      */
+    @Deprecated
     @CheckForNull
     protected String renameBlocker() {
-        for (Job<?,?> job : getAllJobs()) {
-            if (job.isBuilding()) {
-                return "Unable to rename a folder while a job inside it is building.";
-            }
-        }
         return null;
     }
 
