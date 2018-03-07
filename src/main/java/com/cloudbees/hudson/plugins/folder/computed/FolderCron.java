@@ -123,14 +123,16 @@ public class FolderCron extends PeriodicWork {
                 } catch (IllegalAccessException e) {
                     continue;
                 }
-                if (tabs.check(cal)) {
-                    LOGGER.log(Level.CONFIG, "cron triggered {0}", p.getName());
+                if (tabs == null) {
+                    LOGGER.log(Level.FINE, "cron for {0} has not been started", p.getFullName());
+                } else if (tabs.check(cal)) {
+                    LOGGER.log(Level.CONFIG, "cron triggered {0}", p.getFullName());
                     try {
                         t.run();
                     } catch (Throwable e) {
                         // t.run() is a plugin, and some of them throw RuntimeException and other things.
                         // don't let that cancel the polling activity. report and move on.
-                        LOGGER.log(Level.WARNING, t.getClass().getName() + ".run() failed for " + p.getName(), e);
+                        LOGGER.log(Level.WARNING, t.getClass().getName() + ".run() failed for " + p.getFullName(), e);
                     }
                 }
             }

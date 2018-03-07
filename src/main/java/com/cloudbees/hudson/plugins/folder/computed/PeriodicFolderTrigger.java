@@ -34,6 +34,7 @@ import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.ListBoxModel;
 import hudson.util.TimeUnit2;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -90,22 +91,26 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      */
     private static String toCrontab(String interval) {
         long millis = toIntervalMillis(interval);
-        if (millis < TimeUnit2.MINUTES.toMillis(5)) {
-            return "* * * * *";
+        // we want to ensure the crontab wakes us excessively
+        if (millis <= TimeUnit2.MINUTES.toMillis(5)) {
+            return "* * * * *"; // 0-5min: check every minute
         }
-        if (millis < TimeUnit2.MINUTES.toMillis(10)) {
-            return "H/12 * * * *";
+        if (millis <= TimeUnit2.MINUTES.toMillis(30)) {
+            return "H/12 * * * *"; // 11-30min: check every 5 minutes
         }
-        if (millis < TimeUnit2.MINUTES.toMillis(30)) {
-            return "H/6 * * * *";
+        if (millis <= TimeUnit2.HOURS.toMillis(1)) {
+            return "H/4 * * * *"; // 30-60min: check every 15 minutes
         }
-        if (millis < TimeUnit2.HOURS.toMillis(1)) {
-            return "H/2 * * * *";
+        if (millis <= TimeUnit2.HOURS.toMillis(8)) {
+            return "H/2 * * * *"; // 61min-8hr: check every 30 minutes
         }
-        if (millis < TimeUnit2.HOURS.toMillis(8)) {
-            return "H * * * *";
+        if (millis <= TimeUnit2.DAYS.toMillis(1)) {
+            return "H H/6 * * *"; // 8hr-24h: check every 4 hours
         }
-        return "H H * * *";
+        if (millis <= TimeUnit2.DAYS.toMillis(2)) {
+            return "H H/2 * * *"; // 24h-2d: check every 12 hours
+        }
+        return "H H * * *"; // check once per day
     }
 
     /**
@@ -188,10 +193,20 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         long now = System.currentTimeMillis();
         FolderComputation<?> computation = job.getComputation();
         if (computation != null) {
-            long delay = now - computation.getTimestamp().getTimeInMillis();
-            if (delay < interval) {
-                LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
-                return;
+            List<Cause> causes = computation.getCauses();
+            // the timestamp will be set based on when the build actually starts, not when the build was scheduled
+            // so in the case of a series of timer triggered builds, the timestamp will always be greater than
+            // lastTriggered and thus the now-timestamp will be less than interval when now-lastTriggered is greater
+            // than interval but less than 2*interval
+            // The net effect is that setting the interval to once every minute will trigger every 2 minutes
+            // once every 
+            if (causes.size() != 1 || !(causes.get(0) instanceof TimerTrigger.TimerTriggerCause)) {
+                // the last build was not a pure timer-trigger build
+                long delay = now - computation.getTimestamp().getTimeInMillis();
+                if (delay < interval) {
+                    LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
+                    return;
+                }
             }
             if (lastTriggered == 0) {
                 // on start-up set the last triggered to sometime within the interval of start-up
@@ -200,7 +215,12 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
                 // when creating new instances this will be ignored as the computation result will be null
                 lastTriggered = startup + new Random().nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
             }
-            if (now - lastTriggered < interval && computation.getResult() != null) {
+            // we will be run approximately every interval/2
+            // we want to trigger such that the average time between triggers is `interval`
+            // if we have the time since last trigger as almost `interval` then it will be 1.5*interval
+            // so we trigger slightly early
+            long almostInterval = interval - interval / 20;
+            if (now - lastTriggered < almostInterval && computation.getResult() != null) {
                 LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
                 return;
             }
