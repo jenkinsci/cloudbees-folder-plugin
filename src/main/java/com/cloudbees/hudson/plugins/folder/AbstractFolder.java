@@ -75,6 +75,7 @@ import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.Function1;
 import hudson.util.HttpResponses;
+import hudson.util.QuotedStringTokenizer;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
@@ -1365,7 +1366,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             // check this error early to avoid HTTP response splitting.
             Jenkins.checkGoodName(newName);
             namingStrategy.checkName(newName);
-            rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
+            if (FormApply.isApply(req)) {
+                FormApply.applyResponse("notificationBar.show(" + QuotedStringTokenizer.quote(hudson.model.Messages.Job_you_must_use_the_save_button_if_you_wish()) + ",notificationBar.WARNING)").generateResponse(req, rsp, null);
+            } else {
+                rsp.sendRedirect("rename?newName=" + URLEncoder.encode(newName, "UTF-8"));
+            }
         } else {
             if (namingStrategy.isForceExistingJobs()) {
                 namingStrategy.checkName(name);
