@@ -37,6 +37,7 @@ import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.Descriptor;
+import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Items;
@@ -808,11 +809,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * {@inheritDoc}
      */
     @Override
-    protected String renameBlocker() {
+    protected void checkRename(String newName) {
         if (computation.isBuilding()) {
-            return "Recomputation is currently in progress";
+            throw new Failure(Messages.ComputedFolder_ComputationInProgress());
         }
-        return super.renameBlocker();
+        super.checkRename(newName);
     }
 
     @NonNull

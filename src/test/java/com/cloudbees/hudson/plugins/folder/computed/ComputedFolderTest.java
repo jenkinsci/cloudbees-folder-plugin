@@ -36,6 +36,7 @@ import hudson.model.AllView;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Executor;
+import hudson.model.Failure;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
@@ -479,6 +480,23 @@ public class ComputedFolderTest {
         }
         d.delete();
         assertThat(computation.getResult(), is(Result.ABORTED));
+    }
+
+    @Test
+    public void renameWhileComputing() throws Exception {
+        CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
+        d.kids.addAll(Arrays.asList("A", "B"));
+        QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
+        FolderComputation<FreeStyleProject> computation;
+        while (Executor.of((computation = d.getComputation())) == null) {
+            Thread.sleep(50);
+        }
+        try {
+            d.checkRename("d2");
+            fail("Should be blocked while computation is in progress");
+        } catch (Failure f) {
+            assertThat(f.getMessage(), is(Messages.ComputedFolder_ComputationInProgress()));
+        }
     }
 
     /**
