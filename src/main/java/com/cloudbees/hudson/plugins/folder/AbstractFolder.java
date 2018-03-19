@@ -75,6 +75,7 @@ import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.Function1;
 import hudson.util.HttpResponses;
+import hudson.util.QuotedStringTokenizer;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
