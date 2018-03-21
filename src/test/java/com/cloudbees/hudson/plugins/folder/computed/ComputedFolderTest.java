@@ -487,16 +487,17 @@ public class ComputedFolderTest {
         CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
         QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
-        FolderComputation<FreeStyleProject> computation;
-        while (Executor.of((computation = d.getComputation())) == null) {
-            Thread.sleep(50);
-        }
+        future.waitForStart();
         try {
             d.checkRename("d2");
             fail("Should be blocked while computation is in progress");
         } catch (Failure f) {
             assertThat(f.getMessage(), is(Messages.ComputedFolder_ComputationInProgress()));
         }
+        d.onKid("B");
+        future.get();
+        waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
+        d.checkRename("d2");
     }
 
     /**
