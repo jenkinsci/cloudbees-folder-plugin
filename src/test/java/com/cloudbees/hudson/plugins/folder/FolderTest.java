@@ -29,6 +29,7 @@ import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.html.*;
+import hudson.model.AbstractItem;
 import hudson.model.Actionable;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -60,6 +61,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
+import jenkins.model.RenameAction;
 import jenkins.util.Timer;
 import org.acegisecurity.AccessDeniedException;
 import static org.hamcrest.Matchers.*;
@@ -391,6 +393,22 @@ public class FolderTest {
         assertPropertyOwner("After reload", reloadedFolder, com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
     }
 
+    @Issue("JENKINS-52164")
+    @Test public void renameLinksShouldBeValid() throws Exception {
+        FreeStyleProject project1 = r.createFreeStyleProject();
+        Folder folder1 = createFolder();
+        FreeStyleProject project2 = folder1.createProject(FreeStyleProject.class, "project2");
+
+        HtmlAnchor anchor = findRenameAnchor(project1);
+        anchor.click();
+
+        anchor = findRenameAnchor(project2);
+        anchor.click();
+
+        anchor = findRenameAnchor(folder1); // Throws ElementNotFoundException before JENKINS-52164 fix
+        anchor.click();
+    }
+
     /**
      * Ensures that the specified property points to the folder.
      * @param <T> Property type
@@ -410,6 +428,13 @@ public class FolderTest {
     
     private Folder createFolder() throws IOException {
         return r.jenkins.createProject(Folder.class, "folder" + r.jenkins.getItems().size());
+    }
+
+    private HtmlAnchor findRenameAnchor(AbstractItem item) throws Exception {
+        JenkinsRule.WebClient w = r.createWebClient();
+        HtmlPage page = w.goTo(item.getUrl());
+        String relativeUrl = r.contextPath + "/" + item.getUrl() + item.getAction(RenameAction.class).getUrlName();
+        return page.getAnchorByHref(relativeUrl);
     }
 
 }
