@@ -35,7 +35,7 @@ THE SOFTWARE.
         <j:set var="descriptor" value="${it.descriptor}" />
         <j:set var="instance" value="${it}" />
 
-        <f:entry title="${%Name}" field="name">
+        <f:entry title="${%Display Name}" field="displayNameOrNull">
           <!--
           TODO Remove block-control class
 
@@ -45,11 +45,7 @@ THE SOFTWARE.
           The save/apply buttons are out of place until the DOM is modified by expanding config elements or by
           resizing the browser window.
           -->
-          <f:textbox clazz="block-control"/>
-        </f:entry>
-
-        <f:entry title="${%Display Name}" field="displayNameOrNull">
-          <f:textbox checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
+          <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
         </f:entry>
 
         <f:entry title="${%Description}" field="description">
