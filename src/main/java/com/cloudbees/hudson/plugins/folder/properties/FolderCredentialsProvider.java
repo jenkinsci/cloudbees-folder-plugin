@@ -52,6 +52,7 @@ import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ModelObject;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.AccessDeniedException2;
 import hudson.security.Permission;
 import hudson.util.CopyOnWriteMap;
@@ -409,8 +410,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          */
         private void checkedSave(Permission p) throws IOException {
             checkPermission(p);
-            SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-            try {
+            try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
                 FolderCredentialsProperty property =
                         owner.getProperties().get(FolderCredentialsProperty.class);
                 if (property == null) {
@@ -421,8 +421,6 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 }
                 // we assume it is ourselves
                 owner.save();
-            } finally {
-                SecurityContextHolder.setContext(orig);
             }
         }
 

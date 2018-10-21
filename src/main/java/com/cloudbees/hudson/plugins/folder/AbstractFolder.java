@@ -67,6 +67,7 @@ import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.CaseInsensitiveComparator;
 import hudson.util.CopyOnWriteMap;
@@ -1172,8 +1173,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             // (disregard whether they would be deletable in isolation)
             // JENKINS-34939: do not hold the monitor on this folder while deleting them
             // (thus we cannot do this inside performDelete)
-            SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-            try {
+            try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
                 for (Item i : new ArrayList<Item>(items.values())) {
                     try {
                         i.delete();
@@ -1184,8 +1184,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
                     }
                 }
-            } finally {
-                SecurityContextHolder.setContext(orig);
             }
             synchronized (this) {
                 performDelete();
