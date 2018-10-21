@@ -158,8 +158,8 @@ public class FolderTest {
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
-        assertTrue("Copy Job request has failed", 200 == r.createWebClient()
-                    .getPage(request).getWebResponse().getStatusCode());
+        assertEquals("Copy Job request has failed", 200, r.createWebClient()
+                .getPage(request).getWebResponse().getStatusCode());
     }
 
     /**
