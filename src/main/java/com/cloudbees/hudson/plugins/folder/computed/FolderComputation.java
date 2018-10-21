@@ -52,7 +52,7 @@ import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
 import hudson.util.HttpResponses;
 import hudson.util.StreamTaskListener;
-import hudson.util.io.ReopenableRotatingFileOutputStream;
+import hudson.util.io.RewindableRotatingFileOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -146,8 +146,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             FileUtils.forceMkdir(logFile.getParentFile());
             OutputStream os;
             if (BACKUP_LOG_COUNT != null) {
-                os = new ReopenableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
-                ((ReopenableRotatingFileOutputStream) os).rewind();
+                os = new RewindableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
+                ((RewindableRotatingFileOutputStream) os).rewind();
             } else {
                 os = new FileOutputStream(logFile);
             }
