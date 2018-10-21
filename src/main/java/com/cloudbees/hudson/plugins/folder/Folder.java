@@ -234,7 +234,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             try {
                 nue.delete();
             } catch (InterruptedException x) {
-                throw (IOException) new IOException(x.toString()).initCause(x);
+                throw new IOException(x.toString(), x);
             }
             throw new IOException("forbidden child type");
         }
@@ -257,7 +257,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             try {
                 nue.delete();
             } catch (InterruptedException x) {
-                throw (IOException) new IOException(x.toString()).initCause(x);
+                throw new IOException(x.toString(), x);
             }
             throw new IOException("forbidden child type");
         }
