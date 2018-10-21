@@ -142,7 +142,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Nonnull
     private transient /* almost final */ ReentrantLock currentObservationsLock;
     /**
-     * Condition to flag whenever the {@link #currentObservationsChanged} has had elements removed.
+     * Condition to flag whenever the {@link #currentObservations} has had elements removed.
      *
      * @since 6.0.0
      */
