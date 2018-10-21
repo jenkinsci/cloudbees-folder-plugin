@@ -33,7 +33,6 @@ import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.ListBoxModel;
-import hudson.util.TimeUnit2;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -92,22 +91,22 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     private static String toCrontab(String interval) {
         long millis = toIntervalMillis(interval);
         // we want to ensure the crontab wakes us excessively
-        if (millis <= TimeUnit2.MINUTES.toMillis(5)) {
+        if (millis <= TimeUnit.MINUTES.toMillis(5)) {
             return "* * * * *"; // 0-5min: check every minute
         }
-        if (millis <= TimeUnit2.MINUTES.toMillis(30)) {
+        if (millis <= TimeUnit.MINUTES.toMillis(30)) {
             return "H/5 * * * *"; // 11-30min: check every 5 minutes
         }
-        if (millis <= TimeUnit2.HOURS.toMillis(1)) {
+        if (millis <= TimeUnit.HOURS.toMillis(1)) {
             return "H/15 * * * *"; // 30-60min: check every 15 minutes
         }
-        if (millis <= TimeUnit2.HOURS.toMillis(8)) {
+        if (millis <= TimeUnit.HOURS.toMillis(8)) {
             return "H/30 * * * *"; // 61min-8hr: check every 30 minutes
         }
-        if (millis <= TimeUnit2.DAYS.toMillis(1)) {
+        if (millis <= TimeUnit.DAYS.toMillis(1)) {
             return "H H/4 * * *"; // 8hr-24h: check every 4 hours
         }
-        if (millis <= TimeUnit2.DAYS.toMillis(2)) {
+        if (millis <= TimeUnit.DAYS.toMillis(2)) {
             return "H H/12 * * *"; // 24h-2d: check every 12 hours
         }
         return "H H * * *"; // check once per day
@@ -120,22 +119,22 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      * @return the milliseconds.
      */
     private static long toIntervalMillis(String interval) {
-        TimeUnit2 units = TimeUnit2.MINUTES;
+        TimeUnit units = TimeUnit.MINUTES;
         interval = interval.toLowerCase();
         if (interval.endsWith("h")) {
-            units = TimeUnit2.HOURS;
+            units = TimeUnit.HOURS;
             interval = StringUtils.removeEnd(interval, "h");
         }
         if (interval.endsWith("m")) {
             interval = StringUtils.removeEnd(interval, "m");
         } else if (interval.endsWith("d")) {
-            units = TimeUnit2.DAYS;
+            units = TimeUnit.DAYS;
             interval = StringUtils.removeEnd(interval, "d");
         } else if (interval.endsWith("ms")) {
-            units = TimeUnit2.SECONDS;
+            units = TimeUnit.SECONDS;
             interval = StringUtils.removeEnd(interval, "ms");
         } else if (interval.endsWith("s")) {
-            units = TimeUnit2.SECONDS;
+            units = TimeUnit.SECONDS;
             interval = StringUtils.removeEnd(interval, "s");
         }
         long value = 0;
@@ -144,8 +143,8 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         } catch (NumberFormatException e) {
             value = 1;
         }
-        return Math.min(TimeUnit2.DAYS.toMillis(30),
-                Math.max(TimeUnit2.MINUTES.toMillis(1), units.toMillis(value)));
+        return Math.min(TimeUnit.DAYS.toMillis(30),
+                Math.max(TimeUnit.MINUTES.toMillis(1), units.toMillis(value)));
     }
 
     /**
@@ -165,19 +164,19 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      */
     @SuppressWarnings("unused") // used by Jelly EL
     public String getInterval() {
-        if (interval < TimeUnit2.SECONDS.toMillis(1)) {
+        if (interval < TimeUnit.SECONDS.toMillis(1)) {
             return Long.toString(interval) + "ms";
         }
-        if (interval < TimeUnit2.MINUTES.toMillis(1)) {
-            return Long.toString(TimeUnit2.MILLISECONDS.toSeconds(interval)) + "s";
+        if (interval < TimeUnit.MINUTES.toMillis(1)) {
+            return Long.toString(TimeUnit.MILLISECONDS.toSeconds(interval)) + "s";
         }
-        if (interval < TimeUnit2.HOURS.toMillis(1)) {
-            return Long.toString(TimeUnit2.MILLISECONDS.toMinutes(interval)) + "m";
+        if (interval < TimeUnit.HOURS.toMillis(1)) {
+            return Long.toString(TimeUnit.MILLISECONDS.toMinutes(interval)) + "m";
         }
-        if (interval < TimeUnit2.DAYS.toMillis(1)) {
-            return Long.toString(TimeUnit2.MILLISECONDS.toHours(interval)) + "h";
+        if (interval < TimeUnit.DAYS.toMillis(1)) {
+            return Long.toString(TimeUnit.MILLISECONDS.toHours(interval)) + "h";
         }
-        return Long.toString(TimeUnit2.MILLISECONDS.toDays(interval)) + "d";
+        return Long.toString(TimeUnit.MILLISECONDS.toDays(interval)) + "d";
     }
 
     /**
