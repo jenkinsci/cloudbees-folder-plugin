@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
-import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;

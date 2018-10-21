@@ -1,6 +1,5 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import hudson.Functions;
 import hudson.Util;
 import hudson.model.Actionable;
 import hudson.model.Result;
@@ -8,12 +7,10 @@ import hudson.model.Run;
 import hudson.model.TopLevelItem;
 import java.io.File;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.Ancestor;

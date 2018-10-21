@@ -24,8 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
-import com.cloudbees.hudson.plugins.folder.AbstractFolder;
-import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Messages;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
