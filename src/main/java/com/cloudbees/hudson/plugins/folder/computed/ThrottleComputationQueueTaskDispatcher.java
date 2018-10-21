@@ -126,7 +126,7 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
      * @return number of current computation tasks.
      */
     public int computationCount() {
-        Jenkins j = Jenkins.getInstance();
+        Jenkins j = Jenkins.get();
         int result = computationCount(j);
         for (Node n : j.getNodes()) {
             result += computationCount(n);

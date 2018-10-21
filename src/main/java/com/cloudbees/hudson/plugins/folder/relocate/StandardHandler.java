@@ -80,7 +80,7 @@ import org.kohsuke.stapler.HttpResponses;
     }
 
     public boolean hasValidDestination(Item item) {
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.get();
         if (permitted(item, instance) && instance.getItem(item.getName()) == null) {
             // we can move to the root if there is none with the same name.
             return true;
@@ -128,7 +128,7 @@ import org.kohsuke.stapler.HttpResponses;
     @Override
     public List<? extends ItemGroup<?>> validDestinations(Item item) {
         List<DirectlyModifiableTopLevelItemGroup> result = new ArrayList<>();
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.get();
         // ROOT context is only added in case there is not any item with the same name
         // But we add it in case the one is there is the item itself and not a different job with the same name
         // No-op by default

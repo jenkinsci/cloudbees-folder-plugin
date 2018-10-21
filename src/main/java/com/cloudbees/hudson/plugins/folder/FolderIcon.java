@@ -97,6 +97,6 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
 
     @Override
     public FolderIconDescriptor getDescriptor() {
-        return (FolderIconDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
+        return (FolderIconDescriptor) Jenkins.get().getDescriptorOrDie(getClass());
     }
 }

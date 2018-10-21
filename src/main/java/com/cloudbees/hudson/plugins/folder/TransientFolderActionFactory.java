@@ -65,7 +65,7 @@ public abstract class TransientFolderActionFactory implements ExtensionPoint {
      * @return all the registered {@link TransientFolderActionFactory}s.
      */
     public static ExtensionList<TransientFolderActionFactory> all() {
-        return Jenkins.getActiveInstance().getExtensionList(TransientFolderActionFactory.class);
+        return Jenkins.get().getExtensionList(TransientFolderActionFactory.class);
     }
 }
 

@@ -694,7 +694,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Override
     public Node getLastBuiltOn() {
-        return Jenkins.getInstance();
+        return Jenkins.getInstanceOrNull();
     }
 
     /**
@@ -917,7 +917,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 LOGGER.log(Level.WARNING, "Failed to save " + child, x);
             }
             itemsPut(name, child);
-            Jenkins j = Jenkins.getInstance();
+            Jenkins j = Jenkins.getInstanceOrNull();
             if (j != null) {
                 j.rebuildDependencyGraphAsync();
             }
@@ -1038,7 +1038,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 LOGGER.log(Level.WARNING, "Failed to save " + child, x);
             }
             itemsPut(name, child);
-            Jenkins j = Jenkins.getInstance();
+            Jenkins j = Jenkins.getInstanceOrNull();
             if (j != null) {
                 j.rebuildDependencyGraphAsync();
             }

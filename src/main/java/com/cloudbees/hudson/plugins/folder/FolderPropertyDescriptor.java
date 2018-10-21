@@ -60,6 +60,6 @@ public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDes
     @Deprecated
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static DescriptorExtensionList all() {
-        return Jenkins.getActiveInstance().getDescriptorList(FolderProperty.class);
+        return Jenkins.get().getDescriptorList(FolderProperty.class);
     }
 }

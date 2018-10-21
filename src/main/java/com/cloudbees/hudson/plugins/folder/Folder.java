@@ -265,7 +265,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.getActiveInstance().getDescriptor(type), name));
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name));
     }
 
     public TopLevelItem createProject(TopLevelItemDescriptor type, String name) throws IOException {
