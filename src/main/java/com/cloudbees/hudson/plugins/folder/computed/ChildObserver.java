@@ -47,7 +47,7 @@ public abstract class ChildObserver<I extends TopLevelItem> implements AutoClose
     }
 
     /**
-     * Checks whether there is an existing child which should be updated. It is <strong>stronly </strong>recommended to
+     * Checks whether there is an existing child which should be updated. It is <strong>strongly</strong> recommended to
      * call {@link #completed(String)} after completion of processing the proposed {@link Item#getName()} as otherwise
      * no other {@link ChildObserver} will be able to proceed with this {@link Item#getName()}.
      *

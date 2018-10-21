@@ -38,7 +38,7 @@ import java.util.List;
 public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderHealthMetric> {
 
     public Type getType() {
-        return Type.RECURSIVE_ALL_ITEMS; // TODO should be Type.RECURSIVE_TOP_LEVEL_ITEMS but backwards compatibilty
+        return Type.RECURSIVE_ALL_ITEMS; // TODO should be Type.RECURSIVE_TOP_LEVEL_ITEMS but backwards compatibility
     }
 
     public abstract Reporter reporter();

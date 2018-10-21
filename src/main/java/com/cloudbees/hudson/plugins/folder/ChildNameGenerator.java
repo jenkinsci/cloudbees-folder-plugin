@@ -53,7 +53,7 @@ import jenkins.model.TransientActionFactory;
  * {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} regarding the constraints on how to name things</li>
  * <li>There are some items which need the {@link Item#getRootDir()} during construction (those are bold evil item types
  * that leak side-effects, you should fix them if you find them). While you wait for them to be fixed you will need
- * to work-arround the issue by ensuring that you call {@link #beforeCreateItem(AbstractFolder, String, String)}
+ * to work-around the issue by ensuring that you call {@link #beforeCreateItem(AbstractFolder, String, String)}
  * passing the {@link Item#getName()} you want the item to have <strong>and</strong> the ideal unmangled name
  * <strong>before</strong> you call {@code new ChildItemType(parent,name)} and then call
  * {@link #afterItemCreated(Trace)} when the constructor has returned. Then insure that your

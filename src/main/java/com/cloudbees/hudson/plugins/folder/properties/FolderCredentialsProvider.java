@@ -139,7 +139,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                                 domainRequirements,
                                 CredentialsMatchers.always())) {
                             if (!(c instanceof IdCredentials) || ids.add(((IdCredentials) c).getId())) {
-                                // if IdCredentials, only add if we havent added already
+                                // if IdCredentials, only add if we haven't added already
                                 // if not IdCredentials, always add
                                 result.add(c);
                             }

@@ -73,7 +73,7 @@ import static org.junit.Assert.assertThat;
 
 /**
  * Tests {@link ChildNameGenerator} using a generator where the previous implementation of the computed folder used a
- * name encoding alogorithm and the new one has switched to {@link ChildNameGenerator}. We want to ensure that the
+ * name encoding algorithm and the new one has switched to {@link ChildNameGenerator}. We want to ensure that the
  * name gets decoded from the legacy name and fixed to the correct name while the directory name gets mangled.
  */
 public class ChildNameGeneratorRecTest {
