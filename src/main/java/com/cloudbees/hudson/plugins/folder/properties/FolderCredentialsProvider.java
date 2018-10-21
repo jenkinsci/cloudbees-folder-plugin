@@ -85,7 +85,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      * The valid scopes for this store.
      */
     private static final Set<CredentialsScope> SCOPES =
-            Collections.<CredentialsScope>singleton(CredentialsScope.GLOBAL);
+            Collections.singleton(CredentialsScope.GLOBAL);
 
     @GuardedBy("self")
     private static final WeakHashMap<AbstractFolder<?>,FolderCredentialsProperty> emptyProperties =
@@ -109,7 +109,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     @Override
     public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
                                                           @Nullable Authentication authentication) {
-        return getCredentials(type, itemGroup, authentication, Collections.<DomainRequirement>emptyList());
+        return getCredentials(type, itemGroup, authentication, Collections.emptyList());
     }
 
     /**

@@ -887,7 +887,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Exported(name = "healthReport")
     public List<HealthReport> getBuildHealthReports() {
         if (healthMetrics == null || healthMetrics.isEmpty()) {
-            return Collections.<HealthReport>emptyList();
+            return Collections.emptyList();
         }
         List<HealthReport> reports = healthReports;
         if (reports != null && nextHealthReportsRefreshMillis > System.currentTimeMillis()) {

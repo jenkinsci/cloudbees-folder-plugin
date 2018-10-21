@@ -94,7 +94,7 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
         public List<HealthReport> report() {
             return worst != null && worst.getScore() < 100
                     ? Collections.singletonList(worst)
-                    : Collections.<HealthReport>emptyList();
+                    : Collections.emptyList();
         }
     }
 }

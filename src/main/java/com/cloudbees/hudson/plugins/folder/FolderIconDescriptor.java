@@ -30,7 +30,7 @@ import jenkins.model.Jenkins;
 
 public abstract class FolderIconDescriptor extends Descriptor<FolderIcon> {
     public static DescriptorExtensionList<FolderIcon, FolderIconDescriptor> all() {
-        return Jenkins.get().<FolderIcon, FolderIconDescriptor>getDescriptorList(FolderIcon.class);
+        return Jenkins.get().getDescriptorList(FolderIcon.class);
     }
 
     /**

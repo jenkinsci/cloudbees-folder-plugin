@@ -33,7 +33,6 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.PlainTextConsoleOutputStream;
-import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -241,7 +240,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                     // TODO rework once JENKINS-42248 is solved
                     GregorianCalendar timestamp = new GregorianCalendar();
                     timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
-                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.<Action>emptyList());
+                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.emptyList());
                     for (QueueTaskDispatcher d: QueueTaskDispatcher.all()) {
                         if (d.canRun(probe) != null) {
                             return false;
