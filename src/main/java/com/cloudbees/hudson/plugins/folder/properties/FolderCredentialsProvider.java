@@ -605,7 +605,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
              */
             @Override
             public String getDisplayName() {
-                return Messages.Folder();
+                return Messages.folder();
             }
         }
 
