@@ -53,11 +53,7 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
         try {
             Method getBuildHealth = item.getClass().getMethod("getBuildHealth");
             return  (HealthReport) getBuildHealth.invoke(item);
-        } catch (NoSuchMethodException e) {
-            // ignore best effort only
-        } catch (InvocationTargetException e) {
-            // ignore best effort only
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             // ignore best effort only
         }
         return null;
