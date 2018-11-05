@@ -548,7 +548,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         if (!isBuildable()) {
             throw HttpResponses.error(SC_INTERNAL_SERVER_ERROR, new IOException(getFullName() + " cannot be recomputed"));
         }
-        scheduleBuild2(delay == null ? 0 : delay.getTime(), new CauseAction(new Cause.UserIdCause()));
+        scheduleBuild2(delay == null ? 0 : delay.getTimeInSeconds(), new CauseAction(new Cause.UserIdCause()));
         return HttpResponses.forwardToPreviousPage();
     }
 
