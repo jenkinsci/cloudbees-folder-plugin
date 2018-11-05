@@ -50,8 +50,8 @@ import org.kohsuke.stapler.StaplerRequest;
         Folder d;
         if (context instanceof Folder) {
             d = ((Folder) context);
-        } else if (context instanceof View && ((View) context).getOwnerItemGroup() instanceof Folder) {
-            d = (Folder) ((View) context).getOwnerItemGroup();
+        } else if (context instanceof View && ((View) context).getOwner().getItemGroup() instanceof Folder) {
+            d = (Folder) ((View) context).getOwner().getItemGroup();
         } else {
             return true;
         }
