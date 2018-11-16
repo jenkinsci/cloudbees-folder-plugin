@@ -96,19 +96,19 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             return "* * * * *"; // 0-5min: check every minute
         }
         if (millis <= TimeUnit2.MINUTES.toMillis(30)) {
-            return "H/12 * * * *"; // 11-30min: check every 5 minutes
+            return "H/5 * * * *"; // 11-30min: check every 5 minutes
         }
         if (millis <= TimeUnit2.HOURS.toMillis(1)) {
-            return "H/4 * * * *"; // 30-60min: check every 15 minutes
+            return "H/15 * * * *"; // 30-60min: check every 15 minutes
         }
         if (millis <= TimeUnit2.HOURS.toMillis(8)) {
-            return "H/2 * * * *"; // 61min-8hr: check every 30 minutes
+            return "H/30 * * * *"; // 61min-8hr: check every 30 minutes
         }
         if (millis <= TimeUnit2.DAYS.toMillis(1)) {
-            return "H H/6 * * *"; // 8hr-24h: check every 4 hours
+            return "H H/4 * * *"; // 8hr-24h: check every 4 hours
         }
         if (millis <= TimeUnit2.DAYS.toMillis(2)) {
-            return "H H/2 * * *"; // 24h-2d: check every 12 hours
+            return "H H/12 * * *"; // 24h-2d: check every 12 hours
         }
         return "H H * * *"; // check once per day
     }
