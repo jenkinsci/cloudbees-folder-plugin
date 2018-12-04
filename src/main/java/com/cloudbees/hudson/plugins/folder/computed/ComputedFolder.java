@@ -184,7 +184,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * {@inheritDoc}
      */
     @Override
-    protected final void init() {
+    protected void init() {
         super.init();
         if (orphanedItemStrategy == null) {
             orphanedItemStrategy = new DefaultOrphanedItemStrategy(true, "", "");
