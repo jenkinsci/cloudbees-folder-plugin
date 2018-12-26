@@ -46,12 +46,12 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
-import hudson.model.Action;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ModelObject;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.AccessDeniedException2;
 import hudson.security.Permission;
 import hudson.util.CopyOnWriteMap;
@@ -60,7 +60,6 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -68,12 +67,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import jenkins.model.Jenkins;
-import jenkins.model.TransientActionFactory;
 import net.jcip.annotations.GuardedBy;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -89,7 +85,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      * The valid scopes for this store.
      */
     private static final Set<CredentialsScope> SCOPES =
-            Collections.<CredentialsScope>singleton(CredentialsScope.GLOBAL);
+            Collections.singleton(CredentialsScope.GLOBAL);
 
     @GuardedBy("self")
     private static final WeakHashMap<AbstractFolder<?>,FolderCredentialsProperty> emptyProperties =
@@ -113,7 +109,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     @Override
     public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
                                                           @Nullable Authentication authentication) {
-        return getCredentials(type, itemGroup, authentication, Collections.<DomainRequirement>emptyList());
+        return getCredentials(type, itemGroup, authentication, Collections.emptyList());
     }
 
     /**
@@ -138,7 +134,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                                 domainRequirements,
                                 CredentialsMatchers.always())) {
                             if (!(c instanceof IdCredentials) || ids.add(((IdCredentials) c).getId())) {
-                                // if IdCredentials, only add if we havent added already
+                                // if IdCredentials, only add if we haven't added already
                                 // if not IdCredentials, always add
                                 result.add(c);
                             }
@@ -409,8 +405,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          */
         private void checkedSave(Permission p) throws IOException {
             checkPermission(p);
-            SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-            try {
+            try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
                 FolderCredentialsProperty property =
                         owner.getProperties().get(FolderCredentialsProperty.class);
                 if (property == null) {
@@ -421,8 +416,6 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 }
                 // we assume it is ourselves
                 owner.save();
-            } finally {
-                SecurityContextHolder.setContext(orig);
             }
         }
 
@@ -632,7 +625,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @SuppressWarnings("unused") // used by stapler
             public DescriptorExtensionList<DomainSpecification, Descriptor<DomainSpecification>>
             getSpecificationDescriptors() {
-                return Jenkins.getActiveInstance().getDescriptorList(DomainSpecification.class);
+                return Jenkins.get().getDescriptorList(DomainSpecification.class);
             }
         }
 

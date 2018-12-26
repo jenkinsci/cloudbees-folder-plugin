@@ -33,7 +33,6 @@ import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -85,10 +84,10 @@ public class FolderCredentialsProviderTest {
         Folder f = createFolder();
         List<StandardUsernamePasswordCredentials> asGroup =
                 CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList());
+                        ACL.SYSTEM, Collections.emptyList());
         List<StandardUsernamePasswordCredentials> asItem =
                 CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList());
+                        ACL.SYSTEM, Collections.emptyList());
         assertThat(asGroup, is(asItem));
         CredentialsStore folderStore = getFolderStore(f);
         UsernamePasswordCredentialsImpl credentials =
@@ -96,9 +95,9 @@ public class FolderCredentialsProviderTest {
                         "secret");
         folderStore.addCredentials(Domain.global(), credentials);
         asGroup = CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                ACL.SYSTEM, Collections.<DomainRequirement>emptyList());
+                ACL.SYSTEM, Collections.emptyList());
         asItem = CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                ACL.SYSTEM, Collections.<DomainRequirement>emptyList());
+                ACL.SYSTEM, Collections.emptyList());
         assertThat(asGroup, is(asItem));
         assertThat(asGroup, hasItem(credentials));
         assertThat(asItem, hasItem(credentials));
@@ -109,10 +108,10 @@ public class FolderCredentialsProviderTest {
         Folder f = createFolder();
         ListBoxModel asGroup =
                 CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList(), CredentialsMatchers.always());
+                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
         ListBoxModel asItem =
                 CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList(), CredentialsMatchers.always());
+                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
         assertThat(asGroup, is(asItem));
         assertThat(asGroup.size(), is(0));
         assertThat(asItem.size(), is(0));
@@ -122,9 +121,9 @@ public class FolderCredentialsProviderTest {
                         "secret");
         folderStore.addCredentials(Domain.global(), credentials);
         asGroup = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList(), CredentialsMatchers.always());
+                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
         asItem = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList(), CredentialsMatchers.always());
+                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
         assertThat(asGroup.size(), is(1));
         assertThat(asGroup.get(0).value, is("test-id"));
         assertThat(asItem.size(), is(1));

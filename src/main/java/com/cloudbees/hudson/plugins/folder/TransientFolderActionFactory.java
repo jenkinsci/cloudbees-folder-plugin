@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
-import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;
@@ -65,7 +64,7 @@ public abstract class TransientFolderActionFactory implements ExtensionPoint {
      * @return all the registered {@link TransientFolderActionFactory}s.
      */
     public static ExtensionList<TransientFolderActionFactory> all() {
-        return Jenkins.getActiveInstance().getExtensionList(TransientFolderActionFactory.class);
+        return Jenkins.get().getExtensionList(TransientFolderActionFactory.class);
     }
 }
 

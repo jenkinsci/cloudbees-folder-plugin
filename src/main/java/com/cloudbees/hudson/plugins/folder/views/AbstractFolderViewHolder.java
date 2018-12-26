@@ -30,12 +30,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.View;
 import hudson.views.ViewsTabBar;
 import java.util.List;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * Responsible for holding the view configuration of an {@link AbstractFolder}. Each {@link AbstractFolder} concrete
- * type should define its view configuration holder by returning the implementaion from
+ * type should define its view configuration holder by returning the implementation from
  * {@link AbstractFolder#newFolderViewHolder()}
  *
  * Use-cases:

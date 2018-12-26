@@ -234,7 +234,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             try {
                 nue.delete();
             } catch (InterruptedException x) {
-                throw (IOException) new IOException(x.toString()).initCause(x);
+                throw new IOException(x.toString(), x);
             }
             throw new IOException("forbidden child type");
         }
@@ -257,7 +257,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             try {
                 nue.delete();
             } catch (InterruptedException x) {
-                throw (IOException) new IOException(x.toString()).initCause(x);
+                throw new IOException(x.toString(), x);
             }
             throw new IOException("forbidden child type");
         }
@@ -265,7 +265,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.getActiveInstance().getDescriptor(type), name));
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name));
     }
 
     public TopLevelItem createProject(TopLevelItemDescriptor type, String name) throws IOException {

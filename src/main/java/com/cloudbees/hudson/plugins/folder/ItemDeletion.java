@@ -29,7 +29,6 @@ import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.model.queue.SubTask;
-import hudson.model.queue.Tasks;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -194,9 +193,9 @@ public class ItemDeletion extends Queue.QueueDecisionHandler {
     @CheckForNull
     public static hudson.model.Item getItemOf(@Nonnull SubTask t) {
         // TODO move to default method on SubTask once code level is Java 8
-        Queue.Task p = Tasks.getOwnerTaskOf(t);
+        Queue.Task p = t.getOwnerTask();
         while (!(p instanceof hudson.model.Item)) {
-            Queue.Task o = Tasks.getOwnerTaskOf(p);
+            Queue.Task o = p.getOwnerTask();
             if (o == p) {
                 break;
             }

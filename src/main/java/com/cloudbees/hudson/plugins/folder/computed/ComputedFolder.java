@@ -142,7 +142,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Nonnull
     private transient /* almost final */ ReentrantLock currentObservationsLock;
     /**
-     * Condition to flag whenever the {@link #currentObservationsChanged} has had elements removed.
+     * Condition to flag whenever the {@link #currentObservations} has had elements removed.
      *
      * @since 6.0.0
      */
@@ -314,16 +314,16 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 } catch (NoSuchMethodException | IllegalAccessException e) {
                     // it's just not supported, so we cannot expect it to succeed
                     LOGGER.log(Level.FINE,
-                            "Cannot not " + (disabled ? "disable " : "enanble ") + item.getFullName(), e);
+                            "Cannot not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
                 } catch (InvocationTargetException e) {
                     // it's supported but something went wrong
                     LOGGER.log(Level.WARNING,
-                            "Could not " + (disabled ? "disable " : "enanble ") + item.getFullName(), e);
+                            "Could not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
                 }
             }
         } catch (IOException e) {
             LOGGER.log(Level.WARNING,
-                    "Could not " + (disabled ? "disable " : "enanble ") + item.getFullName(), e);
+                    "Could not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
         }
     }
 
@@ -526,7 +526,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     /**
      * Whether it is permissible to recompute this folder at this time.
      *
-     * @return {@code true} if this folder can currenty be recomputed.
+     * @return {@code true} if this folder can currently be recomputed.
      */
     public boolean isBuildable() {
         if (isDisabled()) {
@@ -694,7 +694,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Override
     public Node getLastBuiltOn() {
-        return Jenkins.getInstance();
+        return Jenkins.getInstanceOrNull();
     }
 
     /**
@@ -917,7 +917,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 LOGGER.log(Level.WARNING, "Failed to save " + child, x);
             }
             itemsPut(name, child);
-            Jenkins j = Jenkins.getInstance();
+            Jenkins j = Jenkins.getInstanceOrNull();
             if (j != null) {
                 j.rebuildDependencyGraphAsync();
             }
@@ -1038,7 +1038,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 LOGGER.log(Level.WARNING, "Failed to save " + child, x);
             }
             itemsPut(name, child);
-            Jenkins j = Jenkins.getInstance();
+            Jenkins j = Jenkins.getInstanceOrNull();
             if (j != null) {
                 j.rebuildDependencyGraphAsync();
             }

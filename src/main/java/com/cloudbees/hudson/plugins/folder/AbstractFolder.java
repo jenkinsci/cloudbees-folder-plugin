@@ -67,6 +67,7 @@ import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.CaseInsensitiveComparator;
 import hudson.util.CopyOnWriteMap;
@@ -75,7 +76,6 @@ import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.Function1;
 import hudson.util.HttpResponses;
-import hudson.util.QuotedStringTokenizer;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
@@ -109,8 +109,6 @@ import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -164,7 +162,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (!loadJobTotalRan.compareAndSet(false, true)) {
             return; // TODO why does Jenkins run the initializer many times?!
         }
-        scan(new File(Jenkins.getActiveInstance().getRootDir(), "jobs"), 0);
+        scan(new File(Jenkins.get().getRootDir(), "jobs"), 0);
         // TODO reset count after reload config from disk (otherwise goes up to 200% etc.)
     }
     private static void scan(File d, int depth) {
@@ -600,7 +598,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public AbstractFolderDescriptor getDescriptor() {
-        return (AbstractFolderDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(getClass());
+        return (AbstractFolderDescriptor) Jenkins.get().getDescriptorOrDie(getClass());
     }
 
     /**
@@ -802,7 +800,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
              */
             @Override
             protected SearchItem get(String key) {
-                return Jenkins.getActiveInstance().getItem(key, grp());
+                return Jenkins.get().getItem(key, grp());
             }
 
             /**
@@ -889,7 +887,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Exported(name = "healthReport")
     public List<HealthReport> getBuildHealthReports() {
         if (healthMetrics == null || healthMetrics.isEmpty()) {
-            return Collections.<HealthReport>emptyList();
+            return Collections.emptyList();
         }
         List<HealthReport> reports = healthReports;
         if (reports != null && nextHealthReportsRefreshMillis > System.currentTimeMillis()) {
@@ -1108,7 +1106,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 // the 15 second delay for every child item). This happens after queue cancellation, so will be
                 // a complete set of builds in flight
                 Map<Executor, Queue.Executable> buildsInProgress = new LinkedHashMap<>();
-                for (Computer c : Jenkins.getActiveInstance().getComputers()) {
+                for (Computer c : Jenkins.get().getComputers()) {
                     for (Executor e : c.getAllExecutors()) {
                         WorkUnit workUnit = e.getCurrentWorkUnit();
                         if (workUnit != null) {
@@ -1172,8 +1170,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             // (disregard whether they would be deletable in isolation)
             // JENKINS-34939: do not hold the monitor on this folder while deleting them
             // (thus we cannot do this inside performDelete)
-            SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-            try {
+            try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
                 for (Item i : new ArrayList<Item>(items.values())) {
                     try {
                         i.delete();
@@ -1184,8 +1181,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
                     }
                 }
-            } finally {
-                SecurityContextHolder.setContext(orig);
             }
             synchronized (this) {
                 performDelete();
@@ -1198,7 +1193,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         // END of attempted reuse of JENKINS-35160
         getParent().onDeleted(AbstractFolder.this);
-        Jenkins.getActiveInstance().rebuildDependencyGraphAsync();
+        Jenkins.get().rebuildDependencyGraphAsync();
     }
 
     /**
@@ -1246,7 +1241,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         setDisabled(disabled);
         if (disabled && this instanceof Queue.Task) {
-            Jenkins.getActiveInstance().getQueue().cancel((Queue.Task)this);
+            Jenkins.get().getQueue().cancel((Queue.Task)this);
         }
         save();
         ItemListener.fireOnUpdated(this);
@@ -1357,7 +1352,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             bc.abort();
         }
 
-        ProjectNamingStrategy namingStrategy = Jenkins.getActiveInstance().getProjectNamingStrategy();
+        ProjectNamingStrategy namingStrategy = Jenkins.get().getProjectNamingStrategy();
             if (namingStrategy.isForceExistingJobs()) {
                 namingStrategy.checkName(name);
             }

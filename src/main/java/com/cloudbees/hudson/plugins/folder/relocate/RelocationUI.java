@@ -36,7 +36,7 @@ import jenkins.model.Jenkins;
 import org.jenkins.ui.icon.IconSpec;
 
 /**
- * Extension point to provide a plugable UI for moving {@link Item} instances.
+ * Extension point to provide a pluggable UI for moving {@link Item} instances.
  *
  * @since 4.9
  */

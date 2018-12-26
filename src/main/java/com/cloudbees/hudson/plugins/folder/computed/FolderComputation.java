@@ -33,7 +33,6 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.PlainTextConsoleOutputStream;
-import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -52,7 +51,7 @@ import hudson.util.AlternativeUiTextProvider;
 import hudson.util.AlternativeUiTextProvider.Message;
 import hudson.util.HttpResponses;
 import hudson.util.StreamTaskListener;
-import hudson.util.io.ReopenableRotatingFileOutputStream;
+import hudson.util.io.RewindableRotatingFileOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -146,8 +145,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             FileUtils.forceMkdir(logFile.getParentFile());
             OutputStream os;
             if (BACKUP_LOG_COUNT != null) {
-                os = new ReopenableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
-                ((ReopenableRotatingFileOutputStream) os).rewind();
+                os = new RewindableRotatingFileOutputStream(logFile, BACKUP_LOG_COUNT);
+                ((RewindableRotatingFileOutputStream) os).rewind();
             } else {
                 os = new FileOutputStream(logFile);
             }
@@ -241,7 +240,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                     // TODO rework once JENKINS-42248 is solved
                     GregorianCalendar timestamp = new GregorianCalendar();
                     timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
-                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.<Action>emptyList());
+                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.emptyList());
                     for (QueueTaskDispatcher d: QueueTaskDispatcher.all()) {
                         if (d.canRun(probe) != null) {
                             return false;

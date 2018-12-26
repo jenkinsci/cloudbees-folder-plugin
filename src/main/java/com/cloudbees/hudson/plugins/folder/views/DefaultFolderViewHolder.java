@@ -70,7 +70,7 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
 
     /**
      * Our constructor.
-     * @param views the inital views.
+     * @param views the initial views.
      * @param primaryView the initial primary view.
      * @param tabBar the initial {@link ViewsTabBar}.
      */

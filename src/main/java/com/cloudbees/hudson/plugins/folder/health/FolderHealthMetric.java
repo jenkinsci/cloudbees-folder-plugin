@@ -38,7 +38,7 @@ import java.util.List;
 public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderHealthMetric> {
 
     public Type getType() {
-        return Type.RECURSIVE_ALL_ITEMS; // TODO should be Type.RECURSIVE_TOP_LEVEL_ITEMS but backwards compatibilty
+        return Type.RECURSIVE_ALL_ITEMS; // TODO should be Type.RECURSIVE_TOP_LEVEL_ITEMS but backwards compatibility
     }
 
     public abstract Reporter reporter();
@@ -53,11 +53,7 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
         try {
             Method getBuildHealth = item.getClass().getMethod("getBuildHealth");
             return  (HealthReport) getBuildHealth.invoke(item);
-        } catch (NoSuchMethodException e) {
-            // ignore best effort only
-        } catch (InvocationTargetException e) {
-            // ignore best effort only
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             // ignore best effort only
         }
         return null;

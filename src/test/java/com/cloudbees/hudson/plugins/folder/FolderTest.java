@@ -158,8 +158,8 @@ public class FolderTest {
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
-        assertTrue("Copy Job request has failed", 200 == r.createWebClient()
-                    .getPage(request).getWebResponse().getStatusCode());
+        assertEquals("Copy Job request has failed", 200, r.createWebClient()
+                .getPage(request).getWebResponse().getStatusCode());
     }
 
     /**
@@ -196,7 +196,7 @@ public class FolderTest {
                 whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(new Callable<Set<String>>() {
                     @Override public Set<String> call() throws Exception {
                         Set<String> remaining = new TreeSet<String>();
-                        for (Item i : Jenkins.getActiveInstance().getAllItems()) {
+                        for (Item i : Jenkins.get().getAllItems()) {
                             remaining.add(i.getFullName());
                             if (i instanceof Actionable) {
                                 ((Actionable) i).getAllActions();

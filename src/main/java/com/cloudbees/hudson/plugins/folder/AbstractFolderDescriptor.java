@@ -152,7 +152,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
     }
 
     public boolean isTabBarConfigurable() {
-        return Jenkins.getActiveInstance().getDescriptorList(ViewsTabBar.class).size() > 1;
+        return Jenkins.get().getDescriptorList(ViewsTabBar.class).size() > 1;
     }
 
     public boolean isLookAndFeelConfigurable(AbstractFolder<?> folder) {

@@ -76,7 +76,7 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
             Class<?> applicable = Types.erasure(Types.getTypeArgument(pt, 0));
             return applicable.isAssignableFrom(containerType);
         } else {
-            throw new AssertionError(clazz+" doesn't properly parameterize AbstractFolderProperty. The isApplicable() method must be overriden.");
+            throw new AssertionError(clazz+" doesn't properly parameterize AbstractFolderProperty. The isApplicable() method must be overridden.");
         }
     }
 
