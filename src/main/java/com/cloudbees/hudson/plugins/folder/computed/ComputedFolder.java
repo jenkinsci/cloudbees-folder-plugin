@@ -501,13 +501,17 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     public void addTrigger(Trigger trigger) {
+        removeTrigger(trigger);
+        triggers.add(trigger);
+        trigger.start(this, true);
+    }
+
+    public void removeTrigger(Trigger trigger) {
         Trigger old = triggers.get(trigger.getDescriptor());
         if (old != null) {
             old.stop();
             triggers.remove(old);
         }
-        triggers.add(trigger);
-        trigger.start(this, true);
     }
 
     /**
