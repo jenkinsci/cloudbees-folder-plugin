@@ -500,12 +500,20 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return result;
     }
 
+    /**
+     * Update an old trigger or add a new one.
+     * @param trigger Target trigger instance.
+     */
     public void addTrigger(Trigger trigger) {
         removeTrigger(trigger);
         triggers.add(trigger);
         trigger.start(this, true);
     }
 
+    /**
+     * Remove an exists trigger.
+     * @param trigger Target trigger instance.
+     */
     public void removeTrigger(Trigger trigger) {
         Trigger old = triggers.get(trigger.getDescriptor());
         if (old != null) {
