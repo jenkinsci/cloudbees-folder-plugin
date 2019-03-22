@@ -501,7 +501,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
-     * Update an old trigger or add a new one.
+     * Update an existing trigger or add a new one.
      * @param trigger Target trigger instance.
      */
     public void addTrigger(Trigger trigger) {
