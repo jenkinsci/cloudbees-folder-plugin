@@ -511,7 +511,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
-     * Remove an exists trigger.
+     * Remove an existing trigger.
      * @param trigger Target trigger instance.
      */
     public void removeTrigger(Trigger trigger) {
