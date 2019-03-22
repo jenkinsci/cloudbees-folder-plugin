@@ -447,6 +447,8 @@ public class ComputedFolderTest {
     public void cleanTriggers() throws Exception {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.addTrigger(new PeriodicFolderTrigger("30m"));
+        
+        assertEquals(1, s.getTriggers().size());
 
         s.removeTrigger(new PeriodicFolderTrigger("30m"));
 
