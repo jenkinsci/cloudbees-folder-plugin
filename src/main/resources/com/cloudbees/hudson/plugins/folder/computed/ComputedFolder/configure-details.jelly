@@ -30,6 +30,9 @@ THE SOFTWARE.
                       descriptors="${it.triggerDescriptors}"
                       instances="${it.triggers}"/>
     <f:section title="${%Orphaned Item Strategy}">
+        <f:description>
+            <st:include page="orphanedItemStrategyDescription" optional="true"/>
+        </f:description>
         <j:set var="orphanedItemStrategyDescriptors" value="${instance.orphanedItemStrategyDescriptors}"/>
         <f:block>
             <j:choose>
