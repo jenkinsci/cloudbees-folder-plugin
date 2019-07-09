@@ -24,6 +24,10 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
+import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
+import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
+import com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.gargoylesoftware.htmlunit.HttpMethod;
@@ -44,6 +48,7 @@ import hudson.security.WhoAmI;
 import hudson.security.Permission;
 import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.tasks.BuildTrigger;
+import hudson.util.DescribableList;
 import hudson.views.BuildButtonColumn;
 import hudson.views.JobColumn;
 import java.io.IOException;
@@ -407,6 +412,23 @@ public class FolderTest {
 
         anchor = findRenameAnchor(folder1); // Throws ElementNotFoundException before JENKINS-52164 fix
         anchor.click();
+    }
+
+    @Issue("JENKINS-58282")
+    @Test public void shouldHaveHealthMetricConfiguredGloballyOnCreation() throws Exception {
+        assertThat("by default, global configuration should have all folder health metrics",
+                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(FolderHealthMetricDescriptor.all().size()));
+        
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
+        DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> healthMetrics = folder.getHealthMetrics();
+        assertThat("a new created folder should have all the folder health metrics configured globally",
+                healthMetrics.toList(), containsInAnyOrder(AbstractFolderConfiguration.get().getHealthMetrics().toArray()));
+
+        AbstractFolderConfiguration.get().setHealthMetrics(null);
+        folder = r.jenkins.createProject(Folder.class, "myFolder2");
+        healthMetrics = folder.getHealthMetrics();
+        assertThat("a new created folder should have all the folder health metrics configured globally",
+                healthMetrics, iterableWithSize(0));
     }
 
     /**
