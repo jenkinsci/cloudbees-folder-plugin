@@ -433,7 +433,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     @Nonnull
     public String getDurationString() {
         if (isBuilding()) {
-            return hudson.model.Messages.Run_InProgressDuration(Util.getTimeSpanString(System.currentTimeMillis() - timestamp));
+            return Messages.Run_InProgressDuration(Util.getTimeSpanString(System.currentTimeMillis() - timestamp));
         } else {
             return Util.getTimeSpanString(duration);
         }
