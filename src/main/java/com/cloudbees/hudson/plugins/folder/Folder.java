@@ -143,8 +143,8 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         updateTransientActions();
     }
 
-    @Restricted(DoNotUse.class)
-    @Deprecated
+//    @Restricted(DoNotUse.class)
+//    @Deprecated
     @Extension
     public static class DeprecatedTransientActions extends TransientActionFactory<Folder> {
 
