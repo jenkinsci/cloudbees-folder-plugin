@@ -1,0 +1,5 @@
+unclassified:
+  defaultFolderConfiguration:
+    healthMetrics:
+      - worstChildHealthMetric:
+          recursive: false
