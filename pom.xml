@@ -19,7 +19,7 @@
   </description>
   <url>https://wiki.jenkins.io/display/JENKINS/CloudBees+Folders+Plugin</url>
   <properties>
-    <jenkins.version>2.190-SNAPSHOT</jenkins.version>
+    <jenkins.version>2.194-SNAPSHOT</jenkins.version>
     <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
   </properties>
@@ -64,9 +64,10 @@
 
   <dependencies>
     <dependency>
-        <groupId>commons-io</groupId>
-        <artifactId>commons-io</artifactId>
-      </dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jaxrs</artifactId>
+      <version>4.0.0.Beta5</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
