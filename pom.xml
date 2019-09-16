@@ -66,13 +66,13 @@
     <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
-      <version>1.29</version>
+      <version>1.30</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
-      <version>1.29</version>
+      <version>1.30</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>

@@ -17,7 +17,7 @@ public class ConfigurationAsCodeTest extends RoundTripAbstractTest {
 
     @Override
     protected String stringInLogExpected() {
-        return "Setting class com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric. recursive = false";
+        return "Setting class com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric.recursive = false";
     }
 
     @Override
