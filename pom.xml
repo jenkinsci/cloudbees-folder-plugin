@@ -17,7 +17,7 @@
   <description>This plugin allows users to create "folders" to organize jobs. Users can define custom taxonomies (like
     by project type, organization type etc). Folders are nestable and you can define views within folders. Maintained by CloudBees, Inc.
   </description>
-  <url>https://wiki.jenkins.io/display/JENKINS/CloudBees+Folders+Plugin</url>
+  <url>https://github.com/jenkinsci/cloudbees-folder-plugin/</url>
   <properties>
     <jenkins.version>2.130</jenkins.version>
     <java.level>8</java.level>
