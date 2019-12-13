@@ -7,9 +7,11 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.util.DescribableList;
 import jenkins.model.GlobalConfiguration;
+import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -63,5 +65,16 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
     public void setHealthMetrics(List<FolderHealthMetric> healthMetrics) {
         this.healthMetrics = healthMetrics;
         save();
+    }
+
+    @Override
+    public boolean configure(StaplerRequest req, JSONObject json) {
+        if(json.containsKey("healthMetrics")) {
+            req.bindJSON(this, json);
+            this.save();
+        } else {
+            this.setHealthMetrics(Collections.emptyList());
+        }
+        return true;
     }
 }
