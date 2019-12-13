@@ -27,7 +27,6 @@ package com.cloudbees.hudson.plugins.folder;
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
-import com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.gargoylesoftware.htmlunit.HttpMethod;
@@ -429,6 +428,21 @@ public class FolderTest {
         healthMetrics = folder.getHealthMetrics();
         assertThat("a new created folder should have all the folder health metrics configured globally",
                 healthMetrics, iterableWithSize(0));
+    }
+
+    @Issue("JENKINS-60393")
+    @Test public void shouldBeAbleToRemoveHealthMetricConfiguredGlobally() throws Exception {
+        assertThat("by default, global configuration should have all folder health metrics",
+                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(FolderHealthMetricDescriptor.all().size()));
+
+        HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
+        for (HtmlElement element : cfg.getElementsByAttribute("div", "name", "healthMetrics")) {
+            element.remove();
+        }
+        r.submit(cfg);
+        
+        assertThat("deleting all global metrics should result in an empty list",
+                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
     }
 
     /**
