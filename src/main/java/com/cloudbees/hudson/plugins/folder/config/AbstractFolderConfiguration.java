@@ -36,7 +36,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
     }
 
     /**
-     * Auto-configure the default metrics afetr all plugins have been loaded.
+     * Auto-configure the default metrics after all plugins have been loaded.
      */
     @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED, before = InitMilestone.JOB_LOADED)
     public static void autoConfigure() {
