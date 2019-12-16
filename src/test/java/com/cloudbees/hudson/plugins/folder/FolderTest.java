@@ -27,7 +27,6 @@ package com.cloudbees.hudson.plugins.folder;
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
-import com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.gargoylesoftware.htmlunit.HttpMethod;
