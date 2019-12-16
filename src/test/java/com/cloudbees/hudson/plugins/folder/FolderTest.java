@@ -430,21 +430,6 @@ public class FolderTest {
                 healthMetrics, iterableWithSize(0));
     }
 
-    @Issue("JENKINS-60393")
-    @Test public void shouldBeAbleToRemoveHealthMetricConfiguredGlobally() throws Exception {
-        assertThat("by default, global configuration should have all folder health metrics",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(FolderHealthMetricDescriptor.all().size()));
-
-        HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
-        for (HtmlElement element : cfg.getElementsByAttribute("div", "name", "healthMetrics")) {
-            element.remove();
-        }
-        r.submit(cfg);
-        
-        assertThat("deleting all global metrics should result in an empty list",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
-    }
-
     /**
      * Ensures that the specified property points to the folder.
      * @param <T> Property type
