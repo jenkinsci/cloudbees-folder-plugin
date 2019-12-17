@@ -356,6 +356,14 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         items.remove(item.getName());
     }
 
+    @Exported
+    public boolean isDisabled() {
+        for (Job job : getAllJobs()) {
+            if (job.isBuildable()) return false;
+        }
+        return true;
+    }
+
     @Extension
     public static class DescriptorImpl extends AbstractFolderDescriptor {
 

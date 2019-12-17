@@ -25,3 +25,7 @@ dist/
 nbdist/
 nbactions.xml
 nb-configuration.xml
+
+# Jenv
+.java-version
+
