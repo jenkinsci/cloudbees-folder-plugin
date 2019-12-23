@@ -27,6 +27,7 @@ package com.cloudbees.hudson.plugins.folder.computed;
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import com.jcraft.jzlib.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -81,7 +82,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
 /**
  * A particular “run” of {@link ComputedFolder}.
  * @since 4.11-beta-1
@@ -343,6 +343,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, Charsets.UTF_8, false, this);
     }
 
+    @SuppressFBWarnings(value="RV_RETURN_VALUE_IGNORED", justification="not fixing spotbugs issues - just demonstrating the plugin-pom")
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
         getLogText().writeHtmlTo(offset, out.asWriter());
     }
