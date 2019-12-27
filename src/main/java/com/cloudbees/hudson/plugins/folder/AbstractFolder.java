@@ -855,7 +855,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (getView(view) == null) {
             return FormValidation.ok();
         } else {
-            return FormValidation.error(Messages.ViewAlreadyExists(view));
+            return FormValidation.error(Messages.Hudson_ViewAlreadyExists(view));
         }
     }
 

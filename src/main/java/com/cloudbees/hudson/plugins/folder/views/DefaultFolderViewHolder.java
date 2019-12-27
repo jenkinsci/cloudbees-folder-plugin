@@ -172,7 +172,7 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
             if (allView != null) {
                 // the primary view is an AllView but using a non-default name
                 for (Locale l : Locale.getAvailableLocales()) {
-                    if (primaryView.equals(Messages._ViewName().toString(l))) {
+                    if (primaryView.equals(Messages._Hudson_ViewName().toString(l))) {
                         // bingo JENKINS-38606 detected
                         LOGGER.log(Level.INFO,
                                 "JENKINS-38606 detected for AllView in {0}; renaming view from {1} to {2}",
