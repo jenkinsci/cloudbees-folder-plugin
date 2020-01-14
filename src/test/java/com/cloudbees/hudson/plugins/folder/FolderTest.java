@@ -43,6 +43,7 @@ import hudson.model.User;
 import hudson.model.listeners.ItemListener;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.WhoAmI;
 import hudson.security.Permission;
 import hudson.security.ProjectMatrixAuthorizationStrategy;
@@ -428,6 +429,26 @@ public class FolderTest {
         healthMetrics = folder.getHealthMetrics();
         assertThat("a new created folder should have all the folder health metrics configured globally",
                 healthMetrics, iterableWithSize(0));
+    }
+
+    @Test public void visibleItems() throws IOException, InterruptedException {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
+                grant(Jenkins.READ).everywhere().toEveryone().
+                grant(Item.DISCOVER).everywhere().toAuthenticated().
+                grant(Item.READ).everywhere().to("alice"));
+        Folder f = createFolder();
+        assertFalse(f.hasVisibleItems());
+        FreeStyleProject child = f.createProject(FreeStyleProject.class, "foo");
+        assertTrue(f.hasVisibleItems());
+        try (ACLContext ctx = ACL.as(User.get("alice", true, Collections.emptyMap()))) {
+            assertTrue(f.hasVisibleItems());
+        }
+        try (ACLContext ctx = ACL.as(Jenkins.ANONYMOUS)) {
+            assertFalse(f.hasVisibleItems());
+        }
+        child.delete();
+        assertFalse(f.hasVisibleItems());
     }
 
     /**

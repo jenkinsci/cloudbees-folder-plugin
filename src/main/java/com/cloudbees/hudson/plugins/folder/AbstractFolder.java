@@ -1010,6 +1010,19 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /**
+     * Checks if folder has visible items
+     * @return true if folder has visible items false otherwise
+     */
+    public boolean hasVisibleItems() {
+        for (I item : items.values()) {
+            if (item.hasPermission(Item.READ)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
