@@ -5,20 +5,22 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.42</version>
+    <version>3.54</version>
     <relativePath />
   </parent>
 
   <artifactId>cloudbees-folder</artifactId>
-  <version>6.9-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Folders Plugin</name>
   <description>This plugin allows users to create "folders" to organize jobs. Users can define custom taxonomies (like
     by project type, organization type etc). Folders are nestable and you can define views within folders. Maintained by CloudBees, Inc.
   </description>
-  <url>https://wiki.jenkins.io/display/JENKINS/CloudBees+Folders+Plugin</url>
+  <url>https://github.com/jenkinsci/cloudbees-folder-plugin/</url>
   <properties>
+    <revision>6.10.2</revision>
+    <changelist>-SNAPSHOT</changelist>
     <jenkins.version>2.130</jenkins.version>
     <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
@@ -34,7 +36,7 @@
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-    <tag>HEAD</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>
@@ -61,6 +63,18 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>matrix-auth</artifactId>
       <version>2.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins</groupId>
+      <artifactId>configuration-as-code</artifactId>
+      <version>1.35</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.configuration-as-code</groupId>
+      <artifactId>test-harness</artifactId>
+      <version>1.35</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

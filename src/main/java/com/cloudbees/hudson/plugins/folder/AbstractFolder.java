@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
@@ -287,15 +288,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
             }
         };
+        
         if (healthMetrics == null) {
-            List<FolderHealthMetric> metrics = new ArrayList<FolderHealthMetric>();
-            for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
-                FolderHealthMetric metric = d.createDefault();
-                if (metric != null) {
-                    metrics.add(metric);
-                }
-            }
-            healthMetrics = new DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor>(this, metrics);
+            healthMetrics = new DescribableList<>(this, AbstractFolderConfiguration.get().getHealthMetrics());
         }
     }
 
@@ -860,7 +855,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (getView(view) == null) {
             return FormValidation.ok();
         } else {
-            return FormValidation.error(jenkins.model.Messages.Hudson_ViewAlreadyExists(view));
+            return FormValidation.error(Messages.Hudson_ViewAlreadyExists(view));
         }
     }
 
@@ -1012,6 +1007,19 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
         }
         return viewableItems;
+    }
+
+    /**
+     * Checks if folder has visible items
+     * @return true if folder has visible items false otherwise
+     */
+    public boolean hasVisibleItems() {
+        for (I item : items.values()) {
+            if (item.hasPermission(Item.READ)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

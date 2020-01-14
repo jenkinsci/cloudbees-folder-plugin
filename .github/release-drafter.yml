@@ -1,0 +1,4 @@
+_extends: .github
+version-template: $MAJOR.$MINOR.$PATCH
+tag-template: cloudbees-folder-$NEXT_PATCH_VERSION
+name-template: Folders Plugin $NEXT_PATCH_VERSION
