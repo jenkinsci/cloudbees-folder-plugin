@@ -1230,7 +1230,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @return {@code true} if and only if {@link #setDisabled(boolean)} is implemented
      * @since 6.1.0
      */
-    protected boolean supportsMakeDisabled() {
+    public boolean supportsMakeDisabled() {
         return false;
     }
 
