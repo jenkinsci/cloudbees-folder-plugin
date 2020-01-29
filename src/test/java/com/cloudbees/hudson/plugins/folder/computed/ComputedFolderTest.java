@@ -25,8 +25,12 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
+import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -73,12 +77,8 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.Issue;
@@ -510,6 +510,23 @@ public class ComputedFolderTest {
         future.get();
         waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
         d.checkRename("d2");
+    }
+    
+    @Issue("JENKINS-60900")
+    @Test
+    public void enabledAndDisableFromUi() throws Exception {
+        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        assertFalse("by default, a folder is disabled", folder.isDisabled());
+        HtmlForm cfg = (HtmlForm)r.createWebClient().getPage(folder).getElementById("disable-project");
+        assertNotNull(cfg);
+        // Disable the folder
+        r.submit(cfg);
+        assertTrue(folder.isDisabled());
+        cfg = (HtmlForm)r.createWebClient().getPage(folder).getElementById("enable-project");
+        assertNotNull(cfg);
+        // Re enable the folder
+        r.submit(cfg);
+        assertFalse(folder.isDisabled());
     }
 
     /**
