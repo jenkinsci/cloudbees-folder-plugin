@@ -387,7 +387,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * {@inheritDoc}
      */
     @Override
-    protected boolean supportsMakeDisabled() {
+    public boolean supportsMakeDisabled() {
         return true;
 
     }

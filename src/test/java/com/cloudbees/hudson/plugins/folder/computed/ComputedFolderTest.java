@@ -27,6 +27,7 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -510,6 +511,23 @@ public class ComputedFolderTest {
         future.get();
         waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
         d.checkRename("d2");
+    }
+    
+    @Issue("JENKINS-60900")
+    @Test
+    public void enabledAndDisableFromUi() throws Exception {
+        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        assertFalse("by default, a folder is disabled", folder.isDisabled());
+        HtmlForm cfg = (HtmlForm)r.createWebClient().getPage(folder).getElementById("disable-project");
+        assertNotNull(cfg);
+        // Disable the folder
+        r.submit(cfg);
+        assertTrue(folder.isDisabled());
+        cfg = (HtmlForm)r.createWebClient().getPage(folder).getElementById("enable-project");
+        assertNotNull(cfg);
+        // Re enable the folder
+        r.submit(cfg);
+        assertFalse(folder.isDisabled());
     }
 
     /**

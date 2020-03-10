@@ -37,10 +37,6 @@ THE SOFTWARE.
       </div>
       <j:out value="${it.description!=null ? app.markupFormatter.translate(it.description) : ''}"/>
   </div>
-  <!-- give actions a chance to contribute summary item -->
-  <j:forEach var="a" items="${it.allActions}">
-    <st:include page="summary" from="${a}" optional="true" it="${a}" />
-  </j:forEach>
   <this:description />
   <j:choose>
     <j:when test="${!it.supportsMakeDisabled()}">
@@ -66,4 +62,8 @@ THE SOFTWARE.
       </div>
     </j:otherwise>
   </j:choose>
+  <!-- give actions a chance to contribute summary item -->
+  <j:forEach var="a" items="${it.allActions}">
+    <st:include page="summary" from="${a}" optional="true" it="${a}" />
+  </j:forEach>
 </j:jelly>
