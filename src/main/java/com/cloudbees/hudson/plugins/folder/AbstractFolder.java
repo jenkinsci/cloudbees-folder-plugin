@@ -99,6 +99,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -1000,9 +1001,17 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Exported(name="jobs")
     @Override
     public Collection<I> getItems() {
+        return getItems(item -> true);
+    }
+
+    /**
+     * Gets all the items in this collection in a read-only view that matches supplied Predicate
+     */
+    // TODO: @Override and inherit docs once baseline is above 2.222
+    public Collection<I> getItems(Predicate<I> pred) {
         List<I> viewableItems = new ArrayList<I>();
         for (I item : items.values()) {
-            if (item.hasPermission(Item.READ)) {
+            if (pred.test(item) && item.hasPermission(Item.READ)) {
                 viewableItems.add(item);
             }
         }
