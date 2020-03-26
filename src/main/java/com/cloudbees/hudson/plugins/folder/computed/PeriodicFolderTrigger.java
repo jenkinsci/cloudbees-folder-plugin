@@ -88,27 +88,31 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      * @return the crontab.
      */
     private static String toCrontab(String interval) {
-        long millis = toIntervalMillis(interval);
-        // we want to ensure the crontab wakes us excessively
-        if (millis <= TimeUnit.MINUTES.toMillis(5)) {
-            return "* * * * *"; // 0-5min: check every minute
+        if (interval.endsWith("m")) {
+            return cronSpec("H/%s * * * *", Integer.min(Integer.parseInt(StringUtils.removeEnd(interval, "m")), 59));
         }
-        if (millis <= TimeUnit.MINUTES.toMillis(30)) {
-            return "H/5 * * * *"; // 11-30min: check every 5 minutes
+        
+        if (interval.endsWith("h")) {
+            return cronSpec("H H/%s * * *", Integer.min(Integer.parseInt(StringUtils.removeEnd(interval, "h")), 23));
         }
-        if (millis <= TimeUnit.HOURS.toMillis(1)) {
-            return "H/15 * * * *"; // 30-60min: check every 15 minutes
+
+        if (interval.endsWith("d")) {
+            return cronSpec("H H H/%s * *", Integer.min(Integer.parseInt(StringUtils.removeEnd(interval, "d")), 28));
         }
-        if (millis <= TimeUnit.HOURS.toMillis(8)) {
-            return "H/30 * * * *"; // 61min-8hr: check every 30 minutes
-        }
-        if (millis <= TimeUnit.DAYS.toMillis(1)) {
-            return "H H/4 * * *"; // 8hr-24h: check every 4 hours
-        }
-        if (millis <= TimeUnit.DAYS.toMillis(2)) {
-            return "H H/12 * * *"; // 24h-2d: check every 12 hours
-        }
-        return "H H * * *"; // check once per day
+        
+        return "H H * * *"; // Default: Once per day.
+    }
+
+    /**
+     * Format a cron spec.
+     * Useless "H/1" expressions are converted into "*".
+     * 
+     * @param format String format that should contain a single "%s".
+     * @param value Value to insert in place of "%s".
+     * @return Cron spec.
+     */
+    private static String cronSpec(String format, int value) {
+        return String.format(format, value).replaceAll("H/1(?=[\\s$])", "*");
     }
 
     /**
