@@ -451,6 +451,14 @@ public class FolderTest {
         assertFalse(f.hasVisibleItems());
     }
 
+    @Test public void getItemsPredicate() throws IOException {
+        final Folder d = r.jenkins.createProject(Folder.class, "d");
+        final FreeStyleProject p1 = d.createProject(FreeStyleProject.class, "p1");
+        final FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
+        final FreeStyleProject c1 = d.createProject(FreeStyleProject.class, "c1");
+        assertThat(d.getItems(p -> p.getDisplayName().startsWith("p")), containsInAnyOrder(p1, p2));
+    }
+
     /**
      * Ensures that the specified property points to the folder.
      * @param <T> Property type
