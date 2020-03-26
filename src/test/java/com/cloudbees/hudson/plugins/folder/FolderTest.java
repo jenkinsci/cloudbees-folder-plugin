@@ -454,8 +454,8 @@ public class FolderTest {
     @Test public void getItemsPredicate() throws IOException {
         final Folder d = r.jenkins.createProject(Folder.class, "d");
         final FreeStyleProject p1 = d.createProject(FreeStyleProject.class, "p1");
-        FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
-        FreeStyleProject c1 = d.createProject(FreeStyleProject.class, "c1");
+        final FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
+        final FreeStyleProject c1 = d.createProject(FreeStyleProject.class, "c1");
         assertThat(d.getItems(p -> p.getDisplayName().startsWith("p")), containsInAnyOrder(p1, p2));
     }
 
