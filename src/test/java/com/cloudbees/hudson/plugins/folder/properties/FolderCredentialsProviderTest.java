@@ -162,7 +162,7 @@ public class FolderCredentialsProviderTest {
 
         r.jenkins.setAuthorizationStrategy(strategy);
         HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
-        jobsToUsers.put(prj.getFullName(), User.get("bob").impersonate());
+        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
@@ -189,7 +189,7 @@ public class FolderCredentialsProviderTest {
 
         r.jenkins.setAuthorizationStrategy(strategy);
         HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
-        jobsToUsers.put(prj.getFullName(), User.get("bob").impersonate());
+        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
@@ -220,7 +220,7 @@ public class FolderCredentialsProviderTest {
 
         r.jenkins.setAuthorizationStrategy(strategy);
         HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
-        jobsToUsers.put(prj.getFullName(), User.get("bob").impersonate());
+        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
@@ -263,7 +263,7 @@ public class FolderCredentialsProviderTest {
 
         r.jenkins.setAuthorizationStrategy(strategy);
         HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
-        jobsToUsers.put(prj.getFullName(), User.get("bob").impersonate());
+        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
