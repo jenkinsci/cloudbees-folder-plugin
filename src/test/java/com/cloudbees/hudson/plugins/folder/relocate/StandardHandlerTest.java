@@ -51,7 +51,7 @@ public class StandardHandlerTest {
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
             grant(Jenkins.READ, Item.READ).everywhere().to("joe").
             grant(Item.CREATE).onItems(d2).to("joe"));
-        try (ACLContext ctx = ACL.as(User.get("joe"))) {
+        try (ACLContext ctx = ACL.as(User.getOrCreateByIdOrFullName("joe"))) {
             assertEquals(Arrays.asList(d1, d2), new StandardHandler().validDestinations(j));
             assertEquals(Arrays.asList(r.jenkins, d2), new StandardHandler().validDestinations(d1));
 

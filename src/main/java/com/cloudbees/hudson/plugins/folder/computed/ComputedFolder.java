@@ -1108,6 +1108,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         /**
          * We know recalculation is not required.
          */
-        NO_RECALCULATION;
+        NO_RECALCULATION
     }
 }

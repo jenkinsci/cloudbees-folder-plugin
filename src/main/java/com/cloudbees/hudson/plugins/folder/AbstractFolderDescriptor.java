@@ -121,7 +121,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
         }
         StaplerRequest request = Stapler.getCurrentRequest();
         if (request != null) {
-            AbstractFolder folder = request.findAncestorObject(AbstractFolder.class);
+            AbstractFolder<?> folder = request.findAncestorObject(AbstractFolder.class);
             if (folder != null) {
                 return DescriptorVisibilityFilter.apply(folder, r);
             }
