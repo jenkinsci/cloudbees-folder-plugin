@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.54</version>
+    <version>4.2</version>
     <relativePath />
   </parent>
 
@@ -21,9 +21,11 @@
   <properties>
     <revision>6.13</revision>
     <changelist>-SNAPSHOT</changelist>
-    <jenkins.version>2.138.4</jenkins.version>
+    <jenkins.version>2.176.1</jenkins.version>
     <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
+    <configuration-as-code-plugin.version>1.36</configuration-as-code-plugin.version>
+    <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
   <licenses>
     <license>
@@ -52,11 +54,22 @@
     </pluginRepository>
   </pluginRepositories>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-2.176.x</artifactId>
+        <version>9</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>2.2.0</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -68,26 +81,14 @@
     <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
-      <version>1.35</version>
+      <version>${configuration-as-code-plugin.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
-      <version>1.35</version>
+      <version>${configuration-as-code-plugin.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.jenkins-ci.tools</groupId>
-        <artifactId>maven-hpi-plugin</artifactId>
-        <configuration>
-          <compatibleSinceVersion>5.2</compatibleSinceVersion>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

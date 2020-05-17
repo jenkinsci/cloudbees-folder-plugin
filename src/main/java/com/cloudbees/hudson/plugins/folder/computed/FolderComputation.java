@@ -27,6 +27,7 @@ package com.cloudbees.hudson.plugins.folder.computed;
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import com.jcraft.jzlib.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -343,6 +344,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, Charsets.UTF_8, false, this);
     }
 
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = "Only one page is ever written here")
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
         getLogText().writeHtmlTo(offset, out.asWriter());
     }
