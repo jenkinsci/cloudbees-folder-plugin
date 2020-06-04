@@ -47,7 +47,7 @@ public class AbstractFolderConfigurationTest {
     @Test
     public void shouldBeAbleToRemoveHealthMetricConfiguredGlobally() throws Exception {
         assertThat("by default, global configuration should have all folder health metrics",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(FolderHealthMetricDescriptor.all().size()));
+                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize((int) FolderHealthMetricDescriptor.all().stream().filter(d -> d.createDefault() != null).count()));
 
         HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
         for (HtmlElement element : cfg.getElementsByAttribute("div", "name", "healthMetrics")) {
