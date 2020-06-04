@@ -69,6 +69,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
@@ -173,6 +174,8 @@ public class ComputedFolderTest {
         d.recompute(Result.SUCCESS);
         assertThat(d.getItem("A").scheduleBuild2(0), not(nullValue()));
         d.assertItemNames(3, "A", "B", "C");
+
+        r.waitUntilNoActivityUpTo((int) TimeUnit.MINUTES.toMillis(1));
     }
 
     @Issue("JENKINS-42680")
