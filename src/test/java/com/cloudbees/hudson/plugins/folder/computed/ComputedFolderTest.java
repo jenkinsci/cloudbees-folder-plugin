@@ -533,6 +533,21 @@ public class ComputedFolderTest {
         assertFalse(folder.isDisabled());
     }
 
+    @Test
+    public void failAllDeletedOnes() throws Exception {
+        OneUndeletableChildComputedFolder d = r.jenkins.createProject(OneUndeletableChildComputedFolder.class, "d");
+        d.kids.addAll(Arrays.asList("A", "B"));
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(1, "A", "B");
+
+        // Computation fails because A cannot be deleted
+        d.kids.clear();
+        d.recompute(Result.FAILURE);
+
+        // But B has been deleted
+        d.assertItemNames(2, "A");
+    }
+
     /**
      * Waits until Hudson finishes building everything, including those in the queue, or fail the test
      * if the specified timeout milliseconds is
@@ -1036,6 +1051,80 @@ public class ComputedFolderTest {
             @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new CoordinatedComputedFolder(parent, name);
+            }
+
+        }
+
+    }
+
+    public static class OneUndeletableChildComputedFolder extends ComputedFolder<FreeStyleProject> {
+
+        List<String> kids = new ArrayList<String>();
+        int round;
+
+        private OneUndeletableChildComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws IOException, InterruptedException {
+            round++;
+            listener.getLogger().println("=== Round #" + round + " ===");
+            for (String kid : kids) {
+                if (kid.equals("Z")) {
+                    throw new AbortException("not adding Z");
+                }
+                listener.getLogger().println("considering " + kid);
+                FreeStyleProject p = observer.shouldUpdate(kid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            if (kid.equals("A")) {
+                                p = new FreeStyleProject(this, kid) {
+                                    @Override
+                                    public void delete() throws IOException, InterruptedException {
+                                        throw new IOException(kid + " cannot be deleted");
+                                    }
+                                };
+                            } else {
+                                p = new FreeStyleProject(this, kid);
+                            }
+                            p.setDescription("created in round #" + round);
+                            observer.created(p);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
+                    } else {
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
+                    }
+                } finally {
+                    observer.completed(kid);
+                }
+            }
+
+        }
+
+        String recompute(Result result) throws Exception {
+            return doRecompute(this, result);
+        }
+
+        void assertItemNames(int round, String... names) {
+            assertEquals(round, this.round);
+            Set<String> actual = new TreeSet<String>();
+            for (FreeStyleProject p : getItems()) {
+                actual.add(p.getName());
+            }
+            assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new OneUndeletableChildComputedFolder(parent, name);
             }
 
         }
