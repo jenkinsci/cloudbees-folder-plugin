@@ -14,7 +14,7 @@ public class DeletingChildrenException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return "Impossible to delete some children when computing the folder: \n" +
-                String.join("\n", exceptions.stream().map(e -> e.getMessage()).collect(Collectors.toList()));
+        return "Impossible to delete some children when computing the folder: \n\t" +
+                String.join("\n\t", exceptions.stream().map(e -> e.getMessage()).collect(Collectors.toList()));
     }
 }
