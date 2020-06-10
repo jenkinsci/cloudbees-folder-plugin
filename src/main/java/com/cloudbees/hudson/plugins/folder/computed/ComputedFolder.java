@@ -67,6 +67,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -282,16 +283,26 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                             new Object[]{getFullName(), orphaned.keySet()});
                 }
                 Collection<I> forRemoval = orphanedItems(orphaned.values(), listener);
+
+                List<IOException> deletingExceptions = new LinkedList<>();
                 for (I existing : orphaned.values()) {
                     if (forRemoval.contains(existing)) {
                         if (LOGGER.isLoggable(Level.FINE)) {
                             LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
                         }
-                        existing.delete();
-                        // super.onDeleted handles removal from items
+                        try {
+                            existing.delete();
+                            // super.onDeleted handles removal from items
+                        } catch (IOException x) { // InterruptedException is still propagated
+                            deletingExceptions.add(x);
+                        }
                     } else {
                         applyDisabled(existing, true);
                     }
+                }
+
+                if (!deletingExceptions.isEmpty()) {
+                    throw new DeletingChildrenException(deletingExceptions);
                 }
             }
         }
