@@ -234,7 +234,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
             List<I> candidates = new ArrayList<I>(orphaned);
-            Collections.sort(candidates, new Comparator<I>() {
+            candidates.sort(new Comparator<I>() {
                 @Override
                 public int compare(I i1, I i2) {
                     boolean disabled1 = disabled(i1);

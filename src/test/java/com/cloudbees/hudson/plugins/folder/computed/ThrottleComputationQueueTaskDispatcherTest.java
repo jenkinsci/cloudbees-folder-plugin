@@ -22,11 +22,11 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 public class ThrottleComputationQueueTaskDispatcherTest {
     private static final Logger LOGGER = Logger.getLogger(ThrottleComputationQueueTaskDispatcherTest.class.getName());

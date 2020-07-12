@@ -69,8 +69,17 @@ import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
 import org.acegisecurity.AccessDeniedException;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -199,8 +208,8 @@ public class FolderTest {
             try {
                 // Access metadata from another thread.
                 whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(new Callable<Set<String>>() {
-                    @Override public Set<String> call() throws Exception {
-                        Set<String> remaining = new TreeSet<String>();
+                    @Override public Set<String> call() {
+                        Set<String> remaining = new TreeSet<>();
                         for (Item i : Jenkins.get().getAllItems()) {
                             remaining.add(i.getFullName());
                             if (i instanceof Actionable) {
@@ -374,8 +383,8 @@ public class FolderTest {
         r.jenkins.reload();
         
         // Add another property
-        Map<Permission,Set<String>> grantedPermissions = new HashMap<Permission, Set<String>>();
-        Set<String> sids = new HashSet<String>();
+        Map<Permission,Set<String>> grantedPermissions = new HashMap<>();
+        Set<String> sids = new HashSet<>();
         sids.add("admin");
         grantedPermissions.put(Jenkins.ADMINISTER, sids);
         folder = r.jenkins.getItemByFullName("myFolder", Folder.class);

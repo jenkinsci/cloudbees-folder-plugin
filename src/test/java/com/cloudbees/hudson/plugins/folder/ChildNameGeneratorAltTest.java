@@ -30,7 +30,6 @@ import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
-import hudson.model.Descriptor;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -44,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,12 +64,13 @@ import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorTest.asJavaStrings;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+
 
 /**
  * Tests {@link ChildNameGenerator} using a generator that leaves the {@link Item#getName()} unmodified but mangles
@@ -86,7 +87,7 @@ public class ChildNameGeneratorAltTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() throws Exception {
+    public void createdFromScratch() {
         r.addStep(new Statement() {
             @Override
             public void evaluate() throws Throwable {
@@ -334,11 +335,11 @@ public class ChildNameGeneratorAltTest {
         }
 
         public List<String> getCreated() {
-            return created == null ? new ArrayList<String>() : created;
+            return created == null ? new ArrayList<>() : created;
         }
 
         public List<String> getDeleted() {
-            return deleted == null ? new ArrayList<String>() : deleted;
+            return deleted == null ? new ArrayList<>() : deleted;
         }
 
         public Set<String> getFatalKids() {
@@ -347,7 +348,7 @@ public class ChildNameGeneratorAltTest {
 
         public void setFatalKids(Set<String> fatalKids) {
             if (!this.fatalKids.equals(fatalKids)) {
-                this.fatalKids = new TreeSet<String>(fatalKids);
+                this.fatalKids = new TreeSet<>(fatalKids);
                 try {
                     save();
                 } catch (IOException e) {
@@ -357,7 +358,7 @@ public class ChildNameGeneratorAltTest {
         }
 
         public void setFatalKids(String... fatalKids) {
-            setFatalKids(new TreeSet<String>(Arrays.asList(fatalKids)));
+            setFatalKids(new TreeSet<>(Arrays.asList(fatalKids)));
         }
 
         public List<String> getKids() {
@@ -366,7 +367,7 @@ public class ChildNameGeneratorAltTest {
 
         public void setKids(List<String> kids) {
             if (!this.kids.equals(kids)) {
-                this.kids = new ArrayList<String>(kids);
+                this.kids = new ArrayList<>(kids);
                 try {
                     save();
                 } catch (IOException e) {
@@ -401,7 +402,7 @@ public class ChildNameGeneratorAltTest {
         }
 
         public void addKids(String... kids) {
-            List<String> k = new ArrayList<String>(Arrays.asList(kids));
+            List<String> k = new ArrayList<>(Arrays.asList(kids));
             k.removeAll(this.kids);
             if (this.kids.addAll(k)) {
                 try {
@@ -426,8 +427,8 @@ public class ChildNameGeneratorAltTest {
         protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws
                 IOException, InterruptedException {
             round++;
-            created = new ArrayList<String>();
-            deleted = new ArrayList<String>();
+            created = new ArrayList<>();
+            deleted = new ArrayList<>();
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {
                 if (fatalKids.contains(kid)) {
@@ -440,11 +441,8 @@ public class ChildNameGeneratorAltTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid);
-                            try {
+                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
                                 p = new FreeStyleProject(this, encodedKid);
-                            } finally {
-                                trace.close();
                             }
                             BulkChange bc = new BulkChange(p);
                             try {
@@ -493,32 +491,32 @@ public class ChildNameGeneratorAltTest {
 
         public void assertItemNames(int round, String... names) {
             assertEquals(round, this.round);
-            TreeSet<String> actual = new TreeSet<String>();
+            TreeSet<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
             assertThat(asJavaStrings(actual), anyOf(
-                    is(asJavaStrings(new TreeSet<String>(Arrays.asList(names)))),
+                    is(asJavaStrings(new TreeSet<>(Arrays.asList(names)))),
                     is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))
             ));
         }
 
         public void assertItemShortUrls(int round, String... names) {
             assertEquals(round, this.round);
-            TreeSet<String> actual = new TreeSet<String>();
+            TreeSet<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getShortUrl());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, is(new TreeSet<>(Arrays.asList(names))));
         }
 
         public void assertItemDirs(int round, String... names) {
             assertEquals(round, this.round);
-            TreeSet<String> actual = new TreeSet<String>();
+            TreeSet<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getRootDir().getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, is(new TreeSet<>(Arrays.asList(names))));
         }
 
         @TestExtension
@@ -544,7 +542,7 @@ public class ChildNameGeneratorAltTest {
         TreeSet<String> alternative = new TreeSet<>();
         for (String name: names) {
             try {
-                alternative.add(new String(name.getBytes("UTF-8"), "Windows-1252"));
+                alternative.add(new String(name.getBytes(StandardCharsets.UTF_8), "Windows-1252"));
             } catch (UnsupportedEncodingException e) {
                 throw new AssertionError("UTF-8 and Windows-1252 are mandated by the JLS", e);
             }
@@ -556,7 +554,7 @@ public class ChildNameGeneratorAltTest {
         TreeSet<String> alternative = new TreeSet<>();
         for (String name: names) {
             try {
-                alternative.add(Normalizer.normalize(new String(name.getBytes("UTF-8"), "Windows-1252"), form));
+                alternative.add(Normalizer.normalize(new String(name.getBytes(StandardCharsets.UTF_8), "Windows-1252"), form));
             } catch (UnsupportedEncodingException e) {
                 throw new AssertionError("UTF-8 and Windows-1252 are mandated by the JLS", e);
             }
@@ -576,7 +574,7 @@ public class ChildNameGeneratorAltTest {
         }
 
         @Override
-        public JobProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        public JobProperty<?> reconfigure(StaplerRequest req, JSONObject form) {
             return this;
         }
 
