@@ -34,8 +34,11 @@ import hudson.util.StreamTaskListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;
@@ -83,7 +86,7 @@ public class ComputedFolder2Test {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws InterruptedException {
             for (String kid : kids) {
                 FreeStyleProject p = observer.shouldUpdate(kid);
                 try {

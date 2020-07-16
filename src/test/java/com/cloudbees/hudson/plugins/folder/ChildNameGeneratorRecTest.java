@@ -31,7 +31,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
-import hudson.model.Descriptor;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
@@ -43,7 +42,7 @@ import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,12 +63,12 @@ import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests {@link ChildNameGenerator} using a generator where the previous implementation of the computed folder used a
@@ -87,7 +86,7 @@ public class ChildNameGeneratorRecTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() throws Exception {
+    public void createdFromScratch() {
         r.addStep(new Statement() {
             @Override
             public void evaluate() throws Throwable {
@@ -134,7 +133,7 @@ public class ChildNameGeneratorRecTest {
      */
     @Test
     @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgrade() throws Exception {
+    public void upgrade() {
         r.addStep(new Statement() {
             @Override
             public void evaluate() throws Throwable {
@@ -248,9 +247,9 @@ public class ChildNameGeneratorRecTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class ComputedFolderImpl extends ComputedFolder<FreeStyleProject> {
 
-        private Set<String> fatalKids = new TreeSet<String>();
+        private Set<String> fatalKids = new TreeSet<>();
 
-        private List<String> kids = new ArrayList<String>();
+        private List<String> kids = new ArrayList<>();
         /**
          * The number of computations since either Jenkins was restarted or the folder was created.
          */
@@ -273,11 +272,11 @@ public class ChildNameGeneratorRecTest {
         }
 
         public List<String> getCreated() {
-            return created == null ? new ArrayList<String>() : created;
+            return created == null ? new ArrayList<>() : created;
         }
 
         public List<String> getDeleted() {
-            return deleted == null ? new ArrayList<String>() : deleted;
+            return deleted == null ? new ArrayList<>() : deleted;
         }
 
         public Set<String> getFatalKids() {
@@ -286,7 +285,7 @@ public class ChildNameGeneratorRecTest {
 
         public void setFatalKids(Set<String> fatalKids) {
             if (!this.fatalKids.equals(fatalKids)) {
-                this.fatalKids = new TreeSet<String>(fatalKids);
+                this.fatalKids = new TreeSet<>(fatalKids);
                 try {
                     save();
                 } catch (IOException e) {
@@ -305,7 +304,7 @@ public class ChildNameGeneratorRecTest {
 
         public void setKids(List<String> kids) {
             if (!this.kids.equals(kids)) {
-                this.kids = new ArrayList<String>(kids);
+                this.kids = new ArrayList<>(kids);
                 try {
                     save();
                 } catch (IOException e) {
@@ -340,7 +339,7 @@ public class ChildNameGeneratorRecTest {
         }
 
         public void addKids(String... kids) {
-            List<String> k = new ArrayList<String>(Arrays.asList(kids));
+            List<String> k = new ArrayList<>(Arrays.asList(kids));
             k.removeAll(this.kids);
             if (this.kids.addAll(k)) {
                 try {
@@ -365,8 +364,8 @@ public class ChildNameGeneratorRecTest {
         protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws
                 IOException, InterruptedException {
             round++;
-            created = new ArrayList<String>();
-            deleted = new ArrayList<String>();
+            created = new ArrayList<>();
+            deleted = new ArrayList<>();
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {
                 if (fatalKids.contains(kid)) {
@@ -432,29 +431,29 @@ public class ChildNameGeneratorRecTest {
 
         public void assertItemNames(int round, String... names) {
             assertEquals(round, this.round);
-            TreeSet<String> actual = new TreeSet<String>();
+            TreeSet<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(actual, anyOf(is(new TreeSet<String>(Arrays.asList(names))), is(windowsFFS(names))));
+            assertThat(actual, anyOf(is(new TreeSet<>(Arrays.asList(names))), is(windowsFFS(names))));
         }
 
         public void assertItemShortUrls(int round, String... names) {
             assertEquals(round, this.round);
-            TreeSet<String> actual = new TreeSet<String>();
+            TreeSet<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getShortUrl());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, is(new TreeSet<>(Arrays.asList(names))));
         }
 
         public void assertItemDirs(int round, String... names) {
             assertEquals(round, this.round);
-            TreeSet<String> actual = new TreeSet<String>();
+            TreeSet<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getRootDir().getName());
             }
-            assertThat(actual, is(new TreeSet<String>(Arrays.asList(names))));
+            assertThat(actual, is(new TreeSet<>(Arrays.asList(names))));
         }
 
         @TestExtension
@@ -488,7 +487,7 @@ public class ChildNameGeneratorRecTest {
         }
 
         @Override
-        public JobProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        public JobProperty<?> reconfigure(StaplerRequest req, JSONObject form) {
             return this;
         }
 
@@ -560,11 +559,7 @@ public class ChildNameGeneratorRecTest {
     @NonNull
     public static String rawDecode(@NonNull String s) {
         final byte[] bytes; // should be US-ASCII but we can be tolerant
-        try {
-            bytes = s.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("JLS specification mandates UTF-8 as a supported encoding", e);
-        }
+        bytes = s.getBytes(StandardCharsets.UTF_8);
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         for (int i = 0; i < bytes.length; i++) {
             final int b = bytes[i];
@@ -580,11 +575,7 @@ public class ChildNameGeneratorRecTest {
             }
             buffer.write(b);
         }
-        try {
-            return new String(buffer.toByteArray(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("JLS specification mandates UTF-8 as a supported encoding", e);
-        }
+        return new String(buffer.toByteArray(), StandardCharsets.UTF_8);
     }
 
 

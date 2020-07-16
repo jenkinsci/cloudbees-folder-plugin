@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,8 +39,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class EventOutputStreamsTest {
@@ -107,9 +108,9 @@ public class EventOutputStreamsTest {
         t2.start();
         t1.join();
         t2.join();
-        List<String> as = new ArrayList<String>();
-        List<String> bs = new ArrayList<String>();
-        for (String line : FileUtils.readLines(file)) {
+        List<String> as = new ArrayList<>();
+        List<String> bs = new ArrayList<>();
+        for (String line : FileUtils.readLines(file, StandardCharsets.UTF_8)) {
             assertThat("Line does not have both thread output: '" + StringEscapeUtils.escapeJava(line)+"'",
                     line.matches("^\\d+[AB](\\d+[AB])+$"), is(false));
             assertThat("Line does not contain a null character: '" + StringEscapeUtils.escapeJava(line) + "'",
@@ -122,10 +123,10 @@ public class EventOutputStreamsTest {
                 fail("unexpected line: '" + StringEscapeUtils.escapeJava(line) +"'");
             }
         }
-        List<String> sorted = new ArrayList<String>(as);
+        List<String> sorted = new ArrayList<>(as);
         Collections.sort(sorted);
         assertThat(as, is(sorted));
-        sorted = new ArrayList<String>(bs);
+        sorted = new ArrayList<>(bs);
         Collections.sort(sorted);
         assertThat(bs, is(sorted));
     }

@@ -8,10 +8,10 @@ import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
 public class ConfigurationAsCodeTest extends RoundTripAbstractTest {
 

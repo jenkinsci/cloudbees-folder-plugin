@@ -75,13 +75,19 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.junit.Rule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -126,7 +132,7 @@ public class ComputedFolderTest {
         d.assertItemNames(5, "A", "B", "C", "D");
         assertEquals("[A, B, C, D, B]", d.created.toString());
         assertEquals("[B]", d.deleted.toString());
-        Map<String,String> descriptions = new TreeMap<String,String>();
+        Map<String,String> descriptions = new TreeMap<>();
         for (FreeStyleProject p : d.getItems()) {
             descriptions.put(p.getName(), p.getDescription());
         }
@@ -468,7 +474,7 @@ public class ComputedFolderTest {
         d.onKid("B");
         future.get();
         waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
-        List<Throwable> deaths = new ArrayList<Throwable>();
+        List<Throwable> deaths = new ArrayList<>();
         for (Computer comp : r.jenkins.getComputers()) {
             for (Executor e : comp.getExecutors()) {
                 if (e.getCauseOfDeath() != null) {
@@ -567,8 +573,8 @@ public class ComputedFolderTest {
                 return;
 
             if (System.currentTimeMillis() - startTime > timeout) {
-                List<Queue.Executable> building = new ArrayList<Queue.Executable>();
-                List<Throwable> deaths = new ArrayList<Throwable>();
+                List<Queue.Executable> building = new ArrayList<>();
+                List<Throwable> deaths = new ArrayList<>();
                 for (Computer c : r.jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
                         if (e.isBusy()) {
@@ -626,10 +632,10 @@ public class ComputedFolderTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolder extends ComputedFolder<FreeStyleProject> {
 
-        List<String> kids = new ArrayList<String>();
+        List<String> kids = new ArrayList<>();
         int round;
-        List<String> created = new ArrayList<String>();
-        List<String> deleted = new ArrayList<String>();
+        List<String> created = new ArrayList<>();
+        List<String> deleted = new ArrayList<>();
 
         private SampleComputedFolder(ItemGroup parent, String name) {
             super(parent, name);
@@ -684,11 +690,11 @@ public class ComputedFolderTest {
 
         void assertItemNames(int round, String... names) {
             assertEquals(round, this.round);
-            Set<String> actual = new TreeSet<String>();
+            Set<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+            assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
         }
 
         @TestExtension
@@ -938,10 +944,10 @@ public class ComputedFolderTest {
 
     public static class CoordinatedComputedFolder extends ComputedFolder<FreeStyleProject> {
 
-        List<String> kids = new ArrayList<String>();
+        List<String> kids = new ArrayList<>();
         int round;
-        List<String> created = new ArrayList<String>();
-        List<String> deleted = new ArrayList<String>();
+        List<String> created = new ArrayList<>();
+        List<String> deleted = new ArrayList<>();
         CountDownLatch compute = new CountDownLatch(2);
 
         private CoordinatedComputedFolder(ItemGroup parent, String name) {
@@ -1038,11 +1044,11 @@ public class ComputedFolderTest {
 
         void assertItemNames(int round, String... names) {
             assertEquals(round, this.round);
-            Set<String> actual = new TreeSet<String>();
+            Set<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+            assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
         }
 
         @TestExtension

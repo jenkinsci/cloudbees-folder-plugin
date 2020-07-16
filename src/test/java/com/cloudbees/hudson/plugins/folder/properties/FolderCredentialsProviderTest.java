@@ -62,10 +62,10 @@ import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockQueueItemAuthenticator;
 import org.jvnet.hudson.test.TestBuilder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 
 public class FolderCredentialsProviderTest {
 
@@ -161,7 +161,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
+        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
         jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
@@ -188,7 +188,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
+        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
         jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
@@ -219,7 +219,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
+        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
         jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
@@ -262,7 +262,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<String, Authentication>();
+        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
         jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
         MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
 
@@ -294,8 +294,7 @@ public class FolderCredentialsProviderTest {
         }
 
         @Override
-        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-                throws InterruptedException, IOException {
+        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
             IdCredentials credentials = CredentialsProvider.findCredentialById(id, IdCredentials.class, build);
             if (credentials == null) {
                 listener.getLogger().printf("Could not find any credentials with id %s%n", id);
