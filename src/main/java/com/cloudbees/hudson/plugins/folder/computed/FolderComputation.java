@@ -107,9 +107,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     @Nonnull
     private transient final ComputedFolder<I> folder;
 
-    /** The previous run, if any. */
+    /** The previous run result, if any. */
     @CheckForNull
-    private transient final FolderComputation<I> previous;
+    private transient final Result previousResult;
 
     /** The events output stream handler */
     @CheckForNull
@@ -132,7 +132,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     protected FolderComputation(@Nonnull ComputedFolder<I> folder, @CheckForNull FolderComputation<I> previous) {
         this.folder = folder;
-        this.previous = previous;
+        this.previousResult = previous == null ? null : previous.getResult();
     }
 
     /**
@@ -448,7 +448,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @CheckForNull
     public Result getPreviousResult() {
-        return previous == null ? null : previous.result;
+        return previousResult;
     }
 
     @Nonnull
