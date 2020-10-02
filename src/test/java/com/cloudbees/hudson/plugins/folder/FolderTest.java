@@ -425,19 +425,19 @@ public class FolderTest {
 
     @Issue("JENKINS-58282")
     @Test public void shouldHaveHealthMetricConfiguredGloballyOnCreation() throws Exception {
-        assertThat("by default, global configuration should have all folder health metrics",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize((int) FolderHealthMetricDescriptor.all().stream().filter(d -> d.createDefault() != null).count()));
+        assertThat("by default, global configuration should not have any health metrics",
+                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
         
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> healthMetrics = folder.getHealthMetrics();
-        assertThat("a new created folder should have all the folder health metrics configured globally",
-                healthMetrics.toList(), containsInAnyOrder(AbstractFolderConfiguration.get().getHealthMetrics().toArray()));
+        assertThat("a new created folder should not have any health metrics configured globally",
+                healthMetrics, hasSize(0));
 
         AbstractFolderConfiguration.get().setHealthMetrics(null);
         folder = r.jenkins.createProject(Folder.class, "myFolder2");
         healthMetrics = folder.getHealthMetrics();
-        assertThat("a new created folder should have all the folder health metrics configured globally",
-                healthMetrics, iterableWithSize(0));
+        assertThat("a new created folder should not have any health metrics configured globally",
+                healthMetrics, hasSize(0));
     }
 
     @Test public void visibleItems() throws IOException, InterruptedException {

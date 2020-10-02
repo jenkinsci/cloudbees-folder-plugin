@@ -1,6 +1,8 @@
 package com.cloudbees.hudson.plugins.folder.config;
 
+import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
+import com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import hudson.ExtensionFinder;
@@ -13,6 +15,8 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -43,10 +47,21 @@ public class AbstractFolderConfigurationTest {
                 emptyIterable());
     }
 
+    @Test
+    public void healthMetricsAppearsInConfiguredGlobally() throws Exception {
+        HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
+        assertThat("adding metrics from Global Configuration",
+                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(cfg.getElementsByAttribute("div", "suffix", "healthMetrics").size()));
+    }
+
     @Issue("JENKINS-60393")
     @Test
     public void shouldBeAbleToRemoveHealthMetricConfiguredGlobally() throws Exception {
-        assertThat("by default, global configuration should have all folder health metrics",
+        List<FolderHealthMetric> healthMetrics = new ArrayList<>(1);
+        healthMetrics.add(new WorstChildHealthMetric(true));
+        AbstractFolderConfiguration.get().setHealthMetrics(healthMetrics);
+
+        assertThat("by default, global configuration should not have any folder health metrics",
                 AbstractFolderConfiguration.get().getHealthMetrics(), hasSize((int) FolderHealthMetricDescriptor.all().stream().filter(d -> d.createDefault() != null).count()));
 
         HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
