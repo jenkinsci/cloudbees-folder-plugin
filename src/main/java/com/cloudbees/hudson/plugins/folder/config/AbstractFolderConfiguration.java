@@ -40,7 +40,8 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
     /**
      * Auto-configure the default metrics after all plugins have been loaded.
      */
-    @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED, before = InitMilestone.JOB_LOADED)
+    // Disabling autoConfigure as per JENKINS-58282 & JENKINS-63836
+    /*@Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED, before = InitMilestone.JOB_LOADED)
     public static void autoConfigure() {
         AbstractFolderConfiguration abstractFolderConfiguration = AbstractFolderConfiguration.get();
         if (abstractFolderConfiguration.healthMetrics == null) {
@@ -54,7 +55,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
             abstractFolderConfiguration.setHealthMetrics(new DescribableList<FolderHealthMetric,
                     FolderHealthMetricDescriptor>(abstractFolderConfiguration, metrics));
         }
-    }
+    }*/
 
     @Nonnull
     public List<FolderHealthMetric> getHealthMetrics() {
