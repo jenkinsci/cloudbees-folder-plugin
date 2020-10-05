@@ -23,6 +23,8 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
 
     private List<FolderHealthMetric> healthMetrics;
 
+    public static final boolean ADD_HEALTH_METRICS = Boolean.getBoolean(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
+
     @Nonnull
     public static AbstractFolderConfiguration get() {
         AbstractFolderConfiguration instance = GlobalConfiguration.all().get(AbstractFolderConfiguration.class);
@@ -40,22 +42,24 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
     /**
      * Auto-configure the default metrics after all plugins have been loaded.
      */
-    // Disabling autoConfigure as per JENKINS-58282 & JENKINS-63836
-    /*@Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED, before = InitMilestone.JOB_LOADED)
+    @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED, before = InitMilestone.JOB_LOADED)
     public static void autoConfigure() {
-        AbstractFolderConfiguration abstractFolderConfiguration = AbstractFolderConfiguration.get();
-        if (abstractFolderConfiguration.healthMetrics == null) {
-            List<FolderHealthMetric> metrics = new ArrayList<>();
-            for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
-                FolderHealthMetric metric = d.createDefault();
-                if (metric != null) {
-                    metrics.add(metric);
+        // Don't add health metrics by default in autoConfigure as per JENKINS-58282 & JENKINS-63836
+        if (ADD_HEALTH_METRICS) {
+            AbstractFolderConfiguration abstractFolderConfiguration = AbstractFolderConfiguration.get();
+            if (abstractFolderConfiguration.healthMetrics == null) {
+                List<FolderHealthMetric> metrics = new ArrayList<>();
+                for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
+                    FolderHealthMetric metric = d.createDefault();
+                    if (metric != null) {
+                        metrics.add(metric);
+                    }
                 }
+                abstractFolderConfiguration.setHealthMetrics(new DescribableList<FolderHealthMetric,
+                        FolderHealthMetricDescriptor>(abstractFolderConfiguration, metrics));
             }
-            abstractFolderConfiguration.setHealthMetrics(new DescribableList<FolderHealthMetric,
-                    FolderHealthMetricDescriptor>(abstractFolderConfiguration, metrics));
         }
-    }*/
+    }
 
     @Nonnull
     public List<FolderHealthMetric> getHealthMetrics() {
