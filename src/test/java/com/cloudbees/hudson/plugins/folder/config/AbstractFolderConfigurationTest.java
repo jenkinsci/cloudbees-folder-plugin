@@ -60,10 +60,6 @@ public class AbstractFolderConfigurationTest {
         List<FolderHealthMetric> healthMetrics = new ArrayList<>(1);
         healthMetrics.add(new WorstChildHealthMetric(true));
         AbstractFolderConfiguration.get().setHealthMetrics(healthMetrics);
-
-        assertThat("by default, global configuration should not have any folder health metrics",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize((int) FolderHealthMetricDescriptor.all().stream().filter(d -> d.createDefault() != null).count()));
-
         HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
         for (HtmlElement element : cfg.getElementsByAttribute("div", "name", "healthMetrics")) {
             element.remove();
