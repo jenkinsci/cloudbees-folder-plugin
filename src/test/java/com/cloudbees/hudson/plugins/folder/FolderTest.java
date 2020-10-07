@@ -423,7 +423,7 @@ public class FolderTest {
         anchor.click();
     }
 
-    @Issue("JENKINS-58282")
+    @Issue("JENKINS-63836")
     @Test public void shouldNotHaveHealthMetricConfiguredGloballyOnCreation() throws Exception {
         assertThat("by default, global configuration should not have any health metrics",
                 AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
