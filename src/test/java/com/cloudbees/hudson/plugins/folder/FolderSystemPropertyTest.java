@@ -45,7 +45,7 @@ public class FolderSystemPropertyTest {
     public JenkinsRule j = new JenkinsRule();
 
     @BeforeClass
-    public static void enableHealhMetrics() {
+    public static void enableHealthMetrics() {
         System.setProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", "true");
     }
 

@@ -23,8 +23,6 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
 
     private List<FolderHealthMetric> healthMetrics;
 
-    public static final boolean ADD_HEALTH_METRICS = Boolean.getBoolean(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
-
     @Nonnull
     public static AbstractFolderConfiguration get() {
         AbstractFolderConfiguration instance = GlobalConfiguration.all().get(AbstractFolderConfiguration.class);
@@ -32,6 +30,10 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
             throw new IllegalStateException();
         }
         return instance;
+    }
+
+    private static boolean getHealthMetricsProperty() {
+        return Boolean.getBoolean(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
     }
 
     @DataBoundConstructor
@@ -45,7 +47,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
     @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED, before = InitMilestone.JOB_LOADED)
     public static void autoConfigure() {
         // Don't add health metrics by default in autoConfigure as per JENKINS-58282 & JENKINS-63836
-        if (ADD_HEALTH_METRICS) {
+        if (getHealthMetricsProperty()) {
             AbstractFolderConfiguration abstractFolderConfiguration = AbstractFolderConfiguration.get();
             if (abstractFolderConfiguration.healthMetrics == null) {
                 List<FolderHealthMetric> metrics = new ArrayList<>();
