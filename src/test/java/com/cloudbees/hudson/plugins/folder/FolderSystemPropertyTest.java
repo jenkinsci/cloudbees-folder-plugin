@@ -51,7 +51,7 @@ public class FolderSystemPropertyTest {
 
     @AfterClass
     public static void disableHealthMetrics() {
-        System.clearProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
+        System.setProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", null);
     }
 
     @Issue("JENKINS-63836")
@@ -70,7 +70,6 @@ public class FolderSystemPropertyTest {
         healthMetrics = folder.getHealthMetrics();
         assertThat("a new created folder should have all the folder health metrics configured globally",
                 healthMetrics, iterableWithSize(0));
-        System.clearProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
     }
 
 }
