@@ -51,7 +51,7 @@ public class FolderSystemPropertyTest {
 
     @AfterClass
     public static void disableHealthMetrics() {
-        System.setProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", null);
+        System.clearProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
     }
 
     @Issue("JENKINS-63836")
