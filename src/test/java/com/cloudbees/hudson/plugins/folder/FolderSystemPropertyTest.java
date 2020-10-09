@@ -44,14 +44,22 @@ public class FolderSystemPropertyTest {
     @Rule
     public JenkinsRule j = new JenkinsRule();
 
+    private static String HEALTH_METRIC_PROPERTY;
+
     @BeforeClass
     public static void enableHealthMetrics() {
+        HEALTH_METRIC_PROPERTY = System.getProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
         System.setProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", "true");
     }
 
     @AfterClass
     public static void disableHealthMetrics() {
-        System.clearProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
+        // Put back the previous value before the test was executed
+        if (HEALTH_METRIC_PROPERTY != null) {
+            System.setProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", HEALTH_METRIC_PROPERTY);
+        } else {
+            System.clearProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
+        }
     }
 
     @Issue("JENKINS-63836")
