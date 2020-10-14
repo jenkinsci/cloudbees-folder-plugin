@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
+import hudson.Functions;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
@@ -173,7 +174,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             if (x instanceof AbortException) {
                 listener.fatalError(x.getMessage());
             } else {
-                x.printStackTrace(listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
+                Functions.printStackTrace(x, listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
             }
             _result = Result.FAILURE;
         } finally {
