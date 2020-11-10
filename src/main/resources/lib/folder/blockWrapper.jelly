@@ -1,0 +1,19 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:d="jelly:define" xmlns:st="jelly:stapler">
+  <st:documentation>
+    Support both table and div layout, remove when baseline is 2.264 or newer
+    <st:attribute name="name" />
+  </st:documentation>
+  <j:choose>
+    <j:when test="${divBasedFormLayout}">
+      <div name="${attrs.name}">
+        <d:invokeBody/>
+      </div>
+    </j:when>
+    <j:otherwise>
+      <table name="${attrs.name}">
+        <d:invokeBody/>
+      </table>
+    </j:otherwise>
+  </j:choose>
+</j:jelly>
