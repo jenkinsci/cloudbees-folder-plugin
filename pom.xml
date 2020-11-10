@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>cloudbees-folder</artifactId>
-  <version>6.15</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Folders Plugin</name>
@@ -19,7 +19,7 @@
   </description>
   <url>https://github.com/jenkinsci/cloudbees-folder-plugin/</url>
   <properties>
-    <revision>6.15</revision>
+    <revision>6.16</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.version>2.204.6</jenkins.version>
@@ -38,7 +38,7 @@
     <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
-    <tag>cloudbees-folder-6.15</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>
