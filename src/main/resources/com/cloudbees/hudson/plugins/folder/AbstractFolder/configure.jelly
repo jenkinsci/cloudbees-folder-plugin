@@ -54,7 +54,7 @@ THE SOFTWARE.
         </f:entry>
 
         <j:if test="${it.supportsMakeDisabled()}">
-          <f:entry title="${%Disable}" field="disable">
+          <f:entry title="${%Disable}" field="disabled">
             <f:checkbox title="${%blurb(it.pronoun)}"/>
           </f:entry>
         </j:if>
