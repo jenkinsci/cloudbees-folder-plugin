@@ -184,6 +184,14 @@ public class ComputedFolderTest {
         r.waitUntilNoActivityUpTo((int) TimeUnit.MINUTES.toMillis(1));
     }
 
+    @Test
+    public void roundTrip() throws Exception {
+        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        d.makeDisabled(true);
+        d = r.configRoundtrip(d);
+        assertTrue(d.isDisabled());
+    }
+
     @Issue("JENKINS-42680")
     @Test
     public void foldersAsChildren() throws Exception {
