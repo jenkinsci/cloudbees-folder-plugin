@@ -70,7 +70,6 @@ import hudson.search.SearchItem;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.util.AlternativeUiTextProvider;
-import hudson.util.CaseInsensitiveComparator;
 import hudson.util.CopyOnWriteMap;
 import hudson.util.DescribableList;
 import hudson.util.FormApply;
@@ -187,7 +186,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /** Child items, keyed by {@link Item#getName}. */
-    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<String,I>(CaseInsensitiveComparator.INSTANCE);
+    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<String,I>(String.CASE_INSENSITIVE_ORDER);
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
