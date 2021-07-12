@@ -23,6 +23,3 @@ The changelogs will be integrated by the maintainers when a new version is relea
 - [ ] Changelog entry appropriate for the audience affected by the change (users or developer, depending on the change).
       * Use the `Internal: ` prefix if the change has no user-visible impact (API, test frameworks, etc.)
 - [ ] Appropriate autotests or explanation to why this change has no tests
-
-@fcojfernandez
-
