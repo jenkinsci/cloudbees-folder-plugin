@@ -95,6 +95,7 @@ import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.xml.sax.SAXException;
 
 public class ComputedFolderTest {
 
@@ -545,6 +546,28 @@ public class ComputedFolderTest {
         // Re enable the folder
         r.submit(cfg);
         assertFalse(folder.isDisabled());
+    }
+
+    @Issue("JENKINS-66168")
+    @Test
+    public void enabledAndDisableFromUiViews() throws Exception {
+        LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
+        assertFalse("by default, a folder is disabled", folder.isDisabled());
+        folder.getViews().forEach(view -> {
+            try {
+                String viewUrl =view.getViewUrl();
+                HtmlForm cfg = (HtmlForm) r.createWebClient().goTo(viewUrl).getElementById("disable-project");
+                assertNotNull(cfg);
+                r.submit(cfg);
+                assertTrue("Can disable from view " + view.getViewName(), folder.isDisabled());
+                cfg = (HtmlForm) r.createWebClient().goTo(viewUrl).getElementById("enable-project");
+                assertNotNull(cfg);
+                r.submit(cfg);
+                assertTrue("Can enable from view " + view.getViewName(), !folder.isDisabled());
+            } catch (Exception e) {
+                Assert.fail();
+            }
+        });
     }
 
     @Test
