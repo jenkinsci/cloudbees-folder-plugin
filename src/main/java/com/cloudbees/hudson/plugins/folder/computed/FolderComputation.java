@@ -74,7 +74,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
-import org.apache.commons.io.Charsets;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
@@ -152,7 +152,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             } else {
                 os = new FileOutputStream(logFile);
             }
-            listener = new StreamBuildListener(os, Charsets.UTF_8);
+            listener = new StreamBuildListener(os, StandardCharsets.UTF_8);
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
             result = Result.FAILURE;
@@ -258,7 +258,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                     BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT)
             );
         }
-        return new StreamTaskListener(eventStreams.get(), Charsets.UTF_8);
+        return new StreamTaskListener(eventStreams.get(), StandardCharsets.UTF_8);
     }
 
     @Nonnull
@@ -324,7 +324,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @Nonnull
     public AnnotatedLargeText<FolderComputation<I>> getLogText() {
-        return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), Charsets.UTF_8, !isLogUpdated(), this);
+        return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), StandardCharsets.UTF_8, !isLogUpdated(), this);
     }
 
     @Nonnull
@@ -335,14 +335,14 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             try {
                 buffer.write(
                         String.format("No events as of %tc, waiting for events...%n", new Date())
-                                .getBytes(Charsets.UTF_8)
+                                .getBytes(StandardCharsets.UTF_8)
                 );
-                return new AnnotatedLargeText<FolderComputation<I>>(buffer, Charsets.UTF_8, false, this);
+                return new AnnotatedLargeText<FolderComputation<I>>(buffer, StandardCharsets.UTF_8, false, this);
             } catch (IOException e) {
                 // ignore and fall through
             }
         }
-        return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, Charsets.UTF_8, false, this);
+        return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, StandardCharsets.UTF_8, false, this);
     }
 
     @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = "Only one page is ever written here")
@@ -418,7 +418,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
 
         String message = "No such file: " + logFile;
-        return new ByteArrayInputStream(message.getBytes(Charsets.UTF_8));
+        return new ByteArrayInputStream(message.getBytes(StandardCharsets.UTF_8));
     }
 
     @CheckForNull
