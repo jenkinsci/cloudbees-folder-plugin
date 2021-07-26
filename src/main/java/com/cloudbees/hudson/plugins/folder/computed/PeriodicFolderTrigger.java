@@ -47,10 +47,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
  *
  * @author Stephen Connolly
  */
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
     private static final Logger LOGGER = Logger.getLogger(PeriodicFolderTrigger.class.getName());
 
+    private static final Random ENTROPY = new Random();
+    
     /**
      * Captures the time that this class was loaded.
      */
@@ -211,7 +214,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
                 // for short intervals this will have no effect
                 // for longer intervals this will stagger all the computations on start-up
                 // when creating new instances this will be ignored as the computation result will be null
-                lastTriggered = startup + new Random().nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
+                lastTriggered = startup + ENTROPY.nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
             }
             // we will be run approximately every interval/2
             // we want to trigger such that the average time between triggers is `interval`
