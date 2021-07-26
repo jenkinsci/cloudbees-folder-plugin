@@ -31,6 +31,7 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
@@ -141,6 +142,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
     /**
