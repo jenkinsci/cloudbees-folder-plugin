@@ -894,33 +894,46 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         // ensure we refresh on average once every HEALTH_REPORT_CACHE_REFRESH_MIN but not all at once
         nextHealthReportsRefreshMillis = System.currentTimeMillis()
                 + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
-                + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
+                + ENTROPY.nextInt((int) TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
         reports = new ArrayList<HealthReport>();
-        List<FolderHealthMetric.Reporter> reporters = new ArrayList<FolderHealthMetric.Reporter>(healthMetrics.size());
-        boolean recursive = false;
-        boolean topLevelOnly = true;
+
         for (FolderHealthMetric metric : healthMetrics) {
-            recursive = recursive || metric.getType().isRecursive();
-            topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
-            reporters.add(metric.reporter());
+            observeMetric(metric);
+            reports.addAll(metric.reporter().report());
+
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
-                recursive = recursive || metric.getType().isRecursive();
-                topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
-                reporters.add(metric.reporter());
+                observeMetric(metric);
+                reports.addAll(p.getHealthReports());
             }
         }
-        if (recursive) {
-            Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
-            stack.push(getItems());
-            if (topLevelOnly) {
-                while (!stack.isEmpty()) {
-                    for (Item item : stack.pop()) {
-                        if (item instanceof TopLevelItem) {
-                            for (FolderHealthMetric.Reporter reporter : reporters) {
-                                reporter.observe(item);
+
+        Collections.sort(reports);
+        healthReports = reports; // idempotent write
+        return reports;
+    }
+
+    private void observeMetric(FolderHealthMetric metric) {
+        if (metric.getType().isWithChildren()) {
+            if (metric.getType().isRecursive()) {
+                Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
+                stack.push(getItems());
+                if (metric.getType().isTopLevelItems()) {
+                    while (!stack.isEmpty()) {
+                        for (Item item : stack.pop()) {
+                            if (item instanceof TopLevelItem) {
+                                metric.reporter().observe(item);
+                                if (item instanceof Folder) {
+                                    stack.push(((Folder) item).getItems());
+                                }
                             }
+                        }
+                    }
+                } else {
+                    while (!stack.isEmpty()) {
+                        for (Item item : stack.pop()) {
+                            metric.reporter().observe(item);
                             if (item instanceof Folder) {
                                 stack.push(((Folder) item).getItems());
                             }
@@ -928,34 +941,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     }
                 }
             } else {
-                while (!stack.isEmpty()) {
-                    for (Item item : stack.pop()) {
-                        for (FolderHealthMetric.Reporter reporter : reporters) {
-                            reporter.observe(item);
-                        }
-                        if (item instanceof Folder) {
-                            stack.push(((Folder) item).getItems());
-                        }
-                    }
+                for (Item item : getItems()) {
+                    metric.reporter().observe(item);
                 }
             }
         } else {
-            for (Item item: getItems()) {
-                for (FolderHealthMetric.Reporter reporter : reporters) {
-                    reporter.observe(item);
-                }
-            }
+            metric.reporter().observe(this);
         }
-        for (FolderHealthMetric.Reporter reporter : reporters) {
-            reports.addAll(reporter.report());
-        }
-        for (AbstractFolderProperty<?> p : getProperties()) {
-            reports.addAll(p.getHealthReports());
-        }
-
-        Collections.sort(reports);
-        healthReports = reports; // idempotent write
-        return reports;
     }
 
     public DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> getHealthMetrics() {

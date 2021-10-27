@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder.health;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -70,7 +71,7 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
     @Override
     public Type getType() {
-        return Type.IMMEDIATE_ALL_ITEMS;
+        return Type.SELF_ONLY;
     }
 
     @Override
@@ -137,8 +138,14 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
         @Override
         public void observe(Item item) {
-            if (StringUtils.equals(childName, item.getName())) {
-                report = getHealthReport(item);
+            if (item instanceof ItemGroup) {
+                Collection<Item> children = ((ItemGroup<Item>) item).getItems();
+                for (Item child : children) {
+                    if (StringUtils.equals(childName, item.getName())) {
+                        report = getHealthReport(child);
+                        return;
+                    }
+                }
             }
         }
 
