@@ -896,15 +896,17 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
                 + ENTROPY.nextInt((int) TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
         reports = new ArrayList<HealthReport>();
-
+        
         for (FolderHealthMetric metric : healthMetrics) {
-            observeMetric(metric);
-            reports.addAll(metric.reporter().report());
+            FolderHealthMetric.Reporter reporter = metric.reporter();
+            observeMetric(metric.getType(), reporter);
+            reports.addAll(reporter.report());
 
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
-                observeMetric(metric);
+                FolderHealthMetric.Reporter reporter = metric.reporter();
+                observeMetric(metric.getType(), reporter);
                 reports.addAll(p.getHealthReports());
             }
         }
@@ -914,16 +916,16 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return reports;
     }
 
-    private void observeMetric(FolderHealthMetric metric) {
-        if (metric.getType().isWithChildren()) {
-            if (metric.getType().isRecursive()) {
+    private void observeMetric(FolderHealthMetric.Type type, FolderHealthMetric.Reporter reporter) {
+        if (type.isWithChildren()) {
+            if (type.isRecursive()) {
                 Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
                 stack.push(getItems());
-                if (metric.getType().isTopLevelItems()) {
+                if (type.isTopLevelItems()) {
                     while (!stack.isEmpty()) {
                         for (Item item : stack.pop()) {
                             if (item instanceof TopLevelItem) {
-                                metric.reporter().observe(item);
+                                reporter.observe(item);
                                 if (item instanceof Folder) {
                                     stack.push(((Folder) item).getItems());
                                 }
@@ -933,7 +935,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 } else {
                     while (!stack.isEmpty()) {
                         for (Item item : stack.pop()) {
-                            metric.reporter().observe(item);
+                            reporter.observe(item);
                             if (item instanceof Folder) {
                                 stack.push(((Folder) item).getItems());
                             }
@@ -942,11 +944,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
             } else {
                 for (Item item : getItems()) {
-                    metric.reporter().observe(item);
+                    reporter.observe(item);
                 }
             }
         } else {
-            metric.reporter().observe(this);
+            reporter.observe(this);
         }
     }
 

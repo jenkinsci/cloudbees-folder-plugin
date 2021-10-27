@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.health;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -139,12 +138,9 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
         @Override
         public void observe(Item item) {
             if (item instanceof ItemGroup) {
-                Collection<Item> children = ((ItemGroup<Item>) item).getItems();
-                for (Item child : children) {
-                    if (StringUtils.equals(childName, child.getName())) {
-                        report = getHealthReport(child);
-                        return;
-                    }
+                Item child = ((ItemGroup<Item>) item).getItem(childName);
+                if (child != null) {
+                    report = getHealthReport(child);
                 }
             }
         }
