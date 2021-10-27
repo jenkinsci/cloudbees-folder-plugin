@@ -141,7 +141,7 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
             if (item instanceof ItemGroup) {
                 Collection<Item> children = ((ItemGroup<Item>) item).getItems();
                 for (Item child : children) {
-                    if (StringUtils.equals(childName, item.getName())) {
+                    if (StringUtils.equals(childName, child.getName())) {
                         report = getHealthReport(child);
                         return;
                     }
