@@ -144,7 +144,7 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
         @Override
         public List<HealthReport> report() {
-            return Collections.singletonList(report);
+            return report != null ? Collections.singletonList(report) : Collections.emptyList();
         }
     }
 }
