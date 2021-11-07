@@ -28,7 +28,9 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractProject;
+import hudson.model.Executor;
 import hudson.model.Job;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
@@ -40,11 +42,12 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -72,32 +75,58 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     private final int numToKeep;
 
     /**
+     * Should pending or ongoing builds be aborted
+     */
+    private final boolean abortBuilds;
+
+    /**
+     * @deprecated Use {@link #DefaultOrphanedItemStrategy(boolean, String, String, boolean)} instead.
+     */
+    @Deprecated
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, @CheckForNull String daysToKeepStr,
+                                     @CheckForNull String numToKeepStr) {
+        this(pruneDeadBranches, daysToKeepStr, numToKeepStr, false);
+    }
+
+    /**
      * Stapler's constructor.
      *
      * @param pruneDeadBranches remove dead branches.
      * @param daysToKeepStr     how old a branch must be to remove.
      * @param numToKeepStr      how many branches to keep.
+     * @param abortBuilds       abort pending or ongoing builds
      */
     @DataBoundConstructor
     public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, @CheckForNull String daysToKeepStr,
-                                     @CheckForNull String numToKeepStr) {
+                                       @CheckForNull String numToKeepStr, boolean abortBuilds) {
         this.pruneDeadBranches = pruneDeadBranches;
         // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
         this.numToKeep = pruneDeadBranches ? fromString(numToKeepStr) : -1;
+        this.abortBuilds = abortBuilds;
+    }
+
+    /**
+     * @deprecated Use {@link #DefaultOrphanedItemStrategy(boolean, int, int, boolean)} instead
+     */
+    @Deprecated
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
+        this(pruneDeadBranches, daysToKeep, numToKeep, false);
     }
 
     /**
      * Programmatic constructor.
      *
      * @param pruneDeadBranches remove dead branches.
-     * @param daysToKeep     how old a branch must be to remove.
-     * @param numToKeep      how many branches to keep.
+     * @param daysToKeep        how old a branch must be to remove.
+     * @param numToKeep         how many branches to keep.
+     * @param abortBuilds       abort pending or ongoing builds
      */
-    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep, boolean abortBuilds) {
         this.pruneDeadBranches = pruneDeadBranches;
         this.daysToKeep = pruneDeadBranches && daysToKeep > 0? daysToKeep : -1;
         this.numToKeep = pruneDeadBranches && numToKeep > 0 ? numToKeep : -1;
+        this.abortBuilds = abortBuilds;
     }
 
     /**
@@ -108,7 +137,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      */
     private Object readResolve() throws ObjectStreamException {
         if (daysToKeep == 0 || numToKeep == 0) {
-            return new DefaultOrphanedItemStrategy(pruneDeadBranches, daysToKeep, numToKeep);
+            return new DefaultOrphanedItemStrategy(pruneDeadBranches, daysToKeep, numToKeep, abortBuilds);
         }
         return this;
     }
@@ -141,6 +170,16 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     @SuppressWarnings("unused") // used by Jelly EL
     public boolean isPruneDeadBranches() {
         return pruneDeadBranches;
+    }
+
+    /**
+     * Returns {@code true} if pending or ongoing should be aborted.
+     *
+     * @return {@code true} if pending or ongoing should be aborted.
+     */
+    @SuppressWarnings("unused") // used by Jelly EL
+    public boolean isAbortBuilds() {
+        return abortBuilds;
     }
 
     /**
@@ -230,6 +269,27 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
 
     @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
+        if (abortBuilds) {
+            Queue<Run<?, ?>> abortedBuilds = new LinkedList<>();
+            for (I item: orphaned) {
+                for (Job<?, ?> job: item.getAllJobs()) {
+                    for (Run<?, ?> build: job.getBuilds()) {
+                        Executor executor = build.getExecutor();
+                        if (executor == null) {
+                            continue;
+                        }
+                        executor.interrupt(Result.ABORTED);
+                        abortedBuilds.add(build);
+                    }
+                }
+            }
+            Run<?, ?> abortedBuild;
+            while ((abortedBuild = abortedBuilds.poll()) != null) {
+                while (abortedBuild.isLogUpdated()) {
+                    Thread.sleep(100L);
+                }
+            }
+        }
         List<I> toRemove = new ArrayList<I>();
         if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
@@ -255,7 +315,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     // Enumerating all builds is inefficient. But we will most likely delete this job anyway,
                     // which will have a cost proportional to the number of builds just to delete those files.
                     for (Run<?,?> build : job.getBuilds()) {
-                        if (build.isBuilding()) {
+                        if (!abortBuilds && build.isBuilding()) {
                             listener.getLogger().printf("Will not remove %s as %s is still in progress%n", item.getDisplayName(), build.getFullDisplayName());
                             iterator.remove();
                             continue CANDIDATES;

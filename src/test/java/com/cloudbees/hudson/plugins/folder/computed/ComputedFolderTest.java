@@ -23,6 +23,19 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
@@ -52,8 +65,8 @@ import hudson.model.View;
 import hudson.model.ViewGroup;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.triggers.TimerTrigger;
-import hudson.util.StreamTaskListener;
 import hudson.triggers.Trigger;
+import hudson.util.StreamTaskListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.ByteArrayOutputStream;
@@ -73,29 +86,14 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
-import org.junit.Test;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.xml.sax.SAXException;
 
 public class ComputedFolderTest {
 
@@ -250,6 +248,38 @@ public class ComputedFolderTest {
         for (FreeStyleBuild b : new FreeStyleBuild[] {b1, b2}) {
             assertTrue(b.isBuilding());
             b.doStop();
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        }
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(3, "A");
+        FreeStyleBuild a1 = d.getItem("A").scheduleBuild2(0).get();
+        FreeStyleBuild a2 = d.getItem("A").scheduleBuild2(0).get();
+        a1.keepLog(true);
+        d.kids.remove("A");
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(4, "A");
+        a1.keepLog(false);
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(5);
+    }
+
+    @Issue("JENKINS-60677")
+    @Test
+    public void runningBuildWithAbortBuildsOption() throws Exception {
+        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        d.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, -1, -1, true));
+        d.kids.addAll(Arrays.asList("A", "B"));
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(1, "A", "B");
+        d.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        d.getItem("B").setConcurrentBuild(true);
+        FreeStyleBuild b1 = d.getItem("B").scheduleBuild2(0).waitForStart();
+        FreeStyleBuild b2 = d.getItem("B").scheduleBuild2(0).waitForStart();
+        d.kids.remove("B");
+        d.recompute(Result.SUCCESS);
+        d.assertItemNames(2, "A");
+        for (FreeStyleBuild b : new FreeStyleBuild[] {b1, b2}) {
+            assertFalse(b.isBuilding());
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         }
         d.recompute(Result.SUCCESS);

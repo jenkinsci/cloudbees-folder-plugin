@@ -23,6 +23,10 @@
  -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:entry title="${%Abort builds}" field="abortBuilds"
+      description="Abort all pending or ongoing builds">
+    <f:checkbox/>
+  </f:entry>
   <f:optionalBlock title="${%Discard old items}" field="pruneDeadBranches" inline="true">
     <f:entry title="${%Days to keep old items}"
       description="${%if not empty, old items are only kept up to this number of days}" field="daysToKeepStr" >
