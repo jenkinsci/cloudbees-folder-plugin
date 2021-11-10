@@ -26,11 +26,11 @@
   <f:optionalBlock title="${%Discard old items}" field="pruneDeadBranches" inline="true">
     <f:entry title="${%Days to keep old items}"
       description="${%if not empty, old items are only kept up to this number of days}" field="daysToKeepStr" >
-      <f:number clazz="positive-number" min="1" step="1" default=""/>
+      <f:number clazz="number" min="0" step="1" default=""/>
     </f:entry>
     <f:entry title="${%Max # of old items to keep}"
       description="${%if not empty, only up to this number of old items are kept}" field="numToKeepStr">
-      <f:number clazz="positive-number" min="1" step="1" default=""/>
+      <f:number clazz="number" min="0" step="1" default=""/>
     </f:entry>
   </f:optionalBlock>
 </j:jelly>
