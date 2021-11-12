@@ -49,7 +49,7 @@ public class StockFolderIcon extends FolderIcon {
         return image != null
                 ? image
                 : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
-                + "/plugin/cloudbees-folder/images/"+size+"/folder.png");
+                + "/plugin/cloudbees-folder/images/svgs/folder.svg");
     }
 
     public String getDescription() {
