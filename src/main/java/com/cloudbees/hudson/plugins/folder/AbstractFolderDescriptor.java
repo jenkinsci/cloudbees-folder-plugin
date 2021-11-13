@@ -136,7 +136,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      */
     @Override
     public String getIconFilePathPattern() {
-        return "plugin/cloudbees-folder/images/:size/folder.png";
+        return "plugin/cloudbees-folder/images/svgs/folder.svg";
     }
 
     /**
