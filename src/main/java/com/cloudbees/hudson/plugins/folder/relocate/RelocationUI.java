@@ -72,7 +72,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      */
     @Nonnull
     public String getIconFileName() {
-        return "/plugin/cloudbees-folder/images/24x24/move.png";
+        return "/plugin/cloudbees-folder/images/svgs/move.svg";
     }
 
     /**

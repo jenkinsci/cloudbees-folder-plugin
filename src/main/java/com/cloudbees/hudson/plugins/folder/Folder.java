@@ -375,19 +375,19 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
 
         static {
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-sm", "plugin/cloudbees-folder/images/16x16/move.png", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-md", "plugin/cloudbees-folder/images/24x24/move.png", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-lg", "plugin/cloudbees-folder/images/32x32/move.png", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-xlg", "plugin/cloudbees-folder/images/48x48/move.png", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-sm", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-md", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-lg", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_XLARGE_STYLE));
             // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and not in core
-            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/16x16/folder.png", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/24x24/folder.png", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/32x32/folder.png", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/48x48/folder.png", Icon.ICON_XLARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/16x16/folder-disabled.png", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/24x24/folder-disabled.png", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/32x32/folder-disabled.png", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/48x48/folder-disabled.png", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_XLARGE_STYLE));
         }
     }
 

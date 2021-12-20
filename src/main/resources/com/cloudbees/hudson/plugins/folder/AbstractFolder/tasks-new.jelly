@@ -28,6 +28,6 @@ THE SOFTWARE.
   <st:include page="tasks-create" optional="true"/>
   <j:if test="${view==it.primaryView}">
     <!-- avoid showing two delete icons -->
-    <l:task icon="images/24x24/edit-delete.png" href="${url}/delete" title="${%delete(it.pronoun)}" permission="${it.DELETE}" />
+    <l:task icon="icon-edit-delete icon-md" href="${url}/delete" title="${%delete(it.pronoun)}" permission="${it.DELETE}" />
   </j:if>
 </j:jelly>
