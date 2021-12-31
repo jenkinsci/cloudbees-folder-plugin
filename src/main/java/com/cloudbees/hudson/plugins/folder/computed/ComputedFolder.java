@@ -75,8 +75,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
@@ -132,7 +132,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     /**
      * Our {@link FolderComputation}.
      */
-    @Nonnull
+    @NonNull
     private transient FolderComputation<I> computation;
 
     /**
@@ -140,7 +140,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      *
      * @since 6.0.0
      */
-    @Nonnull
+    @NonNull
     private transient /* almost final */ ReentrantLock currentObservationsLock;
     /**
      * Condition to flag whenever the {@link #currentObservations} has had elements removed.
@@ -263,7 +263,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
     }
 
-    public void setOrphanedItemStrategy(@Nonnull OrphanedItemStrategy strategy) {
+    public void setOrphanedItemStrategy(@NonNull OrphanedItemStrategy strategy) {
         this.orphanedItemStrategy = strategy;
     }
 
@@ -485,7 +485,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Restricted(NoExternalUse.class)
     @Override
-    @Nonnull
+    @NonNull
     protected final String getSuccessfulDestination() {
         if (recalculate != Recalculation.NO_RECALCULATION && isBuildable()) {
             return computation.getSearchUrl() + "console";
@@ -742,7 +742,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return c;
     }
 
-    @Nonnull
+    @NonNull
     protected FolderComputation<I> createComputation(@CheckForNull FolderComputation<I> previous) {
         return new FolderComputation<I>(this, previous);
     }
@@ -793,7 +793,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      *
      * @return the computation.
      */
-    @Nonnull
+    @NonNull
     public FolderComputation<I> getComputation() {
         return computation;
     }
