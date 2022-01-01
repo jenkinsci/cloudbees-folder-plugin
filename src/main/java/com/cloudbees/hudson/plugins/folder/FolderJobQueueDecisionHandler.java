@@ -46,7 +46,7 @@ public class FolderJobQueueDecisionHandler extends Queue.QueueDecisionHandler {
         if (p instanceof Item) {
             Item i = (Item) p;
             while (i != null) {
-                if (i instanceof AbstractFolder && ((AbstractFolder) i).isDisabled()) {
+                if (i instanceof AbstractFolder && ((AbstractFolder<?>) i).isDisabled()) {
                     return false;
                 }
                 if (i.getParent() instanceof Item) {
