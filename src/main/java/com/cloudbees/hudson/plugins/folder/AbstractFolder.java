@@ -102,8 +102,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -1385,7 +1385,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
      */
     @Restricted(NoExternalUse.class)
-    @Nonnull
+    @NonNull
     protected String getSuccessfulDestination() {
         return ".";
     }
@@ -1478,7 +1478,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Extension
     public static class RunListenerImpl extends RunListener<Run> {
         @Override
-        public void onCompleted(Run run, @Nonnull TaskListener listener) {
+        public void onCompleted(Run run, @NonNull TaskListener listener) {
             invalidateBuildHealthReports(run.getParent());
         }
 

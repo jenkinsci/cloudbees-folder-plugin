@@ -30,8 +30,8 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;
 import hudson.model.Item;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.model.Jenkins;
 import org.jenkins.ui.icon.IconSpec;
 
@@ -48,7 +48,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      * @return the {@link Action#getDisplayName()} to present for this UI, never {@code null}
      * @see Action#getDisplayName()
      */
-    @Nonnull
+    @NonNull
     public String getDisplayName() {
         return Messages.RelocateAction_displayName();
     }
@@ -59,7 +59,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      * @return the {@link Action#getUrlName()} to present for this UI, never {@code null}
      * @see Action#getUrlName()
      */
-    @Nonnull
+    @NonNull
     public String getUrlName() {
         return "move";
     }
@@ -70,7 +70,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      * @return the {@link Action#getIconFileName()} to present for this UI, never {@code null}
      * @see Action#getIconFileName()
      */
-    @Nonnull
+    @NonNull
     public String getIconFileName() {
         return "/plugin/cloudbees-folder/images/svgs/move.svg";
     }
@@ -108,7 +108,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      * @return the {@link RelocationUI} to use or {@code null}
      */
     @CheckForNull
-    public static RelocationUI for_(@Nonnull Item item) {
+    public static RelocationUI for_(@NonNull Item item) {
         final Class<? extends Item> itemClass = item.getClass();
         for (final RelocationUI ui : ExtensionList.lookup(RelocationUI.class)) {
             if (ui.isApplicableTo(itemClass)) {

@@ -9,8 +9,8 @@ import java.io.File;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.Ancestor;
@@ -58,7 +58,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
      *
      * @return string like "3 minutes" "1 day" etc.
      */
-    @Nonnull
+    @NonNull
     public String getTimestampString() {
         long duration = new GregorianCalendar().getTimeInMillis() - computation.getTimestamp().getTimeInMillis();
         return Util.getPastTimeString(duration);
@@ -69,7 +69,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
      *
      * @return the timestamp formatted in xs:dateTime.
      */
-    @Nonnull
+    @NonNull
     public String getTimestampString2() {
         return Util.XS_DATETIME_FORMATTER.format(computation.getTimestamp());
     }
@@ -79,12 +79,12 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
         return computation.getResult();
     }
 
-    @Nonnull
+    @NonNull
     public Calendar getTimestamp() {
         return computation.getTimestamp();
     }
 
-    @Nonnull
+    @NonNull
     public String getDurationString() {
         return computation.getDurationString();
     }
@@ -94,7 +94,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
         return computation.getSearchUrl();
     }
 
-    @Nonnull
+    @NonNull
     public File getLogFile() {
         return computation.getLogFile();
     }

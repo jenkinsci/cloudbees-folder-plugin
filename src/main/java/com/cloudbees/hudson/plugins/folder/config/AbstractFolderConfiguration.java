@@ -13,7 +13,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +23,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
 
     private List<FolderHealthMetric> healthMetrics;
 
-    @Nonnull
+    @NonNull
     public static AbstractFolderConfiguration get() {
         AbstractFolderConfiguration instance = GlobalConfiguration.all().get(AbstractFolderConfiguration.class);
         if (instance == null) {
@@ -63,7 +63,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
         }
     }
 
-    @Nonnull
+    @NonNull
     public List<FolderHealthMetric> getHealthMetrics() {
         return healthMetrics == null ? Collections.emptyList() : healthMetrics;
     }

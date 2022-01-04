@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
@@ -596,8 +596,8 @@ public class ChildNameGeneratorAltTest {
             extends ChildNameGenerator<F, J> {
 
         @Override
-        public String itemNameFromItem(@Nonnull F parent,
-                                       @Nonnull J item) {
+        public String itemNameFromItem(@NonNull F parent,
+                                       @NonNull J item) {
             NameProperty property = item.getProperty(NameProperty.class);
             if (property != null) {
                 return encode(property.getName());
@@ -607,8 +607,8 @@ public class ChildNameGeneratorAltTest {
         }
 
         @Override
-        public String dirNameFromItem(@Nonnull F parent,
-                                      @Nonnull J item) {
+        public String dirNameFromItem(@NonNull F parent,
+                                      @NonNull J item) {
             NameProperty property = item.getProperty(NameProperty.class);
             if (property != null) {
                 return mangle(property.getName());
@@ -617,17 +617,17 @@ public class ChildNameGeneratorAltTest {
             return name == null ? null : mangle(name);
         }
 
-        @Nonnull
+        @NonNull
         @Override
-        public String itemNameFromLegacy(@Nonnull F parent,
-                                         @Nonnull String legacyDirName) {
+        public String itemNameFromLegacy(@NonNull F parent,
+                                         @NonNull String legacyDirName) {
             return encode(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
         }
 
-        @Nonnull
+        @NonNull
         @Override
-        public String dirNameFromLegacy(@Nonnull F parent,
-                                        @Nonnull String legacyDirName) {
+        public String dirNameFromLegacy(@NonNull F parent,
+                                        @NonNull String legacyDirName) {
             return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
         }
 
