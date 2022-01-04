@@ -505,7 +505,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 if (list == null || list.isEmpty()) {
                     return Collections.emptyList();
                 }
-                return Collections.unmodifiableList(list);
+                return Collections.unmodifiableList(new ArrayList<>(list));
             }
             return Collections.emptyList();
         }
