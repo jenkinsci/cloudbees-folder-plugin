@@ -78,12 +78,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
+import jenkins.model.CauseOfInterruption;
+import jenkins.model.InterruptedBuildAction;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -283,6 +286,9 @@ public class ComputedFolderTest {
         for (FreeStyleBuild b : new FreeStyleBuild[] {b1, b2}) {
             assertFalse(b.isBuilding());
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+            InterruptedBuildAction interruptedBuildAction = b.getAction(InterruptedBuildAction.class);
+            CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
+            assertTrue(causeOfInterruption instanceof OrphanedParent);
         }
         d.recompute(Result.SUCCESS);
         d.assertItemNames(3, "A");
@@ -295,6 +301,12 @@ public class ComputedFolderTest {
         a1.keepLog(false);
         d.recompute(Result.SUCCESS);
         d.assertItemNames(5);
+    }
+
+    @Issue("JENKINS-60677")
+    @Test
+    public void runningPipelineBuildWithAbortBuildsOption() {
+
     }
 
     @Test
