@@ -63,6 +63,7 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroup;
+import hudson.model.labels.LabelAtom;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
@@ -82,11 +83,13 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -269,44 +272,68 @@ public class ComputedFolderTest {
     @Issue("JENKINS-60677")
     @Test
     public void runningBuildWithAbortBuildsOption() throws Exception {
-        SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
         DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
         strategy.setAbortBuilds(true);
-        d.setOrphanedItemStrategy(strategy);
-        d.kids.addAll(Arrays.asList("A", "B"));
-        d.recompute(Result.SUCCESS);
-        d.assertItemNames(1, "A", "B");
-        d.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
-        d.getItem("B").setConcurrentBuild(true);
-        FreeStyleBuild b1 = d.getItem("B").scheduleBuild2(0).waitForStart();
-        FreeStyleBuild b2 = d.getItem("B").scheduleBuild2(0).waitForStart();
-        d.kids.remove("B");
-        d.recompute(Result.SUCCESS);
-        d.assertItemNames(2, "A");
-        for (FreeStyleBuild b : new FreeStyleBuild[] {b1, b2}) {
-            assertFalse(b.isBuilding());
-            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-            InterruptedBuildAction interruptedBuildAction = b.getAction(InterruptedBuildAction.class);
+        folder.setOrphanedItemStrategy(strategy);
+        folder.kids.addAll(Arrays.asList("A", "B"));
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(1, "A", "B");
+        folder.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        folder.getItem("B").setConcurrentBuild(true);
+        FreeStyleBuild bBuild1 = folder.getItem("B").scheduleBuild2(0).waitForStart();
+        FreeStyleBuild bBuild2 = folder.getItem("B").scheduleBuild2(0).waitForStart();
+        folder.kids.remove("B");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(2, "A");
+        for (FreeStyleBuild bBuild : new FreeStyleBuild[] {bBuild1, bBuild2}) {
+            assertFalse(bBuild.isBuilding());
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(bBuild));
+            InterruptedBuildAction interruptedBuildAction = bBuild.getAction(InterruptedBuildAction.class);
             CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
             assertTrue(causeOfInterruption instanceof OrphanedParent);
         }
-        d.recompute(Result.SUCCESS);
-        d.assertItemNames(3, "A");
-        FreeStyleBuild a1 = d.getItem("A").scheduleBuild2(0).get();
-        FreeStyleBuild a2 = d.getItem("A").scheduleBuild2(0).get();
-        a1.keepLog(true);
-        d.kids.remove("A");
-        d.recompute(Result.SUCCESS);
-        d.assertItemNames(4, "A");
-        a1.keepLog(false);
-        d.recompute(Result.SUCCESS);
-        d.assertItemNames(5);
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(3, "A");
+        FreeStyleBuild aBuild1 = folder.getItem("A").scheduleBuild2(0).get();
+        FreeStyleBuild aBuild2 = folder.getItem("A").scheduleBuild2(0).get();
+        aBuild1.keepLog(true);
+        folder.kids.remove("A");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(4, "A");
+        aBuild1.keepLog(false);
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(5);
     }
 
     @Issue("JENKINS-60677")
     @Test
-    public void runningPipelineBuildWithAbortBuildsOption() {
+    public void pendingBuildWithAbortBuildsOption() throws Exception {
+        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
+        strategy.setAbortBuilds(true);
+        folder.setOrphanedItemStrategy(strategy);
+        folder.kids.add("kid");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(1, "kid");
 
+        folder.getItem("kid").setAssignedLabel(new LabelAtom("never-matching-label"));
+        folder.getItem("kid").setConcurrentBuild(true);
+
+        Queue jenkinsQueue = Jenkins.get().getQueue();
+        Queue.WaitingItem pendingBuild = jenkinsQueue.schedule(folder.getItem("kid"), 0);
+        assertNotNull(pendingBuild);
+
+        folder.kids.remove("kid");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(2);
+
+        try {
+            pendingBuild.getFuture().get();
+            fail("Cancellation exception was expected");
+        } catch (CancellationException e) {
+            // As expected
+        }
     }
 
     @Test
