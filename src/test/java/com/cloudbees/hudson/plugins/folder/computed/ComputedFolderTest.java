@@ -267,7 +267,9 @@ public class ComputedFolderTest {
     @Test
     public void runningBuildWithAbortBuildsOption() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
-        d.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, -1, -1, true));
+        DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
+        strategy.setAbortBuilds(true);
+        d.setOrphanedItemStrategy(strategy);
         d.kids.addAll(Arrays.asList("A", "B"));
         d.recompute(Result.SUCCESS);
         d.assertItemNames(1, "A", "B");

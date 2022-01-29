@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Queue;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * The default {@link OrphanedItemStrategy}.
@@ -77,16 +78,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     /**
      * Should pending or ongoing builds be aborted
      */
-    private final boolean abortBuilds;
-
-    /**
-     * @deprecated Use {@link #DefaultOrphanedItemStrategy(boolean, String, String, boolean)} instead.
-     */
-    @Deprecated
-    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, @CheckForNull String daysToKeepStr,
-                                     @CheckForNull String numToKeepStr) {
-        this(pruneDeadBranches, daysToKeepStr, numToKeepStr, false);
-    }
+    private boolean abortBuilds;
 
     /**
      * Stapler's constructor.
@@ -94,24 +86,14 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * @param pruneDeadBranches remove dead branches.
      * @param daysToKeepStr     how old a branch must be to remove.
      * @param numToKeepStr      how many branches to keep.
-     * @param abortBuilds       abort pending or ongoing builds
      */
     @DataBoundConstructor
     public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, @CheckForNull String daysToKeepStr,
-                                       @CheckForNull String numToKeepStr, boolean abortBuilds) {
+                                     @CheckForNull String numToKeepStr) {
         this.pruneDeadBranches = pruneDeadBranches;
         // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
         this.numToKeep = pruneDeadBranches ? fromString(numToKeepStr) : -1;
-        this.abortBuilds = abortBuilds;
-    }
-
-    /**
-     * @deprecated Use {@link #DefaultOrphanedItemStrategy(boolean, int, int, boolean)} instead
-     */
-    @Deprecated
-    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
-        this(pruneDeadBranches, daysToKeep, numToKeep, false);
     }
 
     /**
@@ -120,13 +102,11 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * @param pruneDeadBranches remove dead branches.
      * @param daysToKeep        how old a branch must be to remove.
      * @param numToKeep         how many branches to keep.
-     * @param abortBuilds       abort pending or ongoing builds
      */
-    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep, boolean abortBuilds) {
+    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
         this.pruneDeadBranches = pruneDeadBranches;
         this.daysToKeep = pruneDeadBranches && daysToKeep > 0? daysToKeep : -1;
         this.numToKeep = pruneDeadBranches && numToKeep > 0 ? numToKeep : -1;
-        this.abortBuilds = abortBuilds;
     }
 
     /**
@@ -137,7 +117,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      */
     private Object readResolve() throws ObjectStreamException {
         if (daysToKeep == 0 || numToKeep == 0) {
-            return new DefaultOrphanedItemStrategy(pruneDeadBranches, daysToKeep, numToKeep, abortBuilds);
+            return new DefaultOrphanedItemStrategy(pruneDeadBranches, daysToKeep, numToKeep);
         }
         return this;
     }
@@ -180,6 +160,11 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     @SuppressWarnings("unused") // used by Jelly EL
     public boolean isAbortBuilds() {
         return abortBuilds;
+    }
+
+    @DataBoundSetter
+    public void setAbortBuilds(boolean abortBuilds) {
+        this.abortBuilds = abortBuilds;
     }
 
     /**
@@ -278,7 +263,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                         if (executor == null) {
                             continue;
                         }
-                        executor.interrupt(Result.ABORTED);
+                        executor.interrupt(Result.ABORTED, new OrphanedParent(item));
                         abortedBuilds.add(build);
                     }
                 }

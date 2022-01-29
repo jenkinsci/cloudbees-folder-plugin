@@ -1,7 +1,7 @@
 <!--
  ~ The MIT License
  ~
- ~ Copyright (c) 2011-2013, CloudBees, Inc., Stephen Connolly.
+ ~ Copyright (c) 2022, CloudBees, Inc.
  ~
  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
  ~ of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,8 @@
  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  ~ THE SOFTWARE.
  -->
-<?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry field="abortBuilds">
-    <f:checkbox title="${%Abort builds}"/>
-  </f:entry>
-  <f:optionalBlock title="${%Discard old items}" field="pruneDeadBranches" inline="true">
-    <f:entry title="${%Days to keep old items}"
-      description="${%if not empty, old items are only kept up to this number of days}" field="daysToKeepStr" >
-      <f:number clazz="positive-number" min="1" step="1" default=""/>
-    </f:entry>
-    <f:entry title="${%Max # of old items to keep}"
-      description="${%if not empty, only up to this number of old items are kept}" field="numToKeepStr">
-      <f:number clazz="positive-number" min="1" step="1" default=""/>
-    </f:entry>
-  </f:optionalBlock>
-</j:jelly>
+<div>
+    <p>
+        Abort all pending or ongoing builds
+    </p>
+</div>
