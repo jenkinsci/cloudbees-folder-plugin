@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -258,19 +259,35 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             Queue<Run<?, ?>> abortedBuilds = new LinkedList<>();
             for (I item: orphaned) {
                 for (Job<?, ?> job: item.getAllJobs()) {
+                    if (job instanceof hudson.model.Queue.Task) {
+                        hudson.model.Queue jenkinsQueue = Jenkins.get().getQueue();
+                        hudson.model.Queue.Task task = (hudson.model.Queue.Task) job;
+                        for (hudson.model.Queue.Item pendingBuild: jenkinsQueue.getItems(task)) {
+                            jenkinsQueue.cancel(pendingBuild);
+                        }
+                    }
                     for (Run<?, ?> build: job.getBuilds()) {
                         Executor executor = build.getExecutor();
                         if (executor == null) {
-                            continue;
+                            // Since the latest builds are returned first and to avoid looping on a huge build history,
+                            // cut off the search when encountering a completed build.
+                            // Not totally correct, since it is possible for there to be a running build older than
+                            // the last completed build, but good enough as a heuristic.
+                            break;
                         }
                         executor.interrupt(Result.ABORTED, new OrphanedParent(item));
                         abortedBuilds.add(build);
                     }
                 }
             }
+            long waitForAbortedBuildsStartTimeMillis = System.currentTimeMillis();
+            long maxWaitMillis = 60_000;
             Run<?, ?> abortedBuild;
-            while ((abortedBuild = abortedBuilds.poll()) != null) {
+            ABORTED_BUILDS: while ((abortedBuild = abortedBuilds.poll()) != null) {
                 while (abortedBuild.isLogUpdated()) {
+                    if ((System.currentTimeMillis() - waitForAbortedBuildsStartTimeMillis) > maxWaitMillis) {
+                        break ABORTED_BUILDS;
+                    }
                     Thread.sleep(100L);
                 }
             }
