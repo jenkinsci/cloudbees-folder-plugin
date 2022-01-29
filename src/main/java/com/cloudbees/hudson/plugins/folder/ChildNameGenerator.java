@@ -36,8 +36,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.WeakHashMap;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.model.TransientActionFactory;
 
 /**
@@ -105,10 +105,10 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @return the {@link Trace} to keep track of when we can remove the memory of the creation process. Please
      * {@link Trace#close()} the trace after the item is created.
      */
-    @Nonnull
-    public static final Trace beforeCreateItem(@Nonnull AbstractFolder<?> project,
-                                               @Nonnull String itemName,
-                                               @Nonnull String idealName) {
+    @NonNull
+    public static final Trace beforeCreateItem(@NonNull AbstractFolder<?> project,
+                                               @NonNull String itemName,
+                                               @NonNull String idealName) {
         final Trace trace = new Trace(project, itemName);
         synchronized (idealNames) {
             idealNames.put(trace, idealName);
@@ -120,7 +120,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * Clean up for a creation {@link Trace}. Not strictly required, but nice implementations will do this via {@link Trace#close()}.
      * @param trace the trace.
      */
-    private static final void afterItemCreated(@Nonnull Trace trace) {
+    private static final void afterItemCreated(@NonNull Trace trace) {
         synchronized (idealNames) {
             idealNames.remove(trace);
         }
@@ -134,7 +134,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @return the ideal name of the item.
      */
     @CheckForNull
-    protected final String idealNameFromItem(@Nonnull P parent, @Nonnull I item) {
+    protected final String idealNameFromItem(@NonNull P parent, @NonNull I item) {
         String itemName = item.getName();
         if (itemName == null) {
             return null;
@@ -160,7 +160,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @return the name of the item.
      */
     @CheckForNull
-    public abstract String itemNameFromItem(@Nonnull P parent, @Nonnull I item);
+    public abstract String itemNameFromItem(@NonNull P parent, @NonNull I item);
 
     /**
      * Infers the directory name in which the {@link Item} instance itself should be stored.
@@ -183,7 +183,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @return the filesystem safe mangled equivalent name of the item.
      */
     @CheckForNull
-    public abstract String dirNameFromItem(@Nonnull P parent, @Nonnull I item);
+    public abstract String dirNameFromItem(@NonNull P parent, @NonNull I item);
 
     /**
      * {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} could not help, we are loading the item for the first
@@ -203,8 +203,8 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @param legacyDirName the directory name that we are loading an item from.
      * @return the name of the item.
      */
-    @Nonnull
-    public abstract String itemNameFromLegacy(@Nonnull P parent, @Nonnull String legacyDirName);
+    @NonNull
+    public abstract String itemNameFromLegacy(@NonNull P parent, @NonNull String legacyDirName);
 
     /**
      * {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} could not help, we are loading the item for the first
@@ -228,8 +228,8 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @param legacyDirName the directory name that we are loading an item from.
      * @return the filesystem safe mangled equivalent name of the item.
      */
-    @Nonnull
-    public abstract String dirNameFromLegacy(@Nonnull P parent, @Nonnull String legacyDirName);
+    @NonNull
+    public abstract String dirNameFromLegacy(@NonNull P parent, @NonNull String legacyDirName);
 
     /**
      * Record the ideal name inferred in the item when it was missing and has been inferred from the legacy directory
@@ -250,12 +250,12 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
         /**
          * The folder.
          */
-        @Nonnull
+        @NonNull
         private final AbstractFolder<?> folder;
         /**
          * The {@link Item#getName()} that we expect to be created in the very near future.
          */
-        @Nonnull
+        @NonNull
         private final String itemName;
 
         /**
@@ -263,7 +263,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
          * @param folder the folder.
          * @param itemName the item name
          */
-        private Trace(@Nonnull AbstractFolder<?> folder, @Nonnull String itemName) {
+        private Trace(@NonNull AbstractFolder<?> folder, @NonNull String itemName) {
             this.folder = folder;
             this.itemName = itemName;
         }
