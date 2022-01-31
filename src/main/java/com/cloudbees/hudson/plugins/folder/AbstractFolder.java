@@ -570,8 +570,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
                     long now = System.currentTimeMillis();
                     if (loadingTick == 0) {
-                        // Buy ourselves a tick interval to complete the first tick.
-                        onExtendTimeout(TICK_INTERVAL, TimeUnit.MILLISECONDS);
+                        // Buy ourselves two tick intervals to complete the first tick + some slop.
+                        onExtendTimeout(2 * TICK_INTERVAL, TimeUnit.MILLISECONDS);
 
                         loadingTick = now;
                     } else if (now - loadingTick > TICK_INTERVAL) {
