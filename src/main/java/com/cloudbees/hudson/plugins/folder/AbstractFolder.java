@@ -40,6 +40,7 @@ import static hudson.Util.fixEmpty;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import hudson.lifecycle.Lifecycle;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.AllView;
@@ -82,6 +83,9 @@ import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -157,6 +161,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     private static long loadingTick;
     private static final AtomicInteger jobTotal = new AtomicInteger();
     private static final AtomicInteger jobEncountered = new AtomicInteger();
+    private static final AtomicInteger jobEncounteredAtLastTick = new AtomicInteger();
     private static final AtomicBoolean loadJobTotalRan = new AtomicBoolean();
     private static final int TICK_INTERVAL = 15000;
 
@@ -565,8 +570,17 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
                     long now = System.currentTimeMillis();
                     if (loadingTick == 0) {
+                        // Buy ourselves a tick interval to complete the first tick.
+                        onExtendTimeout(TICK_INTERVAL, TimeUnit.MILLISECONDS);
+
                         loadingTick = now;
                     } else if (now - loadingTick > TICK_INTERVAL) {
+                        // If we're still making progress loading jobs, buy ourselves another tick.
+                        if (jobEncountered.get() > jobEncounteredAtLastTick.get()) {
+                            onExtendTimeout(TICK_INTERVAL, TimeUnit.MILLISECONDS);
+                        }
+                        jobEncounteredAtLastTick.set(jobEncountered.get());
+
                         LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
                         loadingTick = now;
                     }
@@ -583,6 +597,38 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             });
         } finally {
             t.setName(n);
+        }
+    }
+
+    private static void onExtendTimeout(long timeout, @NonNull TimeUnit unit) {
+        // TODO When baseline is updated to jenkinsci/jenkins#6237, use Jenkins.get().getLifecycle().onExtendTimeout(timeout, unit)
+        Method onExtendTimeout;
+        try {
+            onExtendTimeout = Lifecycle.class.getMethod("onExtendTimeout", long.class, TimeUnit.class);
+        } catch (NoSuchMethodException e) {
+            return;
+        }
+
+        Lifecycle lifecycle = Jenkins.get().getLifecycle();
+        try {
+            onExtendTimeout.invoke(lifecycle, timeout, unit);
+        } catch (IllegalAccessException e) {
+            IllegalAccessError x = new IllegalAccessError(e.getMessage());
+            x.initCause(e);
+            throw x;
+        } catch (InvocationTargetException e) {
+            Throwable t = e.getCause();
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException) t;
+            } else if (t instanceof IOException) {
+                throw new UncheckedIOException((IOException) t);
+            } else if (t instanceof Exception) {
+                throw new RuntimeException(t);
+            } else if (t instanceof Error) {
+                throw (Error) t;
+            } else {
+                throw new Error(e);
+            }
         }
     }
 
