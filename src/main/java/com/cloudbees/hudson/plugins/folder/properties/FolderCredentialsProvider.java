@@ -78,7 +78,7 @@ import org.kohsuke.stapler.StaplerRequest;
 /**
  * A store of credentials that can be used as a Stapler object.
  */
-@Extension(optional = true)
+@Extension
 public class FolderCredentialsProvider extends CredentialsProvider {
 
     /**
@@ -605,7 +605,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Our constructor
          */
-        @Extension(optional = true)
+        @Extension
         public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
             /**
