@@ -45,9 +45,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -256,7 +254,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
         if (abortBuilds) {
-            Queue<Run<?, ?>> abortedBuilds = new LinkedList<>();
+            List<Run<?, ?>> abortedBuilds = new ArrayList<>();
             for (I item: orphaned) {
                 for (Job<?, ?> job: item.getAllJobs()) {
                     if (job instanceof hudson.model.Queue.Task) {
@@ -286,8 +284,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             // To avoid waiting forever, we give at most 60 seconds to the canceled builds to complete.
             // If they do not complete in time, their parents will be removed in a future scan.
             long maxWaitNanos = 60_000_000_000L;
-            Run<?, ?> abortedBuild;
-            ABORTED_BUILDS: while ((abortedBuild = abortedBuilds.poll()) != null) {
+            ABORTED_BUILDS: for (Run<?, ?> abortedBuild: abortedBuilds) {
                 while (abortedBuild.isLogUpdated()) {
                     if ((System.nanoTime() - waitForAbortedBuildsStartTimeNanos) > maxWaitNanos) {
                         break ABORTED_BUILDS;
