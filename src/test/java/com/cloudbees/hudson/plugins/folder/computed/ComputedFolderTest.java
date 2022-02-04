@@ -312,7 +312,7 @@ public class ComputedFolderTest {
 
     @Issue("JENKINS-60677")
     @Test
-    public void runningWorflowJobBuildWithAbortBuildsOption() throws Exception {
+    public void runningWorkflowJobBuildWithAbortBuildsOption() throws Exception {
         SampleComputedFolderWithWorkflowJobAsChildren folder = r.jenkins.createProject(SampleComputedFolderWithWorkflowJobAsChildren.class, "d");
         DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
         strategy.setAbortBuilds(true);
