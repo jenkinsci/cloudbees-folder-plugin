@@ -321,7 +321,6 @@ public class ComputedFolderTest {
         folder.recompute(Result.SUCCESS);
         folder.assertItemNames(1, "kid");
         folder.getItem("kid").setDefinition(new CpsFlowDefinition("semaphore('wait')", true));
-        folder.getItem("kid").setConcurrentBuild(true);
         WorkflowRun build1 = folder.getItem("kid").scheduleBuild2(0).waitForStart();
         WorkflowRun build2 = folder.getItem("kid").scheduleBuild2(0).waitForStart();
         SemaphoreStep.waitForStart("wait/1", build1);
