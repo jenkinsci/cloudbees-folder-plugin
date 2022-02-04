@@ -319,7 +319,7 @@ public class ComputedFolderTest {
         folder.kids.add("kid");
         folder.recompute(Result.SUCCESS);
         folder.assertItemNames(1, "kid");
-        folder.getItem("kid").setDefinition(new CpsFlowDefinition("node { sleep(Long.MAX_VALUE) }", true));
+        folder.getItem("kid").setDefinition(new CpsFlowDefinition("semaphore('foo')", true));
         folder.getItem("kid").setConcurrentBuild(true);
         WorkflowRun build1 = folder.getItem("kid").scheduleBuild2(0).waitForStart();
         WorkflowRun build2 = folder.getItem("kid").scheduleBuild2(0).waitForStart();

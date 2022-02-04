@@ -101,8 +101,8 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * Programmatic constructor.
      *
      * @param pruneDeadBranches remove dead branches.
-     * @param daysToKeep        how old a branch must be to remove.
-     * @param numToKeep         how many branches to keep.
+     * @param daysToKeep     how old a branch must be to remove.
+     * @param numToKeep      how many branches to keep.
      */
     public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
         this.pruneDeadBranches = pruneDeadBranches;
@@ -280,12 +280,16 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     }
                 }
             }
-            long waitForAbortedBuildsStartTimeMillis = System.currentTimeMillis();
-            long maxWaitMillis = 60_000;
+            long waitForAbortedBuildsStartTimeNanos = System.nanoTime();
+            // We do not want to remove an item having a running build.
+            // But we also want to remove those items asap.
+            // To avoid waiting forever, we give at most 60 seconds to the canceled builds to complete.
+            // If they do not complete in time, their parents will be removed in a future scan.
+            long maxWaitNanos = 60_000_000_000L;
             Run<?, ?> abortedBuild;
             ABORTED_BUILDS: while ((abortedBuild = abortedBuilds.poll()) != null) {
                 while (abortedBuild.isLogUpdated()) {
-                    if ((System.currentTimeMillis() - waitForAbortedBuildsStartTimeMillis) > maxWaitMillis) {
+                    if ((System.nanoTime() - waitForAbortedBuildsStartTimeNanos) > maxWaitNanos) {
                         break ABORTED_BUILDS;
                     }
                     Thread.sleep(100L);
