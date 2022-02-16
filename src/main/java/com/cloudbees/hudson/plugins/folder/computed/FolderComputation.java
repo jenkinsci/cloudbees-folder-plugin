@@ -460,7 +460,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
         Result previousResult = getPreviousResult();
         if (previousResult == null) {
-            return isBuilding() ? BallColor.GREY_ANIME : BallColor.GREY;
+            return isBuilding() ? BallColor.NOTBUILT_ANIME : BallColor.NOTBUILT;
         }
         return isBuilding() ? previousResult.color.anime() : previousResult.color;
     }
