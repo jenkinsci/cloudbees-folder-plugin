@@ -368,14 +368,10 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      */
     public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
         rsp.setContentType("text/plain;charset=UTF-8");
-        PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
-        InputStream input = getLogInputStream();
-        try {
-            IOUtils.copy(input, out);
-            out.flush();
-        } finally {
-            IOUtils.closeQuietly(input);
-            IOUtils.closeQuietly(out);
+        try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
+             InputStream input = getLogInputStream()) {
+                    IOUtils.copy(input, out);
+                    out.flush();
         }
     }
 

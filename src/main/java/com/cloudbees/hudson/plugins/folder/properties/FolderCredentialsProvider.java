@@ -89,7 +89,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
     @GuardedBy("self")
     private static final WeakHashMap<AbstractFolder<?>,FolderCredentialsProperty> emptyProperties =
-            new WeakHashMap<AbstractFolder<?>, FolderCredentialsProperty>();
+            new WeakHashMap<>();
 
     /**
      * {@inheritDoc}
@@ -120,8 +120,8 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
                                                           @Nullable Authentication authentication,
                                                           @NonNull List<DomainRequirement> domainRequirements) {
-        List<C> result = new ArrayList<C>();
-        Set<String> ids = new HashSet<String>();
+        List<C> result = new ArrayList<>();
+        Set<String> ids = new HashSet<>();
         if (ACL.SYSTEM.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
@@ -177,7 +177,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                                                                    @NonNull List<DomainRequirement> domainRequirements,
                                                                    @NonNull CredentialsMatcher matcher) {
         ListBoxModel result = new ListBoxModel();
-        Set<String> ids = new HashSet<String>();
+        Set<String> ids = new HashSet<>();
         if (ACL.SYSTEM.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
@@ -271,7 +271,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          * @since 3.10
          */
         private Map<Domain, List<Credentials>> domainCredentialsMap =
-                new CopyOnWriteMap.Hash<Domain, List<Credentials>>();
+                new CopyOnWriteMap.Hash<>();
 
         /**
          * Our store.
@@ -321,7 +321,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
 
         public <C extends Credentials> List<C> getCredentials(Class<C> type) {
-            List<C> result = new ArrayList<C>();
+            List<C> result = new ArrayList<>();
             for (Credentials credential : getCredentials()) {
                 if (type.isInstance(credential)) {
                     result.add(type.cast(credential));
@@ -441,7 +441,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 }
                 return modified;
             } else {
-                domainCredentialsMap.put(domain, new ArrayList<Credentials>(credentials));
+                domainCredentialsMap.put(domain, new ArrayList<>(credentials));
                 checkedSave(CredentialsProvider.MANAGE_DOMAINS);
                 return true;
             }
@@ -505,7 +505,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 if (list == null || list.isEmpty()) {
                     return Collections.emptyList();
                 }
-                return Collections.unmodifiableList(new ArrayList<Credentials>(list));
+                return Collections.unmodifiableList(new ArrayList<>(list));
             }
             return Collections.emptyList();
         }
@@ -669,7 +669,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @NonNull
             @Override
             public List<Domain> getDomains() {
-                return Collections.unmodifiableList(new ArrayList<Domain>(
+                return Collections.unmodifiableList(new ArrayList<>(
                         getDomainCredentialsMap().keySet()
                 ));
             }

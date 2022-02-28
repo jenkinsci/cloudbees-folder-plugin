@@ -71,7 +71,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @see #getNewPronoun
      * @since 4.0
      */
-    public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<Folder>();
+    public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<>();
 
     /**
      * @deprecated as of 1.7
@@ -97,7 +97,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      */
     @CopyOnWrite
     @Deprecated
-    protected transient volatile List<Action> transientActions = new Vector<Action>();
+    protected transient volatile List<Action> transientActions = new Vector<>();
 
     public Folder(ItemGroup parent, String name) {
         super(parent, name);
@@ -121,11 +121,11 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         if (columns != null || filters != null) {
             // we're loading an ancient config
             if (columns == null) {
-                columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+                columns = new DescribableList<>(this,
                         ListViewColumn.createDefaultInitialColumnList());
             }
             if (filters == null) {
-                filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
+                filters = new DescribableList<>(this);
             }
             ListView lv = new ListView("All", this);
             views.add(lv);
@@ -170,7 +170,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     @Deprecated
     protected List<Action> createTransientActions() {
-        Vector<Action> ta = new Vector<Action>();
+        Vector<Action> ta = new Vector<>();
 
         for (TransientFolderActionFactory tpaf : TransientFolderActionFactory.all()) {
             ta.addAll(Util.fixNull(tpaf.createFor(this))); // be defensive against null
@@ -197,7 +197,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      *             Folder is no longer a view by itself.
      */
     public DescribableList<ListViewColumn, Descriptor<ListViewColumn>> getColumns() {
-        return new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+        return new DescribableList<>(this,
                 ListViewColumn.createDefaultInitialColumnList());
     }
 
@@ -290,7 +290,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
-        List<TopLevelItemDescriptor> r = new ArrayList<TopLevelItemDescriptor>();
+        List<TopLevelItemDescriptor> r = new ArrayList<>();
         for (TopLevelItemDescriptor tid : Items.all()) {
             if (isAllowedChildDescriptor(tid)) {
                 r.add(tid);

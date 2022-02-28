@@ -97,7 +97,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      * @return the health metric descriptors.
      */
     public List<FolderHealthMetricDescriptor> getHealthMetricDescriptors() {
-        List<FolderHealthMetricDescriptor> r = new ArrayList<FolderHealthMetricDescriptor>();
+        List<FolderHealthMetricDescriptor> r = new ArrayList<>();
         for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
             if (d.isApplicable(clazz.asSubclass(AbstractFolder.class))) {
                 r.add(d);
@@ -113,7 +113,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      * @since 5.14
      */
     public List<FolderIconDescriptor> getIconDescriptors() {
-        List<FolderIconDescriptor> r = new ArrayList<FolderIconDescriptor>();
+        List<FolderIconDescriptor> r = new ArrayList<>();
         for (FolderIconDescriptor p : FolderIconDescriptor.all()) {
             if (p.isApplicable(clazz.asSubclass(AbstractFolder.class))) {
                 r.add(p);
