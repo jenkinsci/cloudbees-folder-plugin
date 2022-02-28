@@ -37,7 +37,7 @@ public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDes
 
     @Override
     public FolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-        return (FolderProperty) super.newInstance(req, formData);
+        return (FolderProperty<?>) super.newInstance(req, formData);
     }
 
     /**
@@ -46,7 +46,7 @@ public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDes
      * @deprecated Use {@link AbstractFolderPropertyDescriptor#getApplicableDescriptors} instead.
      */
     public static List<FolderPropertyDescriptor> getPropertyDescriptors(Class<? extends Folder> containerType) {
-        List<FolderPropertyDescriptor> r = new ArrayList<FolderPropertyDescriptor>();
+        List<FolderPropertyDescriptor> r = new ArrayList<>();
         for (FolderPropertyDescriptor p : ExtensionList.lookup(FolderPropertyDescriptor.class))
             if(p.isApplicable(containerType))
                 r.add(p);

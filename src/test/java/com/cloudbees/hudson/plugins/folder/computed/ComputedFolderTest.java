@@ -23,6 +23,19 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
@@ -50,10 +63,11 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.ViewGroup;
+import hudson.model.labels.LabelAtom;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.triggers.TimerTrigger;
-import hudson.util.StreamTaskListener;
 import hudson.triggers.Trigger;
+import hudson.util.StreamTaskListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.ByteArrayOutputStream;
@@ -65,37 +79,31 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
+import jenkins.model.CauseOfInterruption;
+import jenkins.model.InterruptedBuildAction;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Assert;
-import org.junit.Test;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.xml.sax.SAXException;
 
 public class ComputedFolderTest {
 
@@ -263,6 +271,100 @@ public class ComputedFolderTest {
         a1.keepLog(false);
         d.recompute(Result.SUCCESS);
         d.assertItemNames(5);
+    }
+
+    @Issue("JENKINS-60677")
+    @Test
+    public void runningBuildWithAbortBuildsOption() throws Exception {
+        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
+        strategy.setAbortBuilds(true);
+        folder.setOrphanedItemStrategy(strategy);
+        folder.kids.addAll(Arrays.asList("A", "B"));
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(1, "A", "B");
+        folder.getItem("B").getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        folder.getItem("B").setConcurrentBuild(true);
+        FreeStyleBuild bBuild1 = folder.getItem("B").scheduleBuild2(0).waitForStart();
+        FreeStyleBuild bBuild2 = folder.getItem("B").scheduleBuild2(0).waitForStart();
+        folder.kids.remove("B");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(2, "A");
+        for (FreeStyleBuild bBuild : new FreeStyleBuild[] {bBuild1, bBuild2}) {
+            assertFalse(bBuild.isBuilding());
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(bBuild));
+            InterruptedBuildAction interruptedBuildAction = bBuild.getAction(InterruptedBuildAction.class);
+            CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
+            assertTrue(causeOfInterruption instanceof OrphanedParent);
+        }
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(3, "A");
+        FreeStyleBuild aBuild1 = folder.getItem("A").scheduleBuild2(0).get();
+        FreeStyleBuild aBuild2 = folder.getItem("A").scheduleBuild2(0).get();
+        aBuild1.keepLog(true);
+        folder.kids.remove("A");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(4, "A");
+        aBuild1.keepLog(false);
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(5);
+    }
+
+    @Issue("JENKINS-60677")
+    @Test
+    public void runningWorkflowJobBuildWithAbortBuildsOption() throws Exception {
+        SampleComputedFolderWithWorkflowJobAsChildren folder = r.jenkins.createProject(SampleComputedFolderWithWorkflowJobAsChildren.class, "d");
+        DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
+        strategy.setAbortBuilds(true);
+        folder.setOrphanedItemStrategy(strategy);
+        folder.kids.add("kid");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(1, "kid");
+        folder.getItem("kid").setDefinition(new CpsFlowDefinition("semaphore('wait')", true));
+        WorkflowRun build1 = folder.getItem("kid").scheduleBuild2(0).waitForStart();
+        WorkflowRun build2 = folder.getItem("kid").scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("wait/1", build1);
+        SemaphoreStep.waitForStart("wait/2", build2);
+        folder.kids.remove("kid");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(2);
+        for (WorkflowRun build : new WorkflowRun[] {build1, build2}) {
+            assertFalse(build.isBuilding());
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(build));
+            InterruptedBuildAction interruptedBuildAction = build.getAction(InterruptedBuildAction.class);
+            CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
+            assertTrue(causeOfInterruption instanceof OrphanedParent);
+        }
+    }
+
+    @Issue("JENKINS-60677")
+    @Test
+    public void pendingBuildWithAbortBuildsOption() throws Exception {
+        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
+        DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
+        strategy.setAbortBuilds(true);
+        folder.setOrphanedItemStrategy(strategy);
+        folder.kids.add("kid");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(1, "kid");
+
+        folder.getItem("kid").setAssignedLabel(new LabelAtom("never-matching-label"));
+        folder.getItem("kid").setConcurrentBuild(true);
+
+        Queue jenkinsQueue = Jenkins.get().getQueue();
+        Queue.WaitingItem pendingBuild = jenkinsQueue.schedule(folder.getItem("kid"), 0);
+        assertNotNull(pendingBuild);
+
+        folder.kids.remove("kid");
+        folder.recompute(Result.SUCCESS);
+        folder.assertItemNames(2);
+
+        try {
+            pendingBuild.getFuture().get();
+            fail("Cancellation exception was expected");
+        } catch (CancellationException e) {
+            // As expected
+        }
     }
 
     @Test
@@ -738,6 +840,68 @@ public class ComputedFolderTest {
 
         }
 
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static class SampleComputedFolderWithWorkflowJobAsChildren extends ComputedFolder<WorkflowJob> {
+
+        List<String> kids = new ArrayList<>();
+        int round;
+
+        private SampleComputedFolderWithWorkflowJobAsChildren(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected void computeChildren(ChildObserver<WorkflowJob> observer, TaskListener listener) throws IOException, InterruptedException {
+            round++;
+            listener.getLogger().println("=== Round #" + round + " ===");
+            for (String kid : kids) {
+                listener.getLogger().println("considering " + kid);
+                WorkflowJob p = observer.shouldUpdate(kid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(kid)) {
+                            listener.getLogger().println("creating a child");
+                            p = new WorkflowJob(this, kid);
+                            p.setDescription("created in round #" + round);
+                            observer.created(p);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
+                    } else {
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated in round #" + round);
+                    }
+                } finally {
+                    observer.completed(kid);
+                }
+            }
+
+        }
+
+        String recompute(Result result) throws Exception {
+            return doRecompute(this, result);
+        }
+
+        void assertItemNames(int round, String... names) {
+            assertEquals(round, this.round);
+            Set<String> actual = new TreeSet<>();
+            for (WorkflowJob p : getItems()) {
+                actual.add(p.getName());
+            }
+            assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new SampleComputedFolderWithWorkflowJobAsChildren(parent, name);
+            }
+
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

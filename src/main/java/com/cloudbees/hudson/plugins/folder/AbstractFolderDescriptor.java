@@ -34,7 +34,7 @@ import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.jenkins.ui.icon.IconSpec;
@@ -97,7 +97,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      * @return the health metric descriptors.
      */
     public List<FolderHealthMetricDescriptor> getHealthMetricDescriptors() {
-        List<FolderHealthMetricDescriptor> r = new ArrayList<FolderHealthMetricDescriptor>();
+        List<FolderHealthMetricDescriptor> r = new ArrayList<>();
         for (FolderHealthMetricDescriptor d : FolderHealthMetricDescriptor.all()) {
             if (d.isApplicable(clazz.asSubclass(AbstractFolder.class))) {
                 r.add(d);
@@ -113,7 +113,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      * @since 5.14
      */
     public List<FolderIconDescriptor> getIconDescriptors() {
-        List<FolderIconDescriptor> r = new ArrayList<FolderIconDescriptor>();
+        List<FolderIconDescriptor> r = new ArrayList<>();
         for (FolderIconDescriptor p : FolderIconDescriptor.all()) {
             if (p.isApplicable(clazz.asSubclass(AbstractFolder.class))) {
                 r.add(p);
@@ -136,7 +136,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      */
     @Override
     public String getIconFilePathPattern() {
-        return "plugin/cloudbees-folder/images/:size/folder.png";
+        return "plugin/cloudbees-folder/images/svgs/folder.svg";
     }
 
     /**

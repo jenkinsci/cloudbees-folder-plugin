@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 CloudBees, Inc.
+ * Copyright 2022 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,41 +21,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package com.cloudbees.hudson.plugins.folder.computed;
 
-package com.cloudbees.hudson.plugins.folder;
-
-import hudson.Extension;
-import hudson.model.Action;
 import hudson.model.Item;
-import hudson.model.Queue;
-import java.util.List;
+import jenkins.model.CauseOfInterruption;
 
 /**
- * A decision handler to prevent building jobs in a disabled folder.
+ * Indicates that an execution was aborted because of the orphaning of one of its parents.
  *
- * @since 6.1.0
+ * @author Réda Housni Alaoui
  */
-@Extension
-public class FolderJobQueueDecisionHandler extends Queue.QueueDecisionHandler {
+public class OrphanedParent extends CauseOfInterruption {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean shouldSchedule(Queue.Task p, List<Action> actions) {
-        if (p instanceof Item) {
-            Item i = (Item) p;
-            while (i != null) {
-                if (i instanceof AbstractFolder && ((AbstractFolder<?>) i).isDisabled()) {
-                    return false;
-                }
-                if (i.getParent() instanceof Item) {
-                    i = (Item) i.getParent();
-                } else {
-                    break;
-                }
-            }
-        }
-        return true;
-    }
+	private final String orphanedParentFullDisplayName;
+
+	public OrphanedParent(Item orphanedParent) {
+		this.orphanedParentFullDisplayName = orphanedParent.getFullDisplayName();
+	}
+
+	@Override
+	public String getShortDescription() {
+		return Messages.OrphanedParent_CauseOfInterruption_ShortDescription(orphanedParentFullDisplayName);
+	}
 }

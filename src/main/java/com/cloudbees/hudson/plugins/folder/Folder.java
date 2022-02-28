@@ -71,7 +71,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @see #getNewPronoun
      * @since 4.0
      */
-    public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<Folder>();
+    public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<>();
 
     /**
      * @deprecated as of 1.7
@@ -97,7 +97,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      */
     @CopyOnWrite
     @Deprecated
-    protected transient volatile List<Action> transientActions = new Vector<Action>();
+    protected transient volatile List<Action> transientActions = new Vector<>();
 
     public Folder(ItemGroup parent, String name) {
         super(parent, name);
@@ -121,11 +121,11 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         if (columns != null || filters != null) {
             // we're loading an ancient config
             if (columns == null) {
-                columns = new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+                columns = new DescribableList<>(this,
                         ListViewColumn.createDefaultInitialColumnList());
             }
             if (filters == null) {
-                filters = new DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>>(this);
+                filters = new DescribableList<>(this);
             }
             ListView lv = new ListView("All", this);
             views.add(lv);
@@ -170,7 +170,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     @Deprecated
     protected List<Action> createTransientActions() {
-        Vector<Action> ta = new Vector<Action>();
+        Vector<Action> ta = new Vector<>();
 
         for (TransientFolderActionFactory tpaf : TransientFolderActionFactory.all()) {
             ta.addAll(Util.fixNull(tpaf.createFor(this))); // be defensive against null
@@ -197,7 +197,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      *             Folder is no longer a view by itself.
      */
     public DescribableList<ListViewColumn, Descriptor<ListViewColumn>> getColumns() {
-        return new DescribableList<ListViewColumn, Descriptor<ListViewColumn>>(this,
+        return new DescribableList<>(this,
                 ListViewColumn.createDefaultInitialColumnList());
     }
 
@@ -290,7 +290,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @see FolderAddFilter
      */
     public List<TopLevelItemDescriptor> getItemDescriptors() {
-        List<TopLevelItemDescriptor> r = new ArrayList<TopLevelItemDescriptor>();
+        List<TopLevelItemDescriptor> r = new ArrayList<>();
         for (TopLevelItemDescriptor tid : Items.all()) {
             if (isAllowedChildDescriptor(tid)) {
                 r.add(tid);
@@ -375,19 +375,19 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
 
         static {
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-sm", "plugin/cloudbees-folder/images/16x16/move.png", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-md", "plugin/cloudbees-folder/images/24x24/move.png", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-lg", "plugin/cloudbees-folder/images/32x32/move.png", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-xlg", "plugin/cloudbees-folder/images/48x48/move.png", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-sm", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-md", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-lg", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_XLARGE_STYLE));
             // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and not in core
-            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/16x16/folder.png", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/24x24/folder.png", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/32x32/folder.png", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/48x48/folder.png", Icon.ICON_XLARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/16x16/folder-disabled.png", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/24x24/folder-disabled.png", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/32x32/folder-disabled.png", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/48x48/folder-disabled.png", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_XLARGE_STYLE));
         }
     }
 

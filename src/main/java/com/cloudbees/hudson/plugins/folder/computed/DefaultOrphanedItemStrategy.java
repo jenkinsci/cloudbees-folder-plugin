@@ -28,7 +28,9 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractProject;
+import hudson.model.Executor;
 import hudson.model.Job;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
@@ -40,13 +42,14 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * The default {@link OrphanedItemStrategy}.
@@ -70,6 +73,11 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * If not -1, only this number of dead branches are kept.
      */
     private final int numToKeep;
+
+    /**
+     * Should pending or ongoing builds be aborted
+     */
+    private boolean abortBuilds;
 
     /**
      * Stapler's constructor.
@@ -141,6 +149,21 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     @SuppressWarnings("unused") // used by Jelly EL
     public boolean isPruneDeadBranches() {
         return pruneDeadBranches;
+    }
+
+    /**
+     * Returns {@code true} if pending or ongoing should be aborted.
+     *
+     * @return {@code true} if pending or ongoing should be aborted.
+     */
+    @SuppressWarnings("unused") // used by Jelly EL
+    public boolean isAbortBuilds() {
+        return abortBuilds;
+    }
+
+    @DataBoundSetter
+    public void setAbortBuilds(boolean abortBuilds) {
+        this.abortBuilds = abortBuilds;
     }
 
     /**
@@ -230,6 +253,46 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
 
     @Override
     public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
+        if (abortBuilds) {
+            List<Run<?, ?>> abortedBuilds = new ArrayList<>();
+            for (I item: orphaned) {
+                for (Job<?, ?> job: item.getAllJobs()) {
+                    if (job instanceof hudson.model.Queue.Task) {
+                        hudson.model.Queue jenkinsQueue = Jenkins.get().getQueue();
+                        hudson.model.Queue.Task task = (hudson.model.Queue.Task) job;
+                        for (hudson.model.Queue.Item pendingBuild: jenkinsQueue.getItems(task)) {
+                            jenkinsQueue.cancel(pendingBuild);
+                        }
+                    }
+                    for (Run<?, ?> build: job.getBuilds()) {
+                        Executor executor = build.getExecutor();
+                        if (executor == null) {
+                            // Since the latest builds are returned first and to avoid looping on a huge build history,
+                            // cut off the search when encountering a completed build.
+                            // Not totally correct, since it is possible for there to be a running build older than
+                            // the last completed build, but good enough as a heuristic.
+                            break;
+                        }
+                        executor.interrupt(Result.ABORTED, new OrphanedParent(item));
+                        abortedBuilds.add(build);
+                    }
+                }
+            }
+            long waitForAbortedBuildsStartTimeNanos = System.nanoTime();
+            // We do not want to remove an item having a running build.
+            // But we also want to remove those items asap.
+            // To avoid waiting forever, we give at most 60 seconds to the canceled builds to complete.
+            // If they do not complete in time, their parents will be removed in a future scan.
+            long maxWaitNanos = 60_000_000_000L;
+            ABORTED_BUILDS: for (Run<?, ?> abortedBuild: abortedBuilds) {
+                while (abortedBuild.isLogUpdated()) {
+                    if ((System.nanoTime() - waitForAbortedBuildsStartTimeNanos) > maxWaitNanos) {
+                        break ABORTED_BUILDS;
+                    }
+                    Thread.sleep(100L);
+                }
+            }
+        }
         List<I> toRemove = new ArrayList<I>();
         if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
@@ -255,7 +318,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     // Enumerating all builds is inefficient. But we will most likely delete this job anyway,
                     // which will have a cost proportional to the number of builds just to delete those files.
                     for (Run<?,?> build : job.getBuilds()) {
-                        if (build.isBuilding()) {
+                        if (!abortBuilds && build.isBuilding()) {
                             listener.getLogger().printf("Will not remove %s as %s is still in progress%n", item.getDisplayName(), build.getFullDisplayName());
                             iterator.remove();
                             continue CANDIDATES;

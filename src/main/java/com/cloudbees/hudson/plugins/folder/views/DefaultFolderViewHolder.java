@@ -37,7 +37,7 @@ import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -146,9 +146,9 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
 
     // TODO 2.86 JENKINS-47416: use method in AllView
     @Restricted(NoExternalUse.class)
-    @Nonnull
-    public static String migrateLegacyPrimaryAllViewLocalizedName(@Nonnull List<View> views,
-                                                                  @Nonnull String primaryView) {
+    @NonNull
+    public static String migrateLegacyPrimaryAllViewLocalizedName(@NonNull List<View> views,
+                                                                  @NonNull String primaryView) {
         if (AllView.DEFAULT_VIEW_NAME.equals(primaryView)) {
             // modern name, we are safe
             return primaryView;

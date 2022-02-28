@@ -29,7 +29,7 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 /**
  * Callback for {@link ComputedFolder}. Methods may be called only inside the scope of

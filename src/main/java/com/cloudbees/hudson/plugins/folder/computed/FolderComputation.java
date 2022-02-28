@@ -70,8 +70,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
 import java.nio.charset.StandardCharsets;
@@ -101,11 +101,11 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     /** If defined, a number of kB that the event log can grow to before rotation. */
     @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
-    @Nonnull
+    @NonNull
     private static int EVENT_LOG_MAX_SIZE = Math.max(1,Integer.getInteger(FolderComputation.class.getName() + ".EVENT_LOG_MAX_SIZE", 150));
 
     /** The associated folder. */
-    @Nonnull
+    @NonNull
     private transient final ComputedFolder<I> folder;
 
     /** The previous run result, if any. */
@@ -131,7 +131,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     /** Run time. */
     private long duration;
 
-    protected FolderComputation(@Nonnull ComputedFolder<I> folder, @CheckForNull FolderComputation<I> previous) {
+    protected FolderComputation(@NonNull ComputedFolder<I> folder, @CheckForNull FolderComputation<I> previous) {
         this.folder = folder;
         this.previousResult = previous == null ? null : previous.getResult();
     }
@@ -210,18 +210,18 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         SaveableListener.fireOnChange(this, dataFile);
     }
 
-    @Nonnull
+    @NonNull
     public File getLogFile() {
         return new File(folder.getComputationDir(), "computation.log");
     }
 
-    @Nonnull
+    @NonNull
     public File getEventsFile() {
         return new File(folder.getComputationDir(), "events.log");
     }
 
     @WithBridgeMethods(TaskListener.class)
-    @Nonnull
+    @NonNull
     public synchronized StreamTaskListener createEventsListener() {
         File eventsFile = getEventsFile();
         if (!eventsFile.getParentFile().isDirectory() && !eventsFile.getParentFile().mkdirs()) {
@@ -261,7 +261,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return new StreamTaskListener(eventStreams.get(), StandardCharsets.UTF_8);
     }
 
-    @Nonnull
+    @NonNull
     protected XmlFile getDataFile() {
         return new XmlFile(Items.XSTREAM, new File(folder.getComputationDir(), "computation.xml"));
     }
@@ -294,7 +294,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      * {@inheritDoc}
      */
     @Override
-    @Nonnull
+    @NonNull
     public ComputedFolder<I> getParent() {
         return folder;
     }
@@ -322,12 +322,12 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return result == null;
     }
 
-    @Nonnull
+    @NonNull
     public AnnotatedLargeText<FolderComputation<I>> getLogText() {
         return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), StandardCharsets.UTF_8, !isLogUpdated(), this);
     }
 
-    @Nonnull
+    @NonNull
     public AnnotatedLargeText<FolderComputation<I>> getEventsText() {
         File eventsFile = getEventsFile();
         if (eventsFile.length() <= 0) {
@@ -350,7 +350,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         getLogText().writeHtmlTo(offset, out.asWriter());
     }
 
-    public void writeWholeLogTo(@Nonnull OutputStream out) throws IOException, InterruptedException {
+    public void writeWholeLogTo(@NonNull OutputStream out) throws IOException, InterruptedException {
         long pos = 0;
         AnnotatedLargeText<?> logText;
         do {
@@ -368,14 +368,10 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      */
     public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
         rsp.setContentType("text/plain;charset=UTF-8");
-        PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
-        InputStream input = getLogInputStream();
-        try {
-            IOUtils.copy(input, out);
-            out.flush();
-        } finally {
-            IOUtils.closeQuietly(input);
-            IOUtils.closeQuietly(out);
+        try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
+             InputStream input = getLogInputStream()) {
+                    IOUtils.copy(input, out);
+                    out.flush();
         }
     }
 
@@ -403,7 +399,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      * If the log file does not exist, the error message will be returned to the output.
      * @throws IOException if things go wrong
      */
-    @Nonnull
+    @NonNull
     public InputStream getLogInputStream() throws IOException {
         File logFile = getLogFile();
 
@@ -426,14 +422,14 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return result;
     }
 
-    @Nonnull
+    @NonNull
     public Calendar getTimestamp() {
         GregorianCalendar c = new GregorianCalendar();
         c.setTimeInMillis(timestamp);
         return c;
     }
 
-    @Nonnull
+    @NonNull
     public String getDurationString() {
         if (isBuilding()) {
             return Messages.Run_InProgressDuration(Util.getTimeSpanString(System.currentTimeMillis() - timestamp));
@@ -442,7 +438,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
     }
 
-    @Nonnull
+    @NonNull
     public String getUrl() {
         return folder.getUrl() + "computation/";
     }
@@ -452,7 +448,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return previousResult;
     }
 
-    @Nonnull
+    @NonNull
     public BallColor getIconColor() {
         Result _result = result;
         if (_result != null) {
@@ -460,7 +456,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         }
         Result previousResult = getPreviousResult();
         if (previousResult == null) {
-            return isBuilding() ? BallColor.GREY_ANIME : BallColor.GREY;
+            return isBuilding() ? BallColor.NOTBUILT_ANIME : BallColor.NOTBUILT;
         }
         return isBuilding() ? previousResult.color.anime() : previousResult.color;
     }

@@ -39,8 +39,8 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerFallback;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -73,12 +73,12 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
      *
      * @param item the item that would be moved.
      */
-    public RelocationAction(@Nonnull Item item) {
+    public RelocationAction(@NonNull Item item) {
         this.item = item;
         this.ui = RelocationUI.for_(item);
     }
 
-    public RelocationAction(@Nonnull Item item, @Nonnull RelocationUI ui) {
+    public RelocationAction(@NonNull Item item, @NonNull RelocationUI ui) {
         this.item = item;
         this.ui = ui;
     }
@@ -168,7 +168,7 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
         }
 
         @Override
-        public Collection<? extends Action> createFor(@Nonnull Item target) {
+        public Collection<? extends Action> createFor(@NonNull Item target) {
             if (target.getParent() instanceof ComputedFolder) {
                 // cannot move from a computed folder
                 return Collections.emptySet();
