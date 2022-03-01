@@ -37,6 +37,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Rule;
@@ -75,6 +76,20 @@ public class ComputedFolder2Test {
             }
         });
     }
+
+    @Test
+    public void computationAbortedOnShutdown() {
+        rr.then(r -> {
+            SleepyComputedFolder d = rr.j.jenkins.createProject(SleepyComputedFolder.class, "d");
+            d.scheduleBuild2(0);
+            Thread.sleep(1000);
+        });
+        rr.then(r -> {
+            SleepyComputedFolder d = rr.j.jenkins.getItemByFullName("d", SleepyComputedFolder.class);
+            assertEquals(Result.ABORTED, d.getComputation().getResult());
+        });
+    }
+
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static final class EventableFolder extends ComputedFolder<FreeStyleProject> {
@@ -134,4 +149,23 @@ public class ComputedFolder2Test {
 
     }
 
+    public static class SleepyComputedFolder extends ComputedFolder<FreeStyleProject> {
+        private SleepyComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        @Override
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws InterruptedException {
+            // Just sleep long enough
+            Thread.sleep(1000000);
+        }
+
+        @TestExtension
+        public static final class DescriptorImpl extends AbstractFolderDescriptor {
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new SleepyComputedFolder(parent, name);
+            }
+        }
+    }
 }

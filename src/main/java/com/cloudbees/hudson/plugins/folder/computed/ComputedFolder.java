@@ -28,6 +28,7 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.thoughtworks.xstream.XStreamException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.XmlFile;
@@ -76,7 +77,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
@@ -1120,5 +1120,19 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
          * We know recalculation is not required.
          */
         NO_RECALCULATION
+    }
+
+    @Extension
+    public static class StopComputationsOnShutdown extends ItemListener {
+        @Override
+        public void onBeforeShutdown() {
+            for (ComputedFolder cf : Jenkins.get().getAllItems(ComputedFolder.class)) {
+                try {
+                    cf.getComputation().doStop();
+                } catch (IOException | ServletException e) {
+                    LOGGER.log(Level.WARNING, "Failed to stop computation of " + cf, e);
+                }
+            }
+        }
     }
 }
