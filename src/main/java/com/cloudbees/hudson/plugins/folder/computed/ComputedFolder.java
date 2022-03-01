@@ -1126,7 +1126,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     public static class StopComputationsOnShutdown extends ItemListener {
         @Override
         public void onBeforeShutdown() {
-            for (ComputedFolder cf : Jenkins.get().getAllItems(ComputedFolder.class)) {
+            for (ComputedFolder cf : Jenkins.get().allItems(ComputedFolder.class)) {
                 try {
                     cf.getComputation().doStop();
                 } catch (IOException | ServletException e) {

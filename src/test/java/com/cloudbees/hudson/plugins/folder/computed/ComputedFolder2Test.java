@@ -77,6 +77,7 @@ public class ComputedFolder2Test {
         });
     }
 
+    @Issue("JENKINS-67921")
     @Test
     public void computationAbortedOnShutdown() {
         rr.then(r -> {
@@ -157,10 +158,10 @@ public class ComputedFolder2Test {
         @Override
         protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws InterruptedException {
             // Just sleep long enough
-            Thread.sleep(1000000);
+            Thread.sleep(Long.MAX_VALUE);
         }
 
-        @TestExtension
+        @TestExtension("computationAbortedOnShutdown")
         public static final class DescriptorImpl extends AbstractFolderDescriptor {
             @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
