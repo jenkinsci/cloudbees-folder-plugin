@@ -601,7 +601,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     private static void onExtendTimeout(long timeout, @NonNull TimeUnit unit) {
-        // TODO When baseline is updated to jenkinsci/jenkins#6237, use Jenkins.get().getLifecycle().onExtendTimeout(timeout, unit)
+        // TODO When baseline is updated to Jenkins 2.335 jenkinsci/jenkins#6237, use Jenkins.get().getLifecycle().onExtendTimeout(timeout, unit)
         Method onExtendTimeout;
         try {
             onExtendTimeout = Lifecycle.class.getMethod("onExtendTimeout", long.class, TimeUnit.class);
