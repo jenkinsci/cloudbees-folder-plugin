@@ -59,7 +59,7 @@ public class NamedChildHealthMetricTest {
         folder.getHealthMetrics().add(new NamedChildHealthMetric("doesnotexist"));
 
         List<HealthReport> reports = folder.getBuildHealthReports();
-        assertThat("report should not contain report for non-existant child", reports.size(), is(0));
+        assertThat("report should not contain report for non-existent child", reports, hasSize(0));
     }
 
     @Test
