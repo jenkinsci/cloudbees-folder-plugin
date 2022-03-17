@@ -70,7 +70,7 @@ public class NamedChildHealthMetricTest {
         folder.getHealthMetrics().add(new NamedChildHealthMetric("mySubFolder/nestedFolder"));
 
         List<HealthReport> reports = folder.getBuildHealthReports();
-        assertThat("report should not contain report for nested child", reports.size(), is(0));
+assertThat("report should not contain report for nested child", reports, hasSize(0));
     }
 
 }
