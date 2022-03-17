@@ -1143,7 +1143,7 @@ public class ComputedFolderTest {
         int round;
         List<String> created = new ArrayList<>();
         List<String> deleted = new ArrayList<>();
-        CountDownLatch compute = new CountDownLatch(2);
+        transient CountDownLatch compute = new CountDownLatch(2);
 
         private CoordinatedComputedFolder(ItemGroup parent, String name) {
             super(parent, name);
