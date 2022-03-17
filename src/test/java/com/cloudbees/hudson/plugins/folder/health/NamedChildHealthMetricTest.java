@@ -49,7 +49,7 @@ public class NamedChildHealthMetricTest {
         folder.getHealthMetrics().add(new NamedChildHealthMetric("mySubFolder"));
 
         List<HealthReport> reports = folder.getBuildHealthReports();
-        assertThat("report should be available for existing child", reports.size(), is(1));
+        assertThat("report should be available for existing child", reports, hasSize(1));
     }
 
     @Test
