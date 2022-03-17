@@ -25,7 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.health;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
 import java.util.List;
 
