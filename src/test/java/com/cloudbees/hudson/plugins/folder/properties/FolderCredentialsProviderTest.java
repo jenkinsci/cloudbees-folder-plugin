@@ -129,35 +129,35 @@ public class FolderCredentialsProviderTest {
         assertThat(asItem.get(0).value, is("test-id"));
     }
 
-    // @Test
-    // public void credentialsListableAtFolderScope_when_builtAsUserWithUseItem() throws Exception {
-    //     JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
-    //     r.jenkins.setSecurityRealm(realm);
+    @Test
+    public void credentialsListableAtFolderScope_when_builtAsUserWithUseItem() throws Exception {
+        JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
+        r.jenkins.setSecurityRealm(realm);
 
-    //     MockAuthorizationStrategy strategy = new MockAuthorizationStrategy();
-    //     strategy.grant(CredentialsProvider.USE_ITEM).everywhere().to("bob");
-    //     strategy.grant(Item.BUILD).everywhere().to("bob");
-    //     strategy.grant(Computer.BUILD).everywhere().to("bob");
+        MockAuthorizationStrategy strategy = new MockAuthorizationStrategy();
+        strategy.grant(CredentialsProvider.USE_ITEM).everywhere().to("bob");
+        strategy.grant(Item.BUILD).everywhere().to("bob");
+        strategy.grant(Computer.BUILD).everywhere().to("bob");
 
-    //     r.jenkins.setAuthorizationStrategy(strategy);
+        r.jenkins.setAuthorizationStrategy(strategy);
 
-    //     Folder f = createFolder();
-    //     FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
-    //     ListBoxModel asItem = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) prj,
-    //             User.getOrCreateByIdOrFullName("bob").impersonate(), Collections.emptyList(),
-    //             CredentialsMatchers.always());
-    //     assertThat(asItem.size(), is(0));
-    //     CredentialsStore folderStore = getFolderStore(f);
-    //     UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL,
-    //             "test-id", "description", "test-user",
-    //             "secret");
-    //     folderStore.addCredentials(Domain.global(), credentials);
-    //     asItem = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) prj,
-    //             User.getOrCreateByIdOrFullName("bob").impersonate(), Collections.emptyList(),
-    //             CredentialsMatchers.always());
-    //     assertThat(asItem.size(), is(1));
-    //     assertThat(asItem.get(0).value, is("test-id"));
-    // }
+        Folder f = createFolder();
+        FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
+        ListBoxModel asItem = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) prj,
+                User.getOrCreateByIdOrFullName("bob").impersonate(), Collections.emptyList(),
+                CredentialsMatchers.always());
+        assertThat(asItem.size(), is(0));
+        CredentialsStore folderStore = getFolderStore(f);
+        UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL,
+                "test-id", "description", "test-user",
+                "secret");
+        folderStore.addCredentials(Domain.global(), credentials);
+        asItem = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) prj,
+                User.getOrCreateByIdOrFullName("bob").impersonate(), Collections.emptyList(),
+                CredentialsMatchers.always());
+        assertThat(asItem.size(), is(1));
+        assertThat(asItem.get(0).value, is("test-id"));
+    }
 
     @Test
     public void given_folderCredential_when_builtAsSystem_then_credentialFound() throws Exception {
