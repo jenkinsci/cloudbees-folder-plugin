@@ -136,8 +136,6 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
         // Get credentials
         if (Boolean.TRUE.equals(isAuthorised)) {
-
-        // if (ACL.SYSTEM.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
@@ -207,8 +205,6 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         }
         // Get credentials
         if (Boolean.TRUE.equals(isAuthorised)) {
-        
-        // if (ACL.SYSTEM.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
