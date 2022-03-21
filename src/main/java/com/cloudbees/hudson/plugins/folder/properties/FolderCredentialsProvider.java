@@ -124,18 +124,17 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         Set<String> ids = new HashSet<>();
 
         // Check if Authentication is authorised to list the credentials
-        Boolean isAuthorised = false;
+        boolean isAuthorised = false;
         if (ACL.SYSTEM.equals(authentication)) {
             isAuthorised = true;
-        }
-        if (itemGroup instanceof AbstractFolder) { 
+        } else if (itemGroup instanceof AbstractFolder) { 
             final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
             if (folder.hasPermission(authentication, CredentialsProvider.USE_ITEM)) {
                 isAuthorised = true;
             }
         }
         // Get credentials
-        if (Boolean.TRUE.equals(isAuthorised)) {
+        if (isAuthorised) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
@@ -193,18 +192,18 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         Set<String> ids = new HashSet<>();
 
         // Check if Authentication is authorised to list the credentials
-        Boolean isAuthorised = false;
+        boolean isAuthorised = false;
         if (ACL.SYSTEM.equals(authentication)) {
             isAuthorised = true;
         }
-        if (itemGroup instanceof AbstractFolder) { 
+        else if (itemGroup instanceof AbstractFolder) { 
             final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
             if (folder.hasPermission(authentication, CredentialsProvider.USE_ITEM)) {
                 isAuthorised = true;
             }
         }
         // Get credentials
-        if (Boolean.TRUE.equals(isAuthorised)) {
+        if (isAuthorised) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
