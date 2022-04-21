@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.37</version>
+    <version>4.40</version>
     <relativePath />
   </parent>
 
@@ -17,13 +17,12 @@
   <description>This plugin allows users to create "folders" to organize jobs. Users can define custom taxonomies (like
     by project type, organization type etc). Folders are nestable and you can define views within folders. Maintained by CloudBees, Inc.
   </description>
-  <url>https://github.com/jenkinsci/cloudbees-folder-plugin/</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- remember to change the io.jenkins.tools.bom artifact when changing this -->
-    <jenkins.version>2.277.1</jenkins.version>
-    <java.level>8</java.level>
+    <jenkins.version>2.289.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
@@ -35,7 +34,7 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
@@ -58,8 +57,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.277.x</artifactId>
-        <version>984.vb5eaac999a7e</version>
+        <artifactId>bom-2.289.x</artifactId>
+        <version>1289.v5c4b_1c43511b_</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
