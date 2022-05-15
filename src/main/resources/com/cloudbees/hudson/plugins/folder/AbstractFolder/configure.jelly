@@ -70,10 +70,10 @@ THE SOFTWARE.
           </j:if>
         </div>
 
-
-        <f:entry title="${%Display Name}" field="displayNameOrNull">
-          <!--
-          TODO Remove block-control class
+        <div class="jenkins-!-margin-top-6">
+          <f:entry title="${%Display Name}" field="displayNameOrNull">
+            <!--
+            TODO Remove block-control class
 
             Having this forces application of the 2.x UI but it is glitchy if no f:optionalBlock or f:radioBlock
             elements are in the form (such is the case for the standard Folder implementation).
@@ -83,12 +83,11 @@ THE SOFTWARE.
             -->
             <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
           </f:entry>
-
-        <div class="jenkins-section jenkins-section--no-border jenkins-!-margin-top-6">
-          <f:entry title="${%Description}" field="description">
-            <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
-          </f:entry>
         </div>
+
+        <f:entry title="${%Description}" field="description">
+          <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
+        </f:entry>
 
         <st:include page="configure-details" optional="true"/>
 
