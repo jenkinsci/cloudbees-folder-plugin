@@ -59,7 +59,13 @@ THE SOFTWARE.
           </div>
           <j:if test="${it.supportsMakeDisabled()}">
             <div class="jenkins-app-bar__controls">
-              <p:config-disableBuild />
+              <f:toggleSwitch id="enable-disable-project"
+                                  name="enable"
+                                  title="${%Disabled}"
+                                  checkedTitle="${%Enabled}"
+                                  checked="${!it.disabled}"
+                                  invertLabel="true"
+                                  tooltip="${%blurb(it.pronoun)}" />
             </div>
           </j:if>
         </div>
