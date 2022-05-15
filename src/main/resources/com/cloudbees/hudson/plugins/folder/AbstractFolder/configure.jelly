@@ -22,19 +22,51 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"
-         xmlns:fo="/lib/folder">
-  <l:layout title="${it.displayName} Config" norefresh="true" type="one-column" permission="${it.EXTENDED_READ}">
-    <l:js src="jsbundles/config-scrollspy.js"/>
-    <l:css src="jsbundles/config-scrollspy.css"/>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"
+         xmlns:fo="/lib/folder" xmlns:p="/lib/hudson/project">
+  <l:layout title="${it.displayName} Config" permission="${it.EXTENDED_READ}">
+    <j:set var="readOnlyMode" value="${!it.hasPermission(it.CONFIGURE)}" />
+
+    <l:header>
+      <script src="${resURL}/jsbundles/section-to-sidebar-items.js" type="text/javascript" defer="true" />
+    </l:header>
+
+    <l:side-panel>
+      <div id="tasks">
+        <div class="jenkins-app-bar">
+          <div class="jenkins-app-bar__content">
+            <h1>${%Configuration}</h1>
+          </div>
+        </div>
+      </div>
+    </l:side-panel>
+
     <l:main-panel>
       <div class="container">
         <div class="row">
           <div class="col-md-offset-2 col-md-20">
       <div class="behavior-loading">${%LOADING}</div>
-      <f:form method="post" action="configSubmit" name="config" tableClass="config-table scrollspy">
+      <f:form method="post" action="configSubmit" name="config" tableClass="config-table">
         <j:set var="descriptor" value="${it.descriptor}" />
         <j:set var="instance" value="${it}" />
+
+        <div class="jenkins-app-bar">
+          <div class="jenkins-app-bar__content">
+            <h2>
+              <div class="jenkins-hidden">
+                <l:icon src="symbol-settings" />
+              </div>
+              <span>${%General}</span>
+            </h2>
+          </div>
+          <j:if test="${it.supportsMakeDisabled()}">
+          <div class="jenkins-app-bar__controls">
+            <p:config-disableBuild />
+          </div>
+          </j:if>
+        </div>
+
 
         <f:entry title="${%Display Name}" field="displayNameOrNull">
           <!--
@@ -49,15 +81,11 @@ THE SOFTWARE.
           <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
         </f:entry>
 
-        <f:entry title="${%Description}" field="description">
-          <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
-        </f:entry>
-
-        <j:if test="${it.supportsMakeDisabled()}">
-          <f:entry title="${%Disable}" field="disabled">
-            <f:checkbox title="${%blurb(it.pronoun)}"/>
+        <div class="jenkins-section jenkins-section--no-border jenkins-!-margin-top-6">
+          <f:entry title="${%Description}" field="description">
+            <f:textarea codemirror-mode="${app.markupFormatter.codeMirrorMode}" codemirror-config="${app.markupFormatter.codeMirrorConfig}" previewEndpoint="/markupFormatter/previewDescription" />
           </f:entry>
-        </j:if>
+        </div>
 
         <st:include page="configure-details" optional="true"/>
 
