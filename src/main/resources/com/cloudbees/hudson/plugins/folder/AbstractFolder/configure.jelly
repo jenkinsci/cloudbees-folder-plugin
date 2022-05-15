@@ -44,7 +44,7 @@ THE SOFTWARE.
 
     <l:main-panel>
       <div class="behavior-loading">${%LOADING}</div>
-      <f:form method="post" action="configSubmit" name="config" tableClass="config-table">
+      <f:form method="post" class="jenkins-form" action="configSubmit" name="config" tableClass="config-table">
         <j:set var="descriptor" value="${it.descriptor}" />
         <j:set var="instance" value="${it}" />
 
