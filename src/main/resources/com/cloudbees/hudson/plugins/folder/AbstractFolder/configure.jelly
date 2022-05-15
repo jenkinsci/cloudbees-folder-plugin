@@ -43,9 +43,6 @@ THE SOFTWARE.
     </l:side-panel>
 
     <l:main-panel>
-      <div class="container">
-        <div class="row">
-          <div class="col-md-offset-2 col-md-20">
       <div class="behavior-loading">${%LOADING}</div>
       <f:form method="post" action="configSubmit" name="config" tableClass="config-table">
         <j:set var="descriptor" value="${it.descriptor}" />
@@ -61,9 +58,9 @@ THE SOFTWARE.
             </h2>
           </div>
           <j:if test="${it.supportsMakeDisabled()}">
-          <div class="jenkins-app-bar__controls">
-            <p:config-disableBuild />
-          </div>
+            <div class="jenkins-app-bar__controls">
+              <p:config-disableBuild />
+            </div>
           </j:if>
         </div>
 
@@ -173,9 +170,6 @@ THE SOFTWARE.
         </j:if>
       </f:form>
       <st:adjunct includes="lib.form.confirm" />
-          </div>
-        </div>
-      </div>
     </l:main-panel>
   </l:layout>
 </j:jelly>
