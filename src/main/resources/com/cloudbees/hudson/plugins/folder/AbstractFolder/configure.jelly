@@ -59,7 +59,13 @@ THE SOFTWARE.
           </div>
           <j:if test="${it.supportsMakeDisabled()}">
             <div class="jenkins-app-bar__controls">
-              <p:config-disableBuild />
+              <f:toggleSwitch id="enable-disable-project"
+                                  name="enable"
+                                  title="${%Disabled}"
+                                  checkedTitle="${%Enabled}"
+                                  checked="${!it.disabled}"
+                                  invertLabel="true"
+                                  tooltip="${%blurb(it.pronoun)}" />
             </div>
           </j:if>
         </div>
@@ -69,14 +75,14 @@ THE SOFTWARE.
           <!--
           TODO Remove block-control class
 
-          Having this forces application of the 2.x UI but it is glitchy if no f:optionalBlock or f:radioBlock
-          elements are in the form (such is the case for the standard Folder implementation).
+            Having this forces application of the 2.x UI but it is glitchy if no f:optionalBlock or f:radioBlock
+            elements are in the form (such is the case for the standard Folder implementation).
 
-          The save/apply buttons are out of place until the DOM is modified by expanding config elements or by
-          resizing the browser window.
-          -->
-          <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
-        </f:entry>
+            The save/apply buttons are out of place until the DOM is modified by expanding config elements or by
+            resizing the browser window.
+            -->
+            <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
+          </f:entry>
 
         <div class="jenkins-section jenkins-section--no-border jenkins-!-margin-top-6">
           <f:entry title="${%Description}" field="description">
@@ -88,7 +94,7 @@ THE SOFTWARE.
 
         <j:choose>
           <j:when test="${descriptor.isLookAndFeelConfigurable(it)}">
-            <f:section title="${%Appearance}">
+            <f:section title="${%Appearance}" icon="symbol-appearance plugin-cloudbees-folder">
               <j:set var="views" value="${it.views}"/>
               <j:if test="${it.folderViews.primaryModifiable and views.size()>1}">
                 <f:entry title="${%Default View}" field="defaultView">
@@ -146,7 +152,7 @@ THE SOFTWARE.
           </j:otherwise>
         </j:choose>
 
-        <f:section title="${%Health metrics}">
+        <f:section title="${%Health metrics}" icon="symbol-health plugin-cloudbees-folder">
           <f:advanced title="${%Health metrics}" align="left">
             <f:block>
               <f:hetero-list descriptors="${descriptor.getHealthMetricDescriptors()}"
@@ -157,8 +163,8 @@ THE SOFTWARE.
           </f:advanced>
         </f:section>
 
-        <!-- folder  property configurations -->
-        <f:section title="${%Properties}">
+        <!-- folder property configurations -->
+        <f:section title="${%Properties}" icon="symbol-properties plugin-cloudbees-folder">
         <f:descriptorList descriptors="${descriptor.getPropertyDescriptors()}" instances="${it.properties}" forceRowSet="true" />
         </f:section>
 

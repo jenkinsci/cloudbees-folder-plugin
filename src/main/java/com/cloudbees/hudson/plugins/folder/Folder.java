@@ -375,10 +375,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
 
         static {
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-sm", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-md", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-lg", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-item-move-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/move.svg", Icon.ICON_XLARGE_STYLE));
             // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and not in core
             IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
             IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));

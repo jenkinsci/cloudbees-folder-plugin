@@ -72,7 +72,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      */
     @NonNull
     public String getIconFileName() {
-        return "/plugin/cloudbees-folder/images/svgs/move.svg";
+        return "symbol-move plugin-cloudbees-folder";
     }
 
     /**
@@ -80,7 +80,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      */
     @Override
     public String getIconClassName() {
-        return "icon-item-move-folder";
+        return "symbol-move plugin-cloudbees-folder";
     }
 
     /**
