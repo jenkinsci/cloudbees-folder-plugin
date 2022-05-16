@@ -263,6 +263,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             ListBoxModel model = new ListBoxModel();
             model.add("1 minute", "1m");
             model.add("2 minutes", "2m");
+            model.add("3 minutes", "3m");
             model.add("5 minutes", "5m");
             model.add("10 minutes", "10m");
             model.add("15 minutes", "15m");
