@@ -579,7 +579,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @Override
             public String getIconFileName() {
                 return isVisible()
-                        ? "/plugin/credentials/images/48x48/folder-store.png"
+                        ? "/plugin/credentials/images/folder-store.svg"
                         : null;
             }
 
