@@ -388,6 +388,10 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
             IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_MEDIUM_STYLE));
             IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_LARGE_STYLE));
             IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-store icon-sm", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-store icon-md", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-store icon-lg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("icon-folder-store icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_XLARGE_STYLE));
         }
     }
 

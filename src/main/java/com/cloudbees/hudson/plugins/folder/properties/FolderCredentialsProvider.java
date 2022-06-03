@@ -579,7 +579,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @Override
             public String getIconFileName() {
                 return isVisible()
-                        ? "/plugin/credentials/images/folder-store.svg"
+                        ? "/plugin/cloudbees-folder/images/svgs/folder-store.svg"
                         : null;
             }
 
@@ -589,7 +589,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @Override
             public String getIconClassName() {
                 return isVisible()
-                        ? "icon-credentials-folder-store"
+                        ? "icon-folder-store"
                         : null;
             }
 
