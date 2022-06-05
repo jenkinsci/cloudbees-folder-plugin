@@ -70,18 +70,25 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
     }
 
     public enum Type {
-        IMMEDIATE_TOP_LEVEL_ITEMS(false, true),
-        RECURSIVE_TOP_LEVEL_ITEMS(true, true),
-        IMMEDIATE_ALL_ITEMS(false, false),
-        RECURSIVE_ALL_ITEMS(true, false);
-
+        
+        SELF_ONLY(false, false, false),
+        IMMEDIATE_TOP_LEVEL_ITEMS(true, false, true),
+        RECURSIVE_TOP_LEVEL_ITEMS(true, true, true),
+        IMMEDIATE_ALL_ITEMS(true, false, false),
+        RECURSIVE_ALL_ITEMS(true, true, false);
+        
+        private final boolean withChildren;
         private final boolean recursive;
-
         private final boolean topLevelItems;
 
-        Type(boolean recursive, boolean topLevelItems) {
+        Type(boolean withChildren, boolean recursive, boolean topLevelItems) {
+            this.withChildren = withChildren;
             this.recursive = recursive;
             this.topLevelItems = topLevelItems;
+        }
+        
+        public boolean isWithChildren() {
+            return withChildren;
         }
 
         public boolean isRecursive() {
