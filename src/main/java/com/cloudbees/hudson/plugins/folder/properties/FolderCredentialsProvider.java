@@ -249,7 +249,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @Override
     public String getIconClassName() {
-        return "icon-credentials-folder-store";
+        return "icon-folder-store";
     }
 
     /**
