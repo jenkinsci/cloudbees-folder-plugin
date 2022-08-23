@@ -52,7 +52,7 @@ THE SOFTWARE.
           <div class="jenkins-app-bar__content">
             <h2>
               <div class="jenkins-hidden">
-                <l:icon src="symbol-settings" />
+                <l:icon src="symbol-settings-outline plugin-ionicons-api" />
               </div>
               <span>${%General}</span>
             </h2>
@@ -87,7 +87,7 @@ THE SOFTWARE.
 
         <j:choose>
           <j:when test="${descriptor.isLookAndFeelConfigurable(it)}">
-            <f:section title="${%Appearance}" icon="symbol-appearance plugin-cloudbees-folder">
+            <f:section title="${%Appearance}" icon="symbol-color-palette-outline plugin-ionicons-api">
               <j:set var="views" value="${it.views}"/>
               <j:if test="${it.folderViews.primaryModifiable and views.size()>1}">
                 <f:entry title="${%Default View}" field="defaultView">
@@ -145,7 +145,7 @@ THE SOFTWARE.
           </j:otherwise>
         </j:choose>
 
-        <f:section title="${%Health metrics}" icon="symbol-health plugin-cloudbees-folder">
+        <f:section title="${%Health metrics}" icon="symbol-pulse-outline plugin-ionicons-api">
           <f:advanced title="${%Health metrics}" align="left">
             <f:block>
               <f:hetero-list descriptors="${descriptor.getHealthMetricDescriptors()}"
@@ -157,7 +157,7 @@ THE SOFTWARE.
         </f:section>
 
         <!-- folder property configurations -->
-        <f:section title="${%Properties}" icon="symbol-properties plugin-cloudbees-folder">
+        <f:section title="${%Properties}" icon="symbol-build-outline plugin-ionicons-api">
         <f:descriptorList descriptors="${descriptor.getPropertyDescriptors()}" instances="${it.properties}" forceRowSet="true" />
         </f:section>
 
