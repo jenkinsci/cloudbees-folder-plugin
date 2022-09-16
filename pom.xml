@@ -22,7 +22,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- remember to change the io.jenkins.tools.bom artifact when changing this -->
-    <jenkins.version>2.359</jenkins.version>
+    <jenkins.version>2.361.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
@@ -57,8 +57,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.346.x</artifactId>
-        <version>1382.v7d694476f340</version>
+        <artifactId>bom-2.361.x</artifactId>
+        <version>1607.va_c1576527071</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
