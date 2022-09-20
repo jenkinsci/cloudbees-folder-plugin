@@ -22,7 +22,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- remember to change the io.jenkins.tools.bom artifact when changing this -->
-    <jenkins.version>2.369-SNAPSHOT</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/7131 -->
+    <jenkins.version>2.369-rc32869.1df554a_b_d768</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/7131 -->
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
