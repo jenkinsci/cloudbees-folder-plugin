@@ -1356,7 +1356,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             icon.setOwner(this);
 
             submit(req, rsp);
-            makeDisabled(json.optBoolean("disabled"));
+            makeDisabled(!json.optBoolean("enable"));
 
             save();
             bc.commit();
