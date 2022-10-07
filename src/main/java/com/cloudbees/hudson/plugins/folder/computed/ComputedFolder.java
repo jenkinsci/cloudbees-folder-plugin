@@ -26,7 +26,6 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.thoughtworks.xstream.XStreamException;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.Util;
@@ -80,6 +79,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
+import jenkins.triggers.TriggeredItem;
 import jenkins.util.TimeDuration;
 import net.jcip.annotations.GuardedBy;
 import net.sf.json.JSONObject;
@@ -105,7 +105,7 @@ import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes", "deprecation"}) // generics mistakes in various places; BuildableItem defines deprecated methods (and @SW on those overrides does not seem to work)
-public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, Queue.FlyweightTask {
+public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, TriggeredItem, Queue.FlyweightTask {
 
     /**
      * Our logger.
@@ -494,6 +494,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         }
     }
 
+    @Override
     public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
         return triggers.toMap();
     }
