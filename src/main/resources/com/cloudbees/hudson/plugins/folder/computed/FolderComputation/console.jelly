@@ -49,7 +49,7 @@ THE SOFTWARE.
         <j:when test="${it.isLogUpdated()}">
           <pre id="out" />
           <div id="spinner">
-            <img src="${imagesURL}/spinner.gif" alt="" />
+            <l:progressAnimation />
           </div>
          <t:progressiveText href="logText/progressiveHtml" idref="out" spinner="spinner" startOffset="${offset}" />
         </j:when>
