@@ -28,7 +28,7 @@
   <l:layout title="${it.parent.fullDisplayName} ${it.displayName} Log" norefresh="true">
     <st:include page="sidepanel.jelly" it="${it.parent}" />
     <l:main-panel>
-      <h1><l:icon class="icon-monitor icon-xlg"/>
+      <h1>
         ${it.parent.pronoun} ${%Events}
       </h1>
       <j:set var="threshold" value="${h.getSystemProperty('hudson.consoleTailKB')?:'150'}" />
@@ -48,7 +48,7 @@
         <!-- Do progressive console output -->
         <pre id="out" />
         <div id="spinner">
-          <img src="${imagesURL}/spinner.gif" alt="" />
+          <l:progressAnimation />
         </div>
        <t:progressiveText href="eventsText/progressiveHtml" idref="out" spinner="spinner" startOffset="${offset}" />
     </l:main-panel>
