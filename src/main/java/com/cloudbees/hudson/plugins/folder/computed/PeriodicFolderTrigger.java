@@ -26,15 +26,14 @@ package com.cloudbees.hudson.plugins.folder.computed;
 import antlr.ANTLRException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
-import hudson.model.Cause;
+import hudson.Util;
 import hudson.model.Item;
 import hudson.model.Items;
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.ListBoxModel;
-import java.util.List;
-import java.util.Random;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,24 +51,10 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
     private static final Logger LOGGER = Logger.getLogger(PeriodicFolderTrigger.class.getName());
 
-    private static final Random ENTROPY = new Random();
-    
-    /**
-     * Captures the time that this class was loaded.
-     */
-    private static final long startup = System.currentTimeMillis();
-
     /**
      * The interval between successive indexings.
      */
     private final long interval;
-
-    /**
-     * Timestamp when we last {@link #run}.
-     * Normally we rely on {@link FolderComputation#getTimestamp} but there is a slight delay
-     * between {@link ComputedFolder#scheduleBuild(int, Cause)} and {@link ComputedFolder#createExecutable}.
-     */
-    private transient long lastTriggered; // could be volatile or AtomicLong, but FolderCron will not run >1 concurrently anyway
 
     /**
      * Constructor.
@@ -191,43 +176,28 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         if (job == null) {
             return;
         }
-        long now = System.currentTimeMillis();
         FolderComputation<?> computation = job.getComputation();
-        if (computation != null) {
-            List<Cause> causes = computation.getCauses();
-            // the timestamp will be set based on when the build actually starts, not when the build was scheduled
-            // so in the case of a series of timer triggered builds, the timestamp will always be greater than
-            // lastTriggered and thus the now-timestamp will be less than interval when now-lastTriggered is greater
-            // than interval but less than 2*interval
-            // The net effect is that setting the interval to once every minute will trigger every 2 minutes
-            // once every 
-            if (causes.size() != 1 || !(causes.get(0) instanceof TimerTrigger.TimerTriggerCause)) {
-                // the last build was not a pure timer-trigger build
-                long delay = now - computation.getTimestamp().getTimeInMillis();
-                if (delay < interval) {
-                    LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last computation", job);
-                    return;
-                }
-            }
-            if (lastTriggered == 0) {
-                // on start-up set the last triggered to sometime within the interval of start-up
-                // for short intervals this will have no effect
-                // for longer intervals this will stagger all the computations on start-up
-                // when creating new instances this will be ignored as the computation result will be null
-                lastTriggered = startup + ENTROPY.nextInt((int) Math.min(TimeUnit.DAYS.toMillis(1), interval));
-            }
+        long last = computation != null ? computation.getTimestamp().getTimeInMillis() : 0;
+        if (last == 0) {
+            LOGGER.fine(() -> job + " has not yet been computed");
+        } else {
             // we will be run approximately every interval/2
             // we want to trigger such that the average time between triggers is `interval`
             // if we have the time since last trigger as almost `interval` then it will be 1.5*interval
             // so we trigger slightly early
-            long almostInterval = interval - interval / 20;
-            if (now - lastTriggered < almostInterval && computation.getResult() != null) {
-                LOGGER.log(Level.FINE, "Too early to reschedule {0} based on last triggering", job);
+            // Also take into account that we are delaying computation by 5s
+            // and it may take ~3s for computation to go an executor and timestamp to be recorded,
+            // so in the case of a 1m trigger we need some grace period or it will actually only be run every 2m typically.
+            long almostInterval = interval - interval / 20 - TimeUnit.SECONDS.toMillis(15);
+            long remaining = last + almostInterval - System.currentTimeMillis();
+            if (remaining > 0) {
+                LOGGER.fine(() -> job + " was last computed at " + new Date(last) + " which is within the adjusted interval of " + Util.getTimeSpanString(almostInterval) + " by " + Util.getTimeSpanString(remaining));
                 return;
             }
+            LOGGER.fine(() -> job + " was last computed at " + new Date(last) + " which exceeds the adjusted interval of " + Util.getTimeSpanString(almostInterval) + " by " + Util.getTimeSpanString(-remaining));
         }
-        if (job.scheduleBuild(0, new TimerTrigger.TimerTriggerCause())) {
-            lastTriggered = now;
+        if (job.scheduleBuild(5, new TimerTrigger.TimerTriggerCause())) {
+            LOGGER.fine(() -> "triggering " + job + " in 5s");
         } else {
             LOGGER.log(Level.WARNING, "Queue refused to schedule {0}", job);
         }
