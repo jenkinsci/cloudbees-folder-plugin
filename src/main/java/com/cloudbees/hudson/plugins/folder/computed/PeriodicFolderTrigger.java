@@ -169,8 +169,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("ConstantConditions")
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    @SuppressFBWarnings(value = {"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "NP_NULL_ON_SOME_PATH"}, justification = "ComputedFolder.computation is set in init but that is overridable so let us just make sure; Trigger.job once set is never cleared")
     @Override
     public void run() {
         if (job == null) {
