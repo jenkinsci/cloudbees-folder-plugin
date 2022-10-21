@@ -115,6 +115,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -861,8 +862,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    public FormValidation doCheckDisplayName(@QueryParameter String value, @QueryParameter String jobName) {
-        return Jenkins.get().doCheckDisplayName(value, jobName);
+    public FormValidation doCheckDisplayName(@QueryParameter String value, @AncestorInPath AbstractFolder folder) {
+        return Jenkins.get().doCheckDisplayName(value, folder.getName());
     }
 
 
