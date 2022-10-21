@@ -30,6 +30,7 @@ import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
+import hudson.util.FormValidation;
 import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.util.ArrayList;
@@ -38,6 +39,8 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.jenkins.ui.icon.IconSpec;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -128,6 +131,11 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
         }
         return r;
     }
+
+    public FormValidation doCheckDisplayNameOrNull(@AncestorInPath AbstractFolder folder, @QueryParameter String value) {
+        return Jenkins.get().doCheckDisplayName(value, folder.getName());
+    }
+
 
     /**
      * Needed if it wants Folder are categorized in Jenkins 2.x.
