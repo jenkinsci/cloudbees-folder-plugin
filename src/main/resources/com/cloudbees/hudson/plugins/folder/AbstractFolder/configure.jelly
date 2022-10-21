@@ -66,6 +66,9 @@ THE SOFTWARE.
 
         <div class="jenkins-!-margin-top-6">
           <f:entry title="${%Display Name}" field="displayNameOrNull">
+            <f:invisibleEntry>
+              <f:textbox name="jobName" value="${it.name}"/>
+            </f:invisibleEntry>
             <!--
             TODO Remove block-control class
 
@@ -75,7 +78,7 @@ THE SOFTWARE.
             The save/apply buttons are out of place until the DOM is modified by expanding config elements or by
             resizing the browser window.
             -->
-            <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
+            <f:textbox clazz="block-control" checkUrl="checkDisplayName" checkDependsOn="jobName"/>
           </f:entry>
         </div>
 

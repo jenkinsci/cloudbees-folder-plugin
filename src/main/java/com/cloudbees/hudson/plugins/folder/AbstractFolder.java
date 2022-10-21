@@ -861,6 +861,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
+    public FormValidation doCheckDisplayName(@QueryParameter String value, @QueryParameter String jobName) {
+        return Jenkins.get().doCheckDisplayName(value, jobName);
+    }
+
 
     /**
      * Get the current health report for a folder.
