@@ -39,6 +39,8 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.jenkins.ui.icon.IconSpec;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
@@ -132,6 +134,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
         return r;
     }
 
+    @Restricted(NoExternalUse.class)
     public FormValidation doCheckDisplayNameOrNull(@AncestorInPath AbstractFolder folder, @QueryParameter String value) {
         return Jenkins.get().doCheckDisplayName(value, folder.getName());
     }
