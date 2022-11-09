@@ -66,16 +66,7 @@ THE SOFTWARE.
 
         <div class="jenkins-!-margin-top-6">
           <f:entry title="${%Display Name}" field="displayNameOrNull">
-            <!--
-            TODO Remove block-control class
-
-            Having this forces application of the 2.x UI but it is glitchy if no f:optionalBlock or f:radioBlock
-            elements are in the form (such is the case for the standard Folder implementation).
-
-            The save/apply buttons are out of place until the DOM is modified by expanding config elements or by
-            resizing the browser window.
-            -->
-            <f:textbox clazz="block-control" checkUrl="'${rootURL}/checkDisplayName?displayName='+encodeURIComponent(this.value)+'&amp;jobName='+encodeURIComponent('${h.jsStringEscape(it.name)}')"/>
+            <f:textbox/>
           </f:entry>
         </div>
 
