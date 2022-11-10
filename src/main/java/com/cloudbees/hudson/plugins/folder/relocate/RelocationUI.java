@@ -72,7 +72,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      */
     @NonNull
     public String getIconFileName() {
-        return "symbol-move plugin-cloudbees-folder";
+        return "symbol-move-outline plugin-ionicons-api";
     }
 
     /**
@@ -80,7 +80,7 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
      */
     @Override
     public String getIconClassName() {
-        return "symbol-move plugin-cloudbees-folder";
+        return "symbol-move-outline plugin-ionicons-api";
     }
 
     /**
