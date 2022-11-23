@@ -33,13 +33,8 @@ THE SOFTWARE.
     </l:header>
 
     <l:side-panel>
-      <div id="tasks">
-        <div class="jenkins-app-bar">
-          <div class="jenkins-app-bar__content">
-            <h1>${%Configuration}</h1>
-          </div>
-        </div>
-      </div>
+      <l:app-bar title="${%Configuration}"/>
+      <div id="tasks" />
     </l:side-panel>
 
     <l:main-panel>
