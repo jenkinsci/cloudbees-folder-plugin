@@ -27,19 +27,15 @@ THE SOFTWARE.
          xmlns:fo="/lib/folder" xmlns:p="/lib/hudson/project">
   <l:layout title="${it.displayName} Config" permission="${it.EXTENDED_READ}">
     <j:set var="readOnlyMode" value="${!it.hasPermission(it.CONFIGURE)}" />
+    <l:breadcrumb title="${%Configuration}" />
 
     <l:header>
       <script src="${resURL}/jsbundles/section-to-sidebar-items.js" type="text/javascript" defer="true" />
     </l:header>
 
     <l:side-panel>
-      <div id="tasks">
-        <div class="jenkins-app-bar">
-          <div class="jenkins-app-bar__content">
-            <h1>${%Configuration}</h1>
-          </div>
-        </div>
-      </div>
+      <l:app-bar title="${%Configuration}"/>
+      <div id="tasks" />
     </l:side-panel>
 
     <l:main-panel>
