@@ -72,6 +72,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
 import java.nio.charset.StandardCharsets;
@@ -122,7 +123,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     private volatile Result result;
 
     /** The past few durations for purposes of estimation. */
-    @CheckForNull
+    @Nullable // until set
     private List<Long> durations;
 
     /** Start time. */
