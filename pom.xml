@@ -5,8 +5,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.49</version>
-    <relativePath />
+    <version>4.53</version>
+    <relativePath/>
   </parent>
 
   <artifactId>cloudbees-folder</artifactId>
@@ -22,7 +22,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- remember to change the io.jenkins.tools.bom artifact when changing this -->
-    <jenkins.version>2.372</jenkins.version>
+    <jenkins.version>2.375.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
@@ -57,7 +57,7 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.361.x</artifactId>
+        <artifactId>bom-2.375.x</artifactId>
         <version>1678.vc1feb_6a_3c0f1</version>
         <scope>import</scope>
         <type>pom</type>
