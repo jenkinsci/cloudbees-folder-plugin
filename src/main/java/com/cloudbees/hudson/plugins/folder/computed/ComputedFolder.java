@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.XmlFile;
-import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
@@ -44,26 +43,20 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.ParametersAction;
 import hudson.model.Queue;
-import hudson.model.ResourceList;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.ItemListener;
 import hudson.model.queue.CauseOfBlockage;
-import hudson.model.queue.SubTask;
-import hudson.security.ACL;
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -83,7 +76,6 @@ import jenkins.triggers.TriggeredItem;
 import jenkins.util.TimeDuration;
 import net.jcip.annotations.GuardedBy;
 import net.sf.json.JSONObject;
-import org.acegisecurity.Authentication;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -104,7 +96,7 @@ import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
  * @param <I> the child item type
  * @since 4.11-beta-1
  */
-@SuppressWarnings({"unchecked", "rawtypes", "deprecation"}) // generics mistakes in various places; BuildableItem defines deprecated methods (and @SW on those overrides does not seem to work)
+@SuppressWarnings({"unchecked", "rawtypes"}) // generics mistakes in various places
 public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, TriggeredItem, Queue.FlyweightTask {
 
     /**
@@ -171,7 +163,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @see #recalculateAfterSubmitted(boolean)
      * @see #submit(StaplerRequest, StaplerResponse)
      * @see #doConfigSubmit(StaplerRequest, StaplerResponse)
-     * @since FIXME
      */
     private transient Recalculation recalculate;
 
@@ -313,24 +304,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     private void applyDisabled(I item, boolean disabled) {
         try {
-            // TODO revisit once on 2.61+ for https://github.com/jenkinsci/jenkins/pull/2866
             if (item instanceof AbstractFolder) {
                 ((AbstractFolder) item).makeDisabled(disabled);
-            } else if (item instanceof AbstractProject) {
-                ((AbstractProject) item).makeDisabled(disabled);
-            } else {
-                try {
-                    Method makeDisabled = item.getClass().getMethod("makeDisabled", boolean.class);
-                    makeDisabled.invoke(item, disabled);
-                } catch (NoSuchMethodException | IllegalAccessException e) {
-                    // it's just not supported, so we cannot expect it to succeed
-                    LOGGER.log(Level.FINE,
-                            "Cannot not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
-                } catch (InvocationTargetException e) {
-                    // it's supported but something went wrong
-                    LOGGER.log(Level.WARNING,
-                            "Could not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
-                }
+            } else if (item instanceof ParameterizedJobMixIn.ParameterizedJob) {
+                ((ParameterizedJobMixIn.ParameterizedJob) item).makeDisabled(disabled);
             }
         } catch (IOException e) {
             LOGGER.log(Level.WARNING,
@@ -413,7 +390,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             recalculate = Recalculation.UNKNOWN;
             super.doConfigSubmit(req, rsp);
             if (recalculate != Recalculation.NO_RECALCULATION && isBuildable()) {
-                scheduleBuild();
+                scheduleBuild(new Cause.UserIdCause());
             }
         } finally {
             recalculate = null;
@@ -428,7 +405,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * to suppress recalculation.
      *
      * @param recalculate {@code true} to require recalculation, {@code false} to suppress recalculation.
-     * @since FIXME
      * @see #submit(StaplerRequest, StaplerResponse)
      */
     /*
@@ -596,14 +572,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * {@inheritDoc}
      */
     @Override
-    public boolean scheduleBuild() {
-        return scheduleBuild2(0) != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean scheduleBuild(Cause c) {
         return scheduleBuild2(0, new CauseAction(c)) != null;
     }
@@ -612,34 +580,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * {@inheritDoc}
      */
     @Override
-    public boolean scheduleBuild(int quietPeriod) {
-        return scheduleBuild2(quietPeriod) != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean scheduleBuild(int quietPeriod, Cause c) {
         return scheduleBuild2(quietPeriod, new CauseAction(c)) != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isBuildBlocked() {
-        return getCauseOfBlockage() != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Deprecated
-    @Override
-    public String getWhyBlocked() {
-        CauseOfBlockage causeOfBlockage = getCauseOfBlockage();
-        return causeOfBlockage == null ? null : causeOfBlockage.getShortDescription();
     }
 
     /**
@@ -667,38 +609,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     public boolean hasAbortPermission() {
         return hasPermission(CANCEL);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isConcurrentBuild() {
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Collection<? extends SubTask> getSubTasks() {
-        return Collections.singleton(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Authentication getDefaultAuthentication() {
-        return ACL.SYSTEM;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Authentication getDefaultAuthentication(Queue.Item item) {
-        return getDefaultAuthentication();
     }
 
     /**
@@ -748,30 +658,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         return new FolderComputation<I>(this, previous);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Queue.Task getOwnerTask() {
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Object getSameNodeConstraint() {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ResourceList getResourceList() {
-        return ResourceList.EMPTY;
-    }
-
     protected File getComputationDir() {
         return new File(getRootDir(), "computation");
     }
@@ -782,7 +668,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * always present in the UI.
      *
      * @return {@code true} if this {@link ComputedFolder} has a separate out of band events log.
-     * @since FIXME
      */
     public boolean isHasEvents() {
         return getComputation().getEventsFile().length() > 0;
