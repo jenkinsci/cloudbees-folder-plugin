@@ -674,6 +674,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                 ));
             }
 
+            //@Override
+            public String getLayoutType() {
+                return "one-column";
+            }
+
             /**
              * {@inheritDoc}
              */
