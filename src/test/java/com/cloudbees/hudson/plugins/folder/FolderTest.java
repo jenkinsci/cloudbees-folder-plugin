@@ -29,9 +29,9 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
-import com.gargoylesoftware.htmlunit.HttpMethod;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.html.*;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.WebRequest;
+import org.htmlunit.html.*;
 import hudson.model.AbstractItem;
 import hudson.model.Actionable;
 import hudson.model.FreeStyleBuild;
@@ -104,7 +104,7 @@ public class FolderTest {
         String oldName = f.getName();
 
         HtmlForm cfg = r.createWebClient().getPage(f, "confirm-rename").getFormByName("config");
-        cfg.getInputByName("newName").setValueAttribute("newName");
+        cfg.getInputByName("newName").setValue("newName");
         for (HtmlForm form : r.submit(cfg).getForms()) {
             if (form.getActionAttribute().equals("confirmRename")) {
                 r.submit(form);
@@ -248,9 +248,9 @@ public class FolderTest {
         Folder f = createFolder();
         HtmlPage p = r.createWebClient().getPage(f, "newView");
         HtmlForm fm = p.getFormByName("createItem");
-        fm.getInputByName("name").setValueAttribute("abcView");
+        fm.getInputByName("name").setValue("abcView");
         for (HtmlRadioButtonInput r : fm.getRadioButtonsByName("mode")) {
-            if (r.getValueAttribute().equals(ListView.class.getName()))
+            if (r.getValue().equals(ListView.class.getName()))
                 r.click();
         }
         r.submit(fm);
