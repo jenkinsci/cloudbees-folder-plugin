@@ -414,7 +414,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             }
         }
 
-        String message = "No such file: " + logFile;
+        String message = "No such file: " + logFile.getName();
         return new ByteArrayInputStream(message.getBytes(StandardCharsets.UTF_8));
     }
 

@@ -61,6 +61,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * A mutable folder.
@@ -227,6 +228,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
     }
 
+    @POST
     public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         TopLevelItem nue = mixin.createTopLevelItem(req, rsp);
         if (!isAllowedChild(nue)) {

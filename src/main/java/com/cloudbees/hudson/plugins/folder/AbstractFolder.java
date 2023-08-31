@@ -124,6 +124,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * A general-purpose {@link ItemGroup}.
@@ -834,6 +835,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return menu;
     }
 
+    @POST
     public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, ParseException, Descriptor.FormException {
         checkPermission(View.CREATE);

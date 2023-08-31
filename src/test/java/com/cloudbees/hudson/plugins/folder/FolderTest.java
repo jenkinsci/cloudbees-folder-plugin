@@ -496,4 +496,26 @@ public class FolderTest {
         return page.getAnchorByHref(relativeUrl);
     }
 
+    @Issue("SECURITY-3105")
+    @Test public void doCreateView() throws Exception {
+        Folder f = createFolder();
+        String folderURL = f.getUrl() + "createView?mode=copy&name=NewView&from=All";
+        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch the status code instead of the test crashing
+        JenkinsRule.WebClient webClient = r.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+        // The expected response status code is 404, this means that the requested page is not available
+        // The request sent is using a GET instead of POST
+        assertEquals(404, webClient.goTo(folderURL).getWebResponse().getStatusCode());
+    }
+
+    @Issue("SECURITY-3106")
+    @Test public void doCreateItem() throws Exception {
+        Folder f = createFolder();
+        String folderURL = f.getUrl() + "createItem?mode=copy&name=NewFolder&from=" + f.getName();
+        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch the status code instead of the test crashing
+        JenkinsRule.WebClient webClient = r.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+        // The expected response status code of the folder URL is 405, this means that the method is not allowed
+        // The request sent is using a GET instead of POST request which is not allowed
+        assertEquals(405, webClient.goTo(folderURL).getWebResponse().getStatusCode());
+    }
+
 }
