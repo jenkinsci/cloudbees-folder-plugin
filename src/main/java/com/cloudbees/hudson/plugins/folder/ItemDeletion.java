@@ -28,7 +28,7 @@ import hudson.ExtensionList;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.Queue;
-import hudson.model.queue.SubTask;
+import hudson.model.queue.Tasks;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -170,7 +170,7 @@ public class ItemDeletion extends Queue.QueueDecisionHandler {
      */
     @Override
     public boolean shouldSchedule(Queue.Task p, List<Action> actions) {
-        Item item = getItemOf(p);
+        Item item = Tasks.getItemOf(p);
         if (item != null) {
             lock.readLock().lock();
             try {
@@ -180,28 +180,6 @@ public class ItemDeletion extends Queue.QueueDecisionHandler {
             }
         }
         return true;
-    }
-
-    /**
-     * Gets the {@link hudson.model.Item} most closely associated with the supplied {@link SubTask}.
-     *
-     * @param t the {@link SubTask}.
-     * @return the {@link hudson.model.Item} associated with the {@link SubTask} or {@code null} if this
-     * {@link SubTask} is not associated with an {@link hudson.model.Item}
-     * @since TODO
-     */
-    @CheckForNull
-    public static hudson.model.Item getItemOf(@NonNull SubTask t) {
-        // TODO move to default method on SubTask once code level is Java 8
-        Queue.Task p = t.getOwnerTask();
-        while (!(p instanceof hudson.model.Item)) {
-            Queue.Task o = p.getOwnerTask();
-            if (o == p) {
-                break;
-            }
-            p = o;
-        }
-        return p instanceof hudson.model.Item ? (hudson.model.Item) p : null;
     }
 
 }

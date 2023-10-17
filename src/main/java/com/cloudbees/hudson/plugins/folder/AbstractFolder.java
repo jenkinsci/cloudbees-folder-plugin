@@ -64,6 +64,7 @@ import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
 import static hudson.model.queue.Executables.getParentOf;
+import hudson.model.queue.Tasks;
 import hudson.model.queue.WorkUnit;
 import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
@@ -1109,7 +1110,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
                 // now cancel any child items - this happens after ItemDeletion registration, so we can use a snapshot
                 for (Queue.Item i : queue.getItems()) {
-                    Item item = ItemDeletion.getItemOf(i.task);
+                    Item item = Tasks.getItemOf(i.task);
                     while (item != null) {
                         if (item == this) {
                             queue.cancel(i);
@@ -1132,7 +1133,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         if (workUnit != null) {
                             Queue.Executable executable = workUnit.getExecutable();
                             if (executable != null) {
-                                Item item = ItemDeletion.getItemOf(getParentOf(executable));
+                                Item item = Tasks.getItemOf(getParentOf(executable));
                                 if (item != null) {
                                     while (item != null) {
                                         if (item == this) {
