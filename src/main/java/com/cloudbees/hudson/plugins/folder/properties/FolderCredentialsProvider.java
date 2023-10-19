@@ -122,7 +122,19 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                                                           @NonNull List<DomainRequirement> domainRequirements) {
         List<C> result = new ArrayList<>();
         Set<String> ids = new HashSet<>();
+
+        // Check if Authentication is authorised to list the credentials
+        boolean isAuthorised = false;
         if (ACL.SYSTEM.equals(authentication)) {
+            isAuthorised = true;
+        } else if (itemGroup instanceof AbstractFolder) { 
+            final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
+            if (folder.hasPermission(authentication, CredentialsProvider.USE_ITEM)) {
+                isAuthorised = true;
+            }
+        }
+        // Get credentials
+        if (isAuthorised) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
@@ -178,7 +190,20 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                                                                    @NonNull CredentialsMatcher matcher) {
         ListBoxModel result = new ListBoxModel();
         Set<String> ids = new HashSet<>();
+
+        // Check if Authentication is authorised to list the credentials
+        boolean isAuthorised = false;
         if (ACL.SYSTEM.equals(authentication)) {
+            isAuthorised = true;
+        }
+        else if (itemGroup instanceof AbstractFolder) { 
+            final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
+            if (folder.hasPermission(authentication, CredentialsProvider.USE_ITEM)) {
+                isAuthorised = true;
+            }
+        }
+        // Get credentials
+        if (isAuthorised) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
