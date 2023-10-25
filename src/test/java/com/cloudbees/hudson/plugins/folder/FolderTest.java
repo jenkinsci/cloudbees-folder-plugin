@@ -39,8 +39,13 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.ListView;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Queue;
+import hudson.model.Result;
+import hudson.model.StringParameterDefinition;
 import hudson.model.User;
 import hudson.model.listeners.ItemListener;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -81,8 +86,10 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -93,6 +100,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
 public class FolderTest {
 
     @Rule public JenkinsRule r = new JenkinsRule();
+    @ClassRule public static BuildWatcher bw = new BuildWatcher();
 
     /**
      * Tests rename operation.
@@ -223,6 +231,27 @@ public class FolderTest {
                 assert false : x;
             }
         }
+    }
+
+    @Issue("JENKINS-35160")
+    @Test
+    public void interruptOnDelete() throws Exception {
+        // adapted from JobTest in core
+        r.jenkins.setNumExecutors(2);
+        Queue.getInstance().maintain();
+        Folder d = r.createProject(Folder.class, "d");
+        FreeStyleProject p = d.createProject(FreeStyleProject.class, "p");
+        p.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("dummy", "0")));
+        p.setConcurrentBuild(true);
+        p.getBuildersList().add(new SleepBuilder(Long.MAX_VALUE));
+        FreeStyleBuild build1 = p.scheduleBuild2(0).getStartCondition().get();
+        FreeStyleBuild build2 = p.scheduleBuild2(0).getStartCondition().get();
+        QueueTaskFuture<FreeStyleBuild> build3 = p.scheduleBuild2(0);
+        Thread.sleep(1000); // TODO Queue.cancel(Item) can return false immediately after scheduling
+        d.delete();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(build1));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(build2));
+        assertTrue(build3.isCancelled());
     }
 
     /**
