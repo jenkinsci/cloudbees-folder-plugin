@@ -23,7 +23,7 @@
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- remember to change the io.jenkins.tools.bom artifact when changing this -->
     <!-- TODO https://github.com/jenkinsci/jenkins/pull/8645 -->
-    <jenkins.version>2.430-SNAPSHOT</jenkins.version>
+    <jenkins.version>2.430-rc34338.cd9a_45b_7167f</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
