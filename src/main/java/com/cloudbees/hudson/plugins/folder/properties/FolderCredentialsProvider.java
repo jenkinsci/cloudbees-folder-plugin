@@ -52,7 +52,7 @@ import hudson.model.ItemGroup;
 import hudson.model.ModelObject;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
-import hudson.security.AccessDeniedException2;
+import hudson.security.AccessDeniedException3;
 import hudson.security.Permission;
 import hudson.util.CopyOnWriteMap;
 import hudson.util.ListBoxModel;
@@ -69,11 +69,11 @@ import java.util.WeakHashMap;
 import jenkins.model.Jenkins;
 import net.jcip.annotations.GuardedBy;
 import net.sf.json.JSONObject;
-import org.acegisecurity.Authentication;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
+import org.springframework.security.core.Authentication;
 
 /**
  * A store of credentials that can be used as a Stapler object.
@@ -102,27 +102,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         return super.getScopes(object);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @NonNull
     @Override
-    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
-                                                          @Nullable Authentication authentication) {
-        return getCredentials(type, itemGroup, authentication, Collections.emptyList());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @NonNull
-    @Override
-    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
+    public <C extends Credentials> List<C> getCredentialsInItemGroup(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
                                                           @Nullable Authentication authentication,
                                                           @NonNull List<DomainRequirement> domainRequirements) {
         List<C> result = new ArrayList<>();
         Set<String> ids = new HashSet<>();
-        if (ACL.SYSTEM.equals(authentication)) {
+        if (ACL.SYSTEM2.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
@@ -156,14 +143,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @NonNull
     @Override
-    public <C extends Credentials> List<C> getCredentials(@NonNull Class<C> type, @NonNull Item item,
+    public <C extends Credentials> List<C> getCredentialsInItem(@NonNull Class<C> type, @NonNull Item item,
                                                           @Nullable Authentication authentication,
                                                           @NonNull List<DomainRequirement> domainRequirements) {
         if (item instanceof AbstractFolder) {
             // credentials defined in the folder should be available in the context of the folder
-            return getCredentials(type, (ItemGroup) item, authentication, domainRequirements);
+            return getCredentialsInItemGroup(type, (ItemGroup) item, authentication, domainRequirements);
         }
-        return super.getCredentials(type, item, authentication, domainRequirements);
+        return super.getCredentialsInItem(type, item, authentication, domainRequirements);
     }
 
     /**
@@ -171,14 +158,14 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @NonNull
     @Override
-    public <C extends IdCredentials> ListBoxModel getCredentialIds(@NonNull Class<C> type,
+    public <C extends IdCredentials> ListBoxModel getCredentialIdsInItemGroup(@NonNull Class<C> type,
                                                                    @Nullable ItemGroup itemGroup,
                                                                    @Nullable Authentication authentication,
                                                                    @NonNull List<DomainRequirement> domainRequirements,
                                                                    @NonNull CredentialsMatcher matcher) {
         ListBoxModel result = new ListBoxModel();
         Set<String> ids = new HashSet<>();
-        if (ACL.SYSTEM.equals(authentication)) {
+        if (ACL.SYSTEM2.equals(authentication)) {
             while (itemGroup != null) {
                 if (itemGroup instanceof AbstractFolder) {
                     final AbstractFolder<?> folder = AbstractFolder.class.cast(itemGroup);
@@ -210,15 +197,15 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @NonNull
     @Override
-    public <C extends IdCredentials> ListBoxModel getCredentialIds(@NonNull Class<C> type, @NonNull Item item,
+    public <C extends IdCredentials> ListBoxModel getCredentialIdsInItem(@NonNull Class<C> type, @NonNull Item item,
                                                                    @Nullable Authentication authentication,
                                                                    @NonNull List<DomainRequirement> domainRequirements,
                                                                    @NonNull CredentialsMatcher matcher) {
         if (item instanceof AbstractFolder) {
             // credentials defined in the folder should be available in the context of the folder
-            return getCredentialIds(type, (ItemGroup) item, authentication, domainRequirements, matcher);
+            return getCredentialIdsInItemGroup(type, (ItemGroup) item, authentication, domainRequirements, matcher);
         }
-        return getCredentialIds(type, item.getParent(), authentication, domainRequirements, matcher);
+        return getCredentialIdsInItemGroup(type, item.getParent(), authentication, domainRequirements, matcher);
     }
 
     /**
@@ -392,7 +379,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          */
         private void checkPermission(Permission p) {
             if (!store.hasPermission(p)) {
-                throw new AccessDeniedException2(Jenkins.getAuthentication(), p);
+                throw new AccessDeniedException3(Jenkins.getAuthentication2(), p);
             }
         }
 
@@ -405,7 +392,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          */
         private void checkedSave(Permission p) throws IOException {
             checkPermission(p);
-            try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
+            try (ACLContext oldContext = ACL.as2(ACL.SYSTEM2)) {
                 FolderCredentialsProperty property =
                         owner.getProperties().get(FolderCredentialsProperty.class);
                 if (property == null) {
@@ -651,8 +638,8 @@ public class FolderCredentialsProvider extends CredentialsProvider {
              * {@inheritDoc}
              */
             @Override
-            public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
-                return owner.getACL().hasPermission(a, permission);
+            public boolean hasPermission2(@NonNull Authentication a, @NonNull Permission permission) {
+                return owner.getACL().hasPermission2(a, permission);
             }
 
             /**

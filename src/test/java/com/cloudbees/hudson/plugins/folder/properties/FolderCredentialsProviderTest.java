@@ -41,7 +41,6 @@ import hudson.model.Computer;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
-import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.User;
 import hudson.security.ACL;
@@ -83,21 +82,21 @@ public class FolderCredentialsProviderTest {
     public void credentialsAvailableAtFolderScope() throws Exception {
         Folder f = createFolder();
         List<StandardUsernamePasswordCredentials> asGroup =
-                CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                        ACL.SYSTEM, Collections.emptyList());
+                CredentialsProvider.lookupCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
+                        ACL.SYSTEM2, Collections.emptyList());
         List<StandardUsernamePasswordCredentials> asItem =
-                CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                        ACL.SYSTEM, Collections.emptyList());
+                CredentialsProvider.lookupCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
+                        ACL.SYSTEM2, Collections.emptyList());
         assertThat(asGroup, is(asItem));
         CredentialsStore folderStore = getFolderStore(f);
         UsernamePasswordCredentialsImpl credentials =
                 new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "test-id", "description", "test-user",
                         "secret");
         folderStore.addCredentials(Domain.global(), credentials);
-        asGroup = CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                ACL.SYSTEM, Collections.emptyList());
-        asItem = CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                ACL.SYSTEM, Collections.emptyList());
+        asGroup = CredentialsProvider.lookupCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
+                ACL.SYSTEM2, Collections.emptyList());
+        asItem = CredentialsProvider.lookupCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
+                ACL.SYSTEM2, Collections.emptyList());
         assertThat(asGroup, is(asItem));
         assertThat(asGroup, hasItem(credentials));
         assertThat(asItem, hasItem(credentials));
@@ -107,11 +106,11 @@ public class FolderCredentialsProviderTest {
     public void credentialsListableAtFolderScope() throws Exception {
         Folder f = createFolder();
         ListBoxModel asGroup =
-                CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
+                CredentialsProvider.listCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
+                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
         ListBoxModel asItem =
-                CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
+                CredentialsProvider.listCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
+                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
         assertThat(asGroup, is(asItem));
         assertThat(asGroup.size(), is(0));
         assertThat(asItem.size(), is(0));
@@ -120,10 +119,10 @@ public class FolderCredentialsProviderTest {
                 new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "test-id", "description", "test-user",
                         "secret");
         folderStore.addCredentials(Domain.global(), credentials);
-        asGroup = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (ItemGroup) f,
-                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
-        asItem = CredentialsProvider.listCredentials(StandardUsernamePasswordCredentials.class, (Item) f,
-                        ACL.SYSTEM, Collections.emptyList(), CredentialsMatchers.always());
+        asGroup = CredentialsProvider.listCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
+                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
+        asItem = CredentialsProvider.listCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
+                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
         assertThat(asGroup.size(), is(1));
         assertThat(asGroup.get(0).value, is("test-id"));
         assertThat(asItem.size(), is(1));
