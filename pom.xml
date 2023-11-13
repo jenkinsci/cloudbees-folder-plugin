@@ -58,14 +58,9 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.387.x</artifactId>
-        <version>2143.ve4c3c9ec790a</version>
+        <version>2543.vfb_1a_5fb_9496d</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-      <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>credentials</artifactId>
-        <version>1307.v3757c78f17c3</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
