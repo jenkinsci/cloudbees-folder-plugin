@@ -110,6 +110,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
+import jenkins.model.queue.ItemDeletion;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.apache.commons.io.FileUtils;
