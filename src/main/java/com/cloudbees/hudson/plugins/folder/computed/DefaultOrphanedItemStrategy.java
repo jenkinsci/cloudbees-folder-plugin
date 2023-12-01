@@ -46,7 +46,6 @@ import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -208,7 +207,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * @return the int.
      */
     private static int fromString(@CheckForNull String s) {
-        if (StringUtils.isBlank(s)) {
+        if (s == null || s.isBlank()) {
             return -1;
         }
         try {

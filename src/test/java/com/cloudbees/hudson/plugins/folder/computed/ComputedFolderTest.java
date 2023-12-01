@@ -90,7 +90,6 @@ import javax.servlet.ServletException;
 import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -1068,7 +1067,7 @@ public class ComputedFolderTest {
         @Override
         protected void computeChildren(ChildObserver<SampleComputedFolder> observer, TaskListener listener) throws IOException, InterruptedException {
             for (List<String> kids : metakids) {
-                String childName = StringUtils.join(kids, '+');
+                String childName = String.join("+", kids);
                 listener.getLogger().println("considering " + childName);
                 SampleComputedFolder d = observer.shouldUpdate(childName);
                 try {
