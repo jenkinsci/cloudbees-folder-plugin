@@ -42,7 +42,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
@@ -297,9 +296,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
             List<I> candidates = new ArrayList<>(orphaned);
-            candidates.sort(new Comparator<>() {
-                @Override
-                public int compare(I i1, I i2) {
+            candidates.sort((i1, i2) -> {
                     boolean disabled1 = disabled(i1);
                     boolean disabled2 = disabled(i2);
                     // prefer the not previously disabled ahead of the previously disabled
@@ -310,7 +307,6 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     long ms1 = lastBuildTime(i1);
                     long ms2 = lastBuildTime(i2);
                     return Long.compare(ms2, ms1);
-                }
             });
             CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
                 I item = iterator.next();

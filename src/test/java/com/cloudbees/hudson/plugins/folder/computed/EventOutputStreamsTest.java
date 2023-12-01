@@ -72,8 +72,7 @@ public class EventOutputStreamsTest {
                 return file;
             }
         }, 250, TimeUnit.MILLISECONDS, 8192, false, Long.MAX_VALUE, 0);
-        Thread t1 = new Thread() {
-            public void run() {
+        Thread t1 = new Thread(() -> {
                 OutputStream os = instance.get();
                 try {
                     PrintWriter pw = new PrintWriter(os, aFlush);
@@ -86,10 +85,8 @@ public class EventOutputStreamsTest {
                 } finally {
                     IOUtils.closeQuietly(os);
                 }
-            }
-        };
-        Thread t2 = new Thread() {
-            public void run() {
+        });
+        Thread t2 = new Thread(() -> {
                 OutputStream os = instance.get();
                 try {
                     PrintWriter pw = new PrintWriter(os, bFlush);
@@ -102,8 +99,7 @@ public class EventOutputStreamsTest {
                 } finally {
                     IOUtils.closeQuietly(os);
                 }
-            }
-        };
+        });
         t1.start();
         t2.start();
         t1.join();

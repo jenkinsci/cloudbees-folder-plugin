@@ -21,6 +21,6 @@ public class DeletingChildrenException extends IOException {
     @Override
     public String getMessage() {
         return "Impossible to delete some children when computing the folder. The first errors are: \n\t" +
-                String.join("\n\t", exceptions.stream().limit(3).map(e -> e.getMessage()).collect(Collectors.toList()));
+                exceptions.stream().limit(3).map(Throwable::getMessage).collect(Collectors.joining("\n\t"));
     }
 }

@@ -65,7 +65,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
@@ -208,8 +207,7 @@ public class FolderTest {
         @Override public void onDeleted(Item item) {
             try {
                 // Access metadata from another thread.
-                whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(new Callable<Set<String>>() {
-                    @Override public Set<String> call() {
+                whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(() -> {
                         Set<String> remaining = new TreeSet<>();
                         for (Item i : Jenkins.get().getAllItems()) {
                             remaining.add(i.getFullName());
@@ -218,7 +216,6 @@ public class FolderTest {
                             }
                         }
                         return remaining;
-                    }
                 }).get());
             } catch (Exception x) {
                 assert false : x;
@@ -327,15 +324,12 @@ public class FolderTest {
                 grant(Item.READ).onItems(d).toEveryone().
                 grant(Item.READ).onItems(p1).to("alice"));
         FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
-        ACL.impersonate(Jenkins.ANONYMOUS, new Runnable() {
-            @Override public void run() {
+        ACL.impersonate(Jenkins.ANONYMOUS, () -> {
                 assertEquals(Collections.emptyList(), d.getItems());
                 assertNull(d.getItem("p1"));
                 assertNull(d.getItem("p2"));
-            }
         });
-        ACL.impersonate(User.get("alice").impersonate(), new Runnable() {
-            @Override public void run() {
+        ACL.impersonate(User.get("alice").impersonate(), () -> {
                 assertEquals(Collections.singletonList(p1), d.getItems());
                 assertEquals(p1, d.getItem("p1"));
                 try {
@@ -344,7 +338,6 @@ public class FolderTest {
                 } catch (AccessDeniedException x) {
                     // correct
                 }
-            }
         });
     }
 

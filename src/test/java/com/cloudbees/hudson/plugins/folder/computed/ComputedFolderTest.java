@@ -463,12 +463,7 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
-                org.recalculateAfterSubmitted(true);
-            }
-        };
+        org.submit = () -> org.recalculateAfterSubmitted(true);
 
         round = org.round;
         r.configRoundtrip(org);
@@ -476,12 +471,7 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // recalculateAfterSubmitted(false) calls means we suppress
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
-                org.recalculateAfterSubmitted(false);
-            }
-        };
+        org.submit = () -> org.recalculateAfterSubmitted(false);
 
         round = org.round;
         r.configRoundtrip(org);
@@ -496,12 +486,9 @@ public class ComputedFolderTest {
                 r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(true);
                 org.recalculateAfterSubmitted(true);
-            }
         };
 
         int round = org.round;
@@ -510,12 +497,9 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(true);
                 org.recalculateAfterSubmitted(false);
-            }
         };
 
         round = org.round;
@@ -524,12 +508,9 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(false);
                 org.recalculateAfterSubmitted(true);
-            }
         };
 
         round = org.round;
@@ -538,12 +519,9 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // all recalculateAfterSubmitted(false) calls means we suppress
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(false);
                 org.recalculateAfterSubmitted(false);
-            }
         };
 
         round = org.round;

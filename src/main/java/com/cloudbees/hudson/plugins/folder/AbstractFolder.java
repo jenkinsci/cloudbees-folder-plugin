@@ -81,7 +81,6 @@ import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -342,11 +341,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             return configurations;
         }
 
-        File[] subdirs = modulesDir.listFiles(new FileFilter() {
-            public boolean accept(File child) {
-                return child.isDirectory();
-            }
-        });
+        File[] subdirs = modulesDir.listFiles(File::isDirectory);
         if (subdirs == null) {
             return configurations;
         }
@@ -560,9 +555,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
 
             final ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
-            items = loadChildren(this, getJobsDir(), new Function1<>() {
-                @Override
-                public String call(I item) {
+            items = loadChildren(this, getJobsDir(), item -> {
                     String fullName = item.getFullName();
                     t.setName("Loading job " + fullName);
                     float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
@@ -576,13 +569,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     if (childNameGenerator == null) {
                         return item.getName();
                     } else {
-                        String name = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
-                        if (name == null) {
+                        String childName = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
+                        if (childName == null) {
                             return childNameGenerator.itemNameFromLegacy(AbstractFolder.this, item.getName());
                         }
-                        return name;
+                        return childName;
                     }
-                }
             });
         } finally {
             t.setName(n);
