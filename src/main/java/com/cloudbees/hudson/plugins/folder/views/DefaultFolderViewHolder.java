@@ -81,7 +81,7 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
         if (views.isEmpty()) {
             throw new IllegalArgumentException("Initial views cannot be empty");
         }
-        this.views = new CopyOnWriteArrayList<View>(views);
+        this.views = new CopyOnWriteArrayList<>(views);
         this.primaryView = primaryView;
         this.tabBar = tabBar;
     }
@@ -102,7 +102,7 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
         if (views.isEmpty()) {
             throw new IllegalArgumentException("Views cannot be empty");
         }
-        this.views = new CopyOnWriteArrayList<View>(views);
+        this.views = new CopyOnWriteArrayList<>(views);
     }
 
     /**

@@ -42,12 +42,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -209,7 +207,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * @return the int.
      */
     private static int fromString(@CheckForNull String s) {
-        if (StringUtils.isBlank(s)) {
+        if (s == null || s.isBlank()) {
             return -1;
         }
         try {
@@ -293,13 +291,11 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                 }
             }
         }
-        List<I> toRemove = new ArrayList<I>();
+        List<I> toRemove = new ArrayList<>();
         if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
-            List<I> candidates = new ArrayList<I>(orphaned);
-            candidates.sort(new Comparator<I>() {
-                @Override
-                public int compare(I i1, I i2) {
+            List<I> candidates = new ArrayList<>(orphaned);
+            candidates.sort((i1, i2) -> {
                     boolean disabled1 = disabled(i1);
                     boolean disabled2 = disabled(i2);
                     // prefer the not previously disabled ahead of the previously disabled
@@ -310,7 +306,6 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     long ms1 = lastBuildTime(i1);
                     long ms2 = lastBuildTime(i2);
                     return Long.compare(ms2, ms1);
-                }
             });
             CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
                 I item = iterator.next();

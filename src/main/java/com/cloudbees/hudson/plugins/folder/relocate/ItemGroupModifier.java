@@ -80,7 +80,7 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
     /**
      * A factory for creating {@link ItemGroupModifier} instances.
      */
-    public static final class Factory {
+    final class Factory {
         /**
          * Do not instantiate
          */

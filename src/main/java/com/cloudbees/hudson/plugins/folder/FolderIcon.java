@@ -30,7 +30,6 @@ import hudson.model.Describable;
 import hudson.model.StatusIcon;
 import jenkins.model.Jenkins;
 import org.apache.commons.jelly.JellyContext;
-import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
@@ -65,7 +64,7 @@ public abstract class FolderIcon extends AbstractStatusIcon implements Describab
 
     protected String iconClassNameImageOf(String size) {
         String iconClassName = getIconClassName();
-        if (StringUtils.isNotBlank(iconClassName)) {
+        if (iconClassName != null && !iconClassName.isBlank()) {
             String spec = null;
             if ("16x16".equals(size)) {
                 spec = "icon-sm";

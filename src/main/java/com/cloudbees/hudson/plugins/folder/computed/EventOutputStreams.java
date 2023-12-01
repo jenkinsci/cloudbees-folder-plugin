@@ -37,7 +37,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.io.IOUtils;
 
 /**
  * An factory for {@link OutputStream} instances that can concurrently write to the same file and do lots of other
@@ -62,7 +61,7 @@ public class EventOutputStreams implements Closeable {
     /**
      * The queue of pending output.
      */
-    private final BlockingQueue<byte[]> pending = new LinkedBlockingQueue<byte[]>();
+    private final BlockingQueue<byte[]> pending = new LinkedBlockingQueue<>();
     /**
      * The amount of data in the pending queue.
      */
@@ -171,7 +170,13 @@ public class EventOutputStreams implements Closeable {
                     // ignore
                 } finally {
                     appendNextOpen = true;
-                    IOUtils.closeQuietly(os);
+                    if (os != null) {
+                        try {
+                            os.close();
+                        } catch (IOException e) {
+                            // ignore
+                        }
+                    }
                 }
             }
         }
