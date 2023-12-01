@@ -206,7 +206,7 @@ public class ComputedFolderTest {
     public void foldersAsChildren() throws Exception {
         final SampleComputedFolderWithFoldersAsChildren d = r.jenkins.createProject(SampleComputedFolderWithFoldersAsChildren.class, "d");
         d.recompute(Result.SUCCESS);
-        d.kids.addAll(Collections.singletonList("A"));
+        d.kids.add("A");
         d.recompute(Result.SUCCESS);
 
         // Folder page opens correctly

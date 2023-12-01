@@ -240,7 +240,7 @@ public class ChildNameGeneratorRecTest {
             }
         }
         buf.append('-');
-        buf.append(hash.substring(0, 23));
+        buf.append(hash, 0, 23);
         return buf.toString();
     }
 
@@ -572,7 +572,7 @@ public class ChildNameGeneratorRecTest {
             }
             buffer.write(b);
         }
-        return new String(buffer.toByteArray(), StandardCharsets.UTF_8);
+        return buffer.toString(StandardCharsets.UTF_8);
     }
 
 

@@ -303,7 +303,7 @@ public class ChildNameGeneratorAltTest {
             }
         }
         buf.append('-');
-        buf.append(hash.substring(0, 23));
+        buf.append(hash, 0, 23);
         return buf.toString();
     }
 
