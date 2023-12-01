@@ -106,9 +106,9 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * {@link Trace#close()} the trace after the item is created.
      */
     @NonNull
-    public static final Trace beforeCreateItem(@NonNull AbstractFolder<?> project,
-                                               @NonNull String itemName,
-                                               @NonNull String idealName) {
+    public static Trace beforeCreateItem(@NonNull AbstractFolder<?> project,
+                                         @NonNull String itemName,
+                                         @NonNull String idealName) {
         final Trace trace = new Trace(project, itemName);
         synchronized (idealNames) {
             idealNames.put(trace, idealName);
@@ -120,7 +120,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * Clean up for a creation {@link Trace}. Not strictly required, but nice implementations will do this via {@link Trace#close()}.
      * @param trace the trace.
      */
-    private static final void afterItemCreated(@NonNull Trace trace) {
+    private static void afterItemCreated(@NonNull Trace trace) {
         synchronized (idealNames) {
             idealNames.remove(trace);
         }
