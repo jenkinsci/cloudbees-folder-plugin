@@ -889,7 +889,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         // ensure we refresh on average once every HEALTH_REPORT_CACHE_REFRESH_MIN but not all at once
         nextHealthReportsRefreshMillis = System.currentTimeMillis()
-                + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
+                + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3L / 4L)
                 + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
         reports = new ArrayList<>();
         List<FolderHealthMetric.Reporter> reporters = new ArrayList<>(healthMetrics.size());

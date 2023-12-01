@@ -255,7 +255,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                     250, TimeUnit.MILLISECONDS,
                     1024,
                     true,
-                    EVENT_LOG_MAX_SIZE * 1024,
+                    EVENT_LOG_MAX_SIZE * 1024L,
                     BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT)
             );
         }
