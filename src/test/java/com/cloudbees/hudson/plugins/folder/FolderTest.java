@@ -54,6 +54,7 @@ import hudson.views.JobColumn;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -168,7 +169,7 @@ public class FolderTest {
         r.jenkins.setCrumbIssuer(null);
 
         URL apiURL = new URL(
-                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, "UTF-8") + "&name=" + URLEncoder.encode(toName, "UTF-8"));
+                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, StandardCharsets.UTF_8) + "&name=" + URLEncoder.encode(toName, StandardCharsets.UTF_8));
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
