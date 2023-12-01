@@ -76,7 +76,6 @@ import hudson.util.CopyOnWriteMap;
 import hudson.util.DescribableList;
 import hudson.util.FormApply;
 import hudson.util.FormValidation;
-import hudson.util.Function1;
 import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
@@ -101,6 +100,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -334,7 +334,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
-                                                             Function1<? extends K, ? super V> key) {
+                                                             Function<? super V, ? extends K> key) {
         CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<>();
         if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
             LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
@@ -500,7 +500,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                                 item.getFullName());
                     }
                 }
-                configurations.put(key.call(item), item);
+                configurations.put(key.apply(item), item);
             } catch (Exception e) {
                 Logger.getLogger(ItemGroupMixIn.class.getName()).log(Level.WARNING, "could not load " + subdir, e);
             }
