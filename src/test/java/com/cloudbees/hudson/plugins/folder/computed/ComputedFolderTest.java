@@ -643,7 +643,7 @@ public class ComputedFolderTest {
                 cfg = (HtmlForm) r.createWebClient().goTo(viewUrl).getElementById("enable-project");
                 assertNotNull(cfg);
                 r.submit(cfg);
-                assertTrue("Can enable from view " + view.getViewName(), !folder.isDisabled());
+                assertFalse("Can enable from view " + view.getViewName(), folder.isDisabled());
             } catch (Exception e) {
                 Assert.fail();
             }
