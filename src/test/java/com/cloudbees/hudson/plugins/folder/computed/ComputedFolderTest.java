@@ -907,7 +907,7 @@ public class ComputedFolderTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolderWithFoldersAsChildren extends ComputedFolder<Folder> {
 
-        List<String> kids = new ArrayList<String>();
+        List<String> kids = new ArrayList<>();
         int round;
 
         private SampleComputedFolderWithFoldersAsChildren(ItemGroup parent, String name) {
@@ -984,7 +984,7 @@ public class ComputedFolderTest {
             final ViewsTabBar tabBar = new DefaultViewsTabBar();
 
             public FixedViewHolder(ViewGroup owner) {
-                views = new ArrayList<View>(Arrays.asList(new AllView("All", owner), new ListView("Empty", owner)));
+                views = new ArrayList<>(Arrays.asList(new AllView("All", owner), new ListView("Empty", owner)));
             }
 
             @NonNull
@@ -1081,7 +1081,7 @@ public class ComputedFolderTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SecondOrderComputedFolder extends ComputedFolder<SampleComputedFolder> {
 
-        List<List<String>> metakids = new ArrayList<List<String>>();
+        List<List<String>> metakids = new ArrayList<>();
 
         private SecondOrderComputedFolder(ItemGroup parent, String name) {
             super(parent, name);
@@ -1115,13 +1115,13 @@ public class ComputedFolderTest {
 
         String assertItemNames(String... names) throws Exception {
             String log = doRecompute(this, this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
-            Set<String> actual = new TreeSet<String>();
+            Set<String> actual = new TreeSet<>();
             for (SampleComputedFolder d : getItems()) {
                 d.recompute(d.isDisabled() || this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
                 d.assertItemNames(d.round, d.kids.toArray(new String[0]));
                 actual.add(d.getName());
             }
-            assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+            assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
             return log;
         }
 
@@ -1260,7 +1260,7 @@ public class ComputedFolderTest {
 
     public static class OneUndeletableChildComputedFolder extends ComputedFolder<FreeStyleProject> {
 
-        List<String> kids = new ArrayList<String>();
+        List<String> kids = new ArrayList<>();
         int round;
 
         private OneUndeletableChildComputedFolder(ItemGroup parent, String name) {
@@ -1313,7 +1313,7 @@ public class ComputedFolderTest {
 
         void assertItemNames(int round, String... names) {
             assertEquals(round, this.round);
-            Set<String> actual = new TreeSet<String>();
+            Set<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }

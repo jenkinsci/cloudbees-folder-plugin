@@ -92,7 +92,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      */
     public static final String CHILD_NAME_FILE = "name-utf8.txt";
 
-    private static final Map<Trace,String> idealNames = new WeakHashMap<Trace,String>();
+    private static final Map<Trace,String> idealNames = new WeakHashMap<>();
 
     /**
      * Work-around helper method to "fix" {@link Item} constructors that have on-disk side-effects and therefore

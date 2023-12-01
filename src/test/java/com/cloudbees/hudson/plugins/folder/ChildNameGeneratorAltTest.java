@@ -310,9 +310,9 @@ public class ChildNameGeneratorAltTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class ComputedFolderImpl extends ComputedFolder<FreeStyleProject> {
 
-        private Set<String> fatalKids = new TreeSet<String>();
+        private Set<String> fatalKids = new TreeSet<>();
 
-        private List<String> kids = new ArrayList<String>();
+        private List<String> kids = new ArrayList<>();
         /**
          * The number of computations since either Jenkins was restarted or the folder was created.
          */

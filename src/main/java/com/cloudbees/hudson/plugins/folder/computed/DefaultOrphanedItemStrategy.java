@@ -293,11 +293,11 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                 }
             }
         }
-        List<I> toRemove = new ArrayList<I>();
+        List<I> toRemove = new ArrayList<>();
         if (pruneDeadBranches) {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
-            List<I> candidates = new ArrayList<I>(orphaned);
-            candidates.sort(new Comparator<I>() {
+            List<I> candidates = new ArrayList<>(orphaned);
+            candidates.sort(new Comparator<>() {
                 @Override
                 public int compare(I i1, I i2) {
                     boolean disabled1 = disabled(i1);

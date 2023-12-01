@@ -295,7 +295,7 @@ public class ChildNameGeneratorRecTest {
         }
 
         public void setFatalKids(String... fatalKids) {
-            setFatalKids(new TreeSet<String>(Arrays.asList(fatalKids)));
+            setFatalKids(new TreeSet<>(Arrays.asList(fatalKids)));
         }
 
         public List<String> getKids() {

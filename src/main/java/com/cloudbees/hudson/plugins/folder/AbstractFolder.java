@@ -191,7 +191,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /** Child items, keyed by {@link Item#getName}. */
-    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<String,I>(String.CASE_INSENSITIVE_ORDER);
+    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<>(String.CASE_INSENSITIVE_ORDER);
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
@@ -236,7 +236,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     protected void init() {
         if (properties == null) {
-            properties = new DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor>(this);
+            properties = new DescribableList<>(this);
         } else {
             properties.setOwner(this);
         }
@@ -335,7 +335,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
                                                              Function1<? extends K, ? super V> key) {
-        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<K, V>();
+        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<>();
         if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
             LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
                     new Object[]{modulesDir, parent.getFullName()});
@@ -351,7 +351,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             return configurations;
         }
         final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
-        Map<String,V> byDirName = new HashMap<String, V>();
+        Map<String,V> byDirName = new HashMap<>();
         if (parent.items != null) {
             if (childNameGenerator == null) {
                 for (V item : parent.items.values()) {
@@ -560,7 +560,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
 
             final ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
-            items = loadChildren(this, getJobsDir(), new Function1<String,I>() {
+            items = loadChildren(this, getJobsDir(), new Function1<>() {
                 @Override
                 public String call(I item) {
                     String fullName = item.getFullName();
@@ -678,7 +678,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public Collection<?> getOverrides() {
-        List<Object> r = new ArrayList<Object>();
+        List<Object> r = new ArrayList<>();
         for (AbstractFolderProperty<?> p : properties) {
             r.addAll(p.getItemContainerOverrides());
         }
@@ -899,8 +899,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         nextHealthReportsRefreshMillis = System.currentTimeMillis()
                 + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
                 + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
-        reports = new ArrayList<HealthReport>();
-        List<FolderHealthMetric.Reporter> reporters = new ArrayList<FolderHealthMetric.Reporter>(healthMetrics.size());
+        reports = new ArrayList<>();
+        List<FolderHealthMetric.Reporter> reporters = new ArrayList<>(healthMetrics.size());
         boolean recursive = false;
         boolean topLevelOnly = true;
         for (FolderHealthMetric metric : healthMetrics) {
@@ -916,7 +916,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
         }
         if (recursive) {
-            Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
+            Stack<Iterable<? extends Item>> stack = new Stack<>();
             stack.push(getItems());
             if (topLevelOnly) {
                 while (!stack.isEmpty()) {
@@ -993,7 +993,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public Collection<? extends Job> getAllJobs() {
-        Set<Job> jobs = new HashSet<Job>();
+        Set<Job> jobs = new HashSet<>();
         for (Item i : getItems()) {
             jobs.addAll(i.getAllJobs());
         }
@@ -1014,7 +1014,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     // TODO: @Override and inherit docs once baseline is above 2.222
     public Collection<I> getItems(Predicate<I> pred) {
-        List<I> viewableItems = new ArrayList<I>();
+        List<I> viewableItems = new ArrayList<>();
         for (I item : items.values()) {
             if (pred.test(item) && item.hasPermission(Item.READ)) {
                 viewableItems.add(item);

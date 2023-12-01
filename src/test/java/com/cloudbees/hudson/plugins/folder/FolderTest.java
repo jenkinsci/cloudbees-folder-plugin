@@ -203,7 +203,7 @@ public class FolderTest {
             DeleteListener.whatRemainedWhenDeleted.toString());
     }
     @TestExtension("delete") public static class DeleteListener extends ItemListener {
-        static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<String,Set<String>>();
+        static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<>();
         @Override public void onDeleted(Item item) {
             try {
                 // Access metadata from another thread.
@@ -279,9 +279,9 @@ public class FolderTest {
         FreeStyleProject middleJob = f1.createProject(FreeStyleProject.class, "middle job");
         Folder f2 = f1.createProject(Folder.class, "f2");
         FreeStyleProject bottomJob = f2.createProject(FreeStyleProject.class, "bottom job");
-        List<SearchItem> items = new ArrayList<SearchItem>();
+        List<SearchItem> items = new ArrayList<>();
         f1.getSearchIndex().suggest("job", items);
-        assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<SearchItem>(items));
+        assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<>(items));
     }
 
     @Test public void reloadJenkinsAndFindBuildInProgress() throws Exception {

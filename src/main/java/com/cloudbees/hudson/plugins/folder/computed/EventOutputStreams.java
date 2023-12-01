@@ -62,7 +62,7 @@ public class EventOutputStreams implements Closeable {
     /**
      * The queue of pending output.
      */
-    private final BlockingQueue<byte[]> pending = new LinkedBlockingQueue<byte[]>();
+    private final BlockingQueue<byte[]> pending = new LinkedBlockingQueue<>();
     /**
      * The amount of data in the pending queue.
      */
