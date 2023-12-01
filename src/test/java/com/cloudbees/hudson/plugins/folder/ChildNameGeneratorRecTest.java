@@ -378,11 +378,8 @@ public class ChildNameGeneratorRecTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid);
-                            try {
+                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
                                 p = new FreeStyleProject(this, encodedKid);
-                            } finally {
-                                trace.close();
                             }
                             BulkChange bc = new BulkChange(p);
                             try {
