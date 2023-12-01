@@ -82,6 +82,8 @@ import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,7 +114,6 @@ import jenkins.model.TransientActionFactory;
 import jenkins.model.queue.ItemDeletion;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -373,7 +374,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 } else {
                     File nameFile = new File(subdir, ChildNameGenerator.CHILD_NAME_FILE);
                     if (nameFile.isFile()) {
-                        childName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                        childName = StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8));
                         if (childName == null) {
                             LOGGER.log(Level.WARNING, "{0} was empty, assuming child name is {1}",
                                             new Object[]{nameFile, subdir.getName()});
@@ -434,7 +435,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                             name = childNameGenerator.itemNameFromItem(parent, item);
                             if (name == null) {
                                 name = childNameGenerator.itemNameFromLegacy(parent, childName);
-                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                                Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                                 BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
                                 try {
                                     childNameGenerator.recordLegacyName(parent, item, childName);
@@ -447,7 +448,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                                     bc.abort();
                                 }
                             } else if (!childName.equals(name) || legacy) {
-                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                                Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                             }
                         }
                         item.onLoad(parent, name);
@@ -464,7 +465,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         name = childNameGenerator.itemNameFromItem(parent, item);
                         if (name == null) {
                             name = childNameGenerator.itemNameFromLegacy(parent, childName);
-                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                             BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
                             try {
                                 childNameGenerator.recordLegacyName(parent, item, childName);
@@ -477,7 +478,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                                 bc.abort();
                             }
                         } else if (!childName.equals(name) || legacy) {
-                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                         }
                         if (!subdir.getName().equals(name) && item instanceof AbstractItem
                                 && ((AbstractItem) item).getDisplayNameOrNull() == null) {
@@ -516,7 +517,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             String oldName;
             if (nameFile.isFile()) {
                 try {
-                    oldName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                    oldName = StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8));
                 } catch (IOException e) {
                     oldName = null;
                 }
@@ -525,7 +526,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
             if (!name.equals(oldName)) {
                 try {
-                    FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                    Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, "Could not create " + nameFile);
                 }
