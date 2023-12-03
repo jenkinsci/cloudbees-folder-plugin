@@ -54,6 +54,7 @@ import hudson.views.JobColumn;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,7 +65,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
@@ -168,7 +168,7 @@ public class FolderTest {
         r.jenkins.setCrumbIssuer(null);
 
         URL apiURL = new URL(
-                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, "UTF-8") + "&name=" + URLEncoder.encode(toName, "UTF-8"));
+                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, StandardCharsets.UTF_8) + "&name=" + URLEncoder.encode(toName, StandardCharsets.UTF_8));
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
@@ -203,12 +203,11 @@ public class FolderTest {
             DeleteListener.whatRemainedWhenDeleted.toString());
     }
     @TestExtension("delete") public static class DeleteListener extends ItemListener {
-        static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<String,Set<String>>();
+        static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<>();
         @Override public void onDeleted(Item item) {
             try {
                 // Access metadata from another thread.
-                whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(new Callable<Set<String>>() {
-                    @Override public Set<String> call() {
+                whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(() -> {
                         Set<String> remaining = new TreeSet<>();
                         for (Item i : Jenkins.get().getAllItems()) {
                             remaining.add(i.getFullName());
@@ -217,7 +216,6 @@ public class FolderTest {
                             }
                         }
                         return remaining;
-                    }
                 }).get());
             } catch (Exception x) {
                 assert false : x;
@@ -279,9 +277,9 @@ public class FolderTest {
         FreeStyleProject middleJob = f1.createProject(FreeStyleProject.class, "middle job");
         Folder f2 = f1.createProject(Folder.class, "f2");
         FreeStyleProject bottomJob = f2.createProject(FreeStyleProject.class, "bottom job");
-        List<SearchItem> items = new ArrayList<SearchItem>();
+        List<SearchItem> items = new ArrayList<>();
         f1.getSearchIndex().suggest("job", items);
-        assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<SearchItem>(items));
+        assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<>(items));
     }
 
     @Test public void reloadJenkinsAndFindBuildInProgress() throws Exception {
@@ -326,15 +324,12 @@ public class FolderTest {
                 grant(Item.READ).onItems(d).toEveryone().
                 grant(Item.READ).onItems(p1).to("alice"));
         FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
-        ACL.impersonate(Jenkins.ANONYMOUS, new Runnable() {
-            @Override public void run() {
+        ACL.impersonate(Jenkins.ANONYMOUS, () -> {
                 assertEquals(Collections.emptyList(), d.getItems());
                 assertNull(d.getItem("p1"));
                 assertNull(d.getItem("p2"));
-            }
         });
-        ACL.impersonate(User.get("alice").impersonate(), new Runnable() {
-            @Override public void run() {
+        ACL.impersonate(User.get("alice").impersonate(), () -> {
                 assertEquals(Collections.singletonList(p1), d.getItems());
                 assertEquals(p1, d.getItem("p1"));
                 try {
@@ -343,7 +338,6 @@ public class FolderTest {
                 } catch (AccessDeniedException x) {
                     // correct
                 }
-            }
         });
     }
 

@@ -88,7 +88,7 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
      */
     @SuppressWarnings("rawtypes") // erasure
     public static List<AbstractFolderPropertyDescriptor> getApplicableDescriptors(Class<? extends AbstractFolder> containerType) {
-        List<AbstractFolderPropertyDescriptor> r = new ArrayList<AbstractFolderPropertyDescriptor>();
+        List<AbstractFolderPropertyDescriptor> r = new ArrayList<>();
         for (AbstractFolderPropertyDescriptor p : ExtensionList.lookup(AbstractFolderPropertyDescriptor.class)) {
             if (p.isApplicable(containerType)) {
                 r.add(p);

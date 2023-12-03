@@ -182,7 +182,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             orphanedItemStrategy = new DefaultOrphanedItemStrategy(true, "", "");
         }
         if (triggers == null) {
-            triggers = new DescribableList<Trigger<?>,TriggerDescriptor>(this);
+            triggers = new DescribableList<>(this);
         } else {
             triggers.setOwner(this);
         }
@@ -478,7 +478,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Restricted(NoExternalUse.class) // currently used only by jelly / stapler
     public List<TriggerDescriptor> getTriggerDescriptors() {
         // TODO remove this once core has support for DescriptorVisibilityFilter on Trigger.for_(Item)
-        List<TriggerDescriptor> result = new ArrayList<TriggerDescriptor>();
+        List<TriggerDescriptor> result = new ArrayList<>();
         for (TriggerDescriptor d: Trigger.for_(this)) {
             if (d instanceof TimerTrigger.DescriptorImpl) {
                 continue;
@@ -516,7 +516,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @SuppressWarnings("deprecation")
     @Override
     public List<Action> getActions() {
-        List<Action> actions = new ArrayList<Action>(super.getActions());
+        List<Action> actions = new ArrayList<>(super.getActions());
         for (Trigger<?> trigger : triggers) {
             actions.addAll(trigger.getProjectActions());
         }
@@ -655,7 +655,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     @NonNull
     protected FolderComputation<I> createComputation(@CheckForNull FolderComputation<I> previous) {
-        return new FolderComputation<I>(this, previous);
+        return new FolderComputation<>(this, previous);
     }
 
     protected File getComputationDir() {
@@ -738,7 +738,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Restricted(DoNotUse.class) // used by Jelly
     @NonNull
     public List<OrphanedItemStrategyDescriptor> getOrphanedItemStrategyDescriptors() {
-        List<OrphanedItemStrategyDescriptor> result = new ArrayList<OrphanedItemStrategyDescriptor>();
+        List<OrphanedItemStrategyDescriptor> result = new ArrayList<>();
         for (OrphanedItemStrategyDescriptor descriptor : ExtensionList.lookup(OrphanedItemStrategyDescriptor.class)) {
             if (descriptor.isApplicable(getClass())) {
                 result.add(descriptor);
@@ -748,9 +748,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     private class FullReindexChildObserver extends ChildObserver<I> {
-        private final Map<String, I> orphaned = new HashMap<String,I>(items);
-        private final Set<String> observed = new HashSet<String>();
-        private final Set<String> locked = new HashSet<String>();
+        private final Map<String, I> orphaned = new HashMap<>(items);
+        private final Set<String> observed = new HashSet<>();
+        private final Set<String> locked = new HashSet<>();
         private final String fullName = getFullName();
 
         @Override
@@ -857,7 +857,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
          */
         @Override
         public Set<String> observed() {
-            return new HashSet<String>(observed);
+            return new HashSet<>(observed);
         }
 
         /**
@@ -865,14 +865,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
          */
         @Override
         public Map<String, I> orphaned() {
-            return new HashMap<String, I>(orphaned);
+            return new HashMap<>(orphaned);
         }
     }
 
     private class EventChildObserver extends ChildObserver<I> {
         private final String fullName = getFullName();
-        private final Set<String> observed = new HashSet<String>();
-        private final Set<String> locked = new HashSet<String>();
+        private final Set<String> observed = new HashSet<>();
+        private final Set<String> locked = new HashSet<>();
 
         @Override
         public void close() {
@@ -978,7 +978,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
          */
         @Override
         public Set<String> observed() {
-            return new HashSet<String>(observed);
+            return new HashSet<>(observed);
         }
 
         /**
@@ -986,7 +986,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
          */
         @Override
         public Map<String, I> orphaned() {
-            return new HashMap<String, I>(); // always empty as we never orphan items from events
+            return new HashMap<>(); // always empty as we never orphan items from events
         }
     }
 

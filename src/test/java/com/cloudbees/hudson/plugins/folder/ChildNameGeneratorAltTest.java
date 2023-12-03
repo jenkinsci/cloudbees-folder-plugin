@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +55,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;
@@ -276,7 +276,7 @@ public class ChildNameGeneratorAltTest {
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
                 nameFile.isFile(), is(true));
-        String name = FileUtils.readFileToString(nameFile, "UTF-8");
+        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
         assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
                 + " contains the encoded name", name, is(encodedName));
     }
@@ -303,16 +303,16 @@ public class ChildNameGeneratorAltTest {
             }
         }
         buf.append('-');
-        buf.append(hash.substring(0, 23));
+        buf.append(hash, 0, 23);
         return buf.toString();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class ComputedFolderImpl extends ComputedFolder<FreeStyleProject> {
 
-        private Set<String> fatalKids = new TreeSet<String>();
+        private Set<String> fatalKids = new TreeSet<>();
 
-        private List<String> kids = new ArrayList<String>();
+        private List<String> kids = new ArrayList<>();
         /**
          * The number of computations since either Jenkins was restarted or the folder was created.
          */

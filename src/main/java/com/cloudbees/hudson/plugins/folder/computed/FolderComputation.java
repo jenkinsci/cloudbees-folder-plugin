@@ -181,7 +181,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         } finally {
             duration = System.currentTimeMillis() - timestamp;
             if (durations == null) {
-                durations = new ArrayList<Long>();
+                durations = new ArrayList<>();
             }
             while (durations.size() > 32) {
                 durations.remove(0);
@@ -255,7 +255,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                     250, TimeUnit.MILLISECONDS,
                     1024,
                     true,
-                    EVENT_LOG_MAX_SIZE * 1024,
+                    EVENT_LOG_MAX_SIZE * 1024L,
                     BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT)
             );
         }
@@ -325,7 +325,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     @NonNull
     public AnnotatedLargeText<FolderComputation<I>> getLogText() {
-        return new AnnotatedLargeText<FolderComputation<I>>(getLogFile(), StandardCharsets.UTF_8, !isLogUpdated(), this);
+        return new AnnotatedLargeText<>(getLogFile(), StandardCharsets.UTF_8, !isLogUpdated(), this);
     }
 
     @NonNull
@@ -338,12 +338,12 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                         String.format("No events as of %tc, waiting for events...%n", new Date())
                                 .getBytes(StandardCharsets.UTF_8)
                 );
-                return new AnnotatedLargeText<FolderComputation<I>>(buffer, StandardCharsets.UTF_8, false, this);
+                return new AnnotatedLargeText<>(buffer, StandardCharsets.UTF_8, false, this);
             } catch (IOException e) {
                 // ignore and fall through
             }
         }
-        return new AnnotatedLargeText<FolderComputation<I>>(eventsFile, StandardCharsets.UTF_8, false, this);
+        return new AnnotatedLargeText<>(eventsFile, StandardCharsets.UTF_8, false, this);
     }
 
     @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = "Only one page is ever written here")
@@ -481,5 +481,5 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     /**
      * Allow other code to override the display name for {@link FolderComputation}.
      */
-    public static final Message<FolderComputation> DISPLAY_NAME = new Message<FolderComputation>();
+    public static final Message<FolderComputation> DISPLAY_NAME = new Message<>();
 }

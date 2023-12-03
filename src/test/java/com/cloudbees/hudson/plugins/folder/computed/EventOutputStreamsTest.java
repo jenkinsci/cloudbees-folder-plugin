@@ -25,15 +25,16 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
+import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,8 +73,7 @@ public class EventOutputStreamsTest {
                 return file;
             }
         }, 250, TimeUnit.MILLISECONDS, 8192, false, Long.MAX_VALUE, 0);
-        Thread t1 = new Thread() {
-            public void run() {
+        Thread t1 = new Thread(() -> {
                 OutputStream os = instance.get();
                 try {
                     PrintWriter pw = new PrintWriter(os, aFlush);
@@ -84,12 +84,16 @@ public class EventOutputStreamsTest {
                 } catch (Throwable e) {
                     e.printStackTrace(System.err);
                 } finally {
-                    IOUtils.closeQuietly(os);
+                    if (os != null) {
+                        try {
+                            os.close();
+                        } catch (IOException e) {
+                            // ignore
+                        }
+                    }
                 }
-            }
-        };
-        Thread t2 = new Thread() {
-            public void run() {
+        });
+        Thread t2 = new Thread(() -> {
                 OutputStream os = instance.get();
                 try {
                     PrintWriter pw = new PrintWriter(os, bFlush);
@@ -100,17 +104,23 @@ public class EventOutputStreamsTest {
                 } catch (Throwable e) {
                     e.printStackTrace(System.err);
                 } finally {
-                    IOUtils.closeQuietly(os);
+                    if (os != null) {
+                        try {
+                            os.close();
+                        } catch ( IOException e) {
+                            // ignore
+                        }
+                    }
                 }
-            }
-        };
+        });
         t1.start();
         t2.start();
         t1.join();
         t2.join();
         List<String> as = new ArrayList<>();
         List<String> bs = new ArrayList<>();
-        for (String line : FileUtils.readLines(file, StandardCharsets.UTF_8)) {
+        try (Stream<String> lines = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
+          lines.forEach(line -> {
             assertThat("Line does not have both thread output: '" + StringEscapeUtils.escapeJava(line)+"'",
                     line.matches("^\\d+[AB](\\d+[AB])+$"), is(false));
             assertThat("Line does not contain a null character: '" + StringEscapeUtils.escapeJava(line) + "'",
@@ -122,6 +132,7 @@ public class EventOutputStreamsTest {
             } else {
                 fail("unexpected line: '" + StringEscapeUtils.escapeJava(line) +"'");
             }
+          });
         }
         List<String> sorted = new ArrayList<>(as);
         Collections.sort(sorted);

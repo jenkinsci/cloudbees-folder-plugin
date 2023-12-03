@@ -76,13 +76,13 @@ import hudson.util.CopyOnWriteMap;
 import hudson.util.DescribableList;
 import hudson.util.FormApply;
 import hudson.util.FormValidation;
-import hudson.util.Function1;
 import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -100,6 +100,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -110,9 +111,9 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
+import jenkins.model.queue.ItemDeletion;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -190,7 +191,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /** Child items, keyed by {@link Item#getName}. */
-    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<String,I>(String.CASE_INSENSITIVE_ORDER);
+    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<>(String.CASE_INSENSITIVE_ORDER);
 
     private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
 
@@ -235,7 +236,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     protected void init() {
         if (properties == null) {
-            properties = new DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor>(this);
+            properties = new DescribableList<>(this);
         } else {
             properties.setOwner(this);
         }
@@ -333,24 +334,20 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
-                                                             Function1<? extends K, ? super V> key) {
-        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<K, V>();
+                                                             Function<? super V, ? extends K> key) {
+        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<>();
         if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
             LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
                     new Object[]{modulesDir, parent.getFullName()});
             return configurations;
         }
 
-        File[] subdirs = modulesDir.listFiles(new FileFilter() {
-            public boolean accept(File child) {
-                return child.isDirectory();
-            }
-        });
+        File[] subdirs = modulesDir.listFiles(File::isDirectory);
         if (subdirs == null) {
             return configurations;
         }
         final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
-        Map<String,V> byDirName = new HashMap<String, V>();
+        Map<String,V> byDirName = new HashMap<>();
         if (parent.items != null) {
             if (childNameGenerator == null) {
                 for (V item : parent.items.values()) {
@@ -377,7 +374,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 } else {
                     File nameFile = new File(subdir, ChildNameGenerator.CHILD_NAME_FILE);
                     if (nameFile.isFile()) {
-                        childName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                        childName = StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8));
                         if (childName == null) {
                             LOGGER.log(Level.WARNING, "{0} was empty, assuming child name is {1}",
                                             new Object[]{nameFile, subdir.getName()});
@@ -438,7 +435,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                             name = childNameGenerator.itemNameFromItem(parent, item);
                             if (name == null) {
                                 name = childNameGenerator.itemNameFromLegacy(parent, childName);
-                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                                Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                                 BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
                                 try {
                                     childNameGenerator.recordLegacyName(parent, item, childName);
@@ -451,7 +448,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                                     bc.abort();
                                 }
                             } else if (!childName.equals(name) || legacy) {
-                                FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                                Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                             }
                         }
                         item.onLoad(parent, name);
@@ -468,7 +465,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         name = childNameGenerator.itemNameFromItem(parent, item);
                         if (name == null) {
                             name = childNameGenerator.itemNameFromLegacy(parent, childName);
-                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                             BulkChange bc = new BulkChange(item); // suppress any attempt to save as parent not set
                             try {
                                 childNameGenerator.recordLegacyName(parent, item, childName);
@@ -481,7 +478,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                                 bc.abort();
                             }
                         } else if (!childName.equals(name) || legacy) {
-                            FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                            Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                         }
                         if (!subdir.getName().equals(name) && item instanceof AbstractItem
                                 && ((AbstractItem) item).getDisplayNameOrNull() == null) {
@@ -503,7 +500,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                                 item.getFullName());
                     }
                 }
-                configurations.put(key.call(item), item);
+                configurations.put(key.apply(item), item);
             } catch (Exception e) {
                 Logger.getLogger(ItemGroupMixIn.class.getName()).log(Level.WARNING, "could not load " + subdir, e);
             }
@@ -520,7 +517,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             String oldName;
             if (nameFile.isFile()) {
                 try {
-                    oldName = StringUtils.trimToNull(FileUtils.readFileToString(nameFile, "UTF-8"));
+                    oldName = StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8));
                 } catch (IOException e) {
                     oldName = null;
                 }
@@ -529,7 +526,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
             if (!name.equals(oldName)) {
                 try {
-                    FileUtils.writeStringToFile(nameFile, name, "UTF-8");
+                    Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, "Could not create " + nameFile);
                 }
@@ -559,9 +556,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
 
             final ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
-            items = loadChildren(this, getJobsDir(), new Function1<String,I>() {
-                @Override
-                public String call(I item) {
+            items = loadChildren(this, getJobsDir(), item -> {
                     String fullName = item.getFullName();
                     t.setName("Loading job " + fullName);
                     float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
@@ -575,13 +570,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     if (childNameGenerator == null) {
                         return item.getName();
                     } else {
-                        String name = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
-                        if (name == null) {
+                        String childName = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
+                        if (childName == null) {
                             return childNameGenerator.itemNameFromLegacy(AbstractFolder.this, item.getName());
                         }
-                        return name;
+                        return childName;
                     }
-                }
             });
         } finally {
             t.setName(n);
@@ -677,7 +671,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public Collection<?> getOverrides() {
-        List<Object> r = new ArrayList<Object>();
+        List<Object> r = new ArrayList<>();
         for (AbstractFolderProperty<?> p : properties) {
             r.addAll(p.getItemContainerOverrides());
         }
@@ -896,10 +890,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         // ensure we refresh on average once every HEALTH_REPORT_CACHE_REFRESH_MIN but not all at once
         nextHealthReportsRefreshMillis = System.currentTimeMillis()
-                + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3 / 4)
-                + ENTROPY.nextInt((int) TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
-        reports = new ArrayList<HealthReport>();
-        
+                + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3L / 4L)
+                + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
+        reports = new ArrayList<>();
+
         for (FolderHealthMetric metric : healthMetrics) {
             FolderHealthMetric.Reporter reporter = metric.reporter();
             observeMetric(metric.getType(), reporter);
@@ -922,7 +916,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     private void observeMetric(FolderHealthMetric.Type type, FolderHealthMetric.Reporter reporter) {
         if (type.isWithChildren()) {
             if (type.isRecursive()) {
-                Stack<Iterable<? extends Item>> stack = new Stack<Iterable<? extends Item>>();
+                Stack<Iterable<? extends Item>> stack = new Stack<>();
                 stack.push(getItems());
                 if (type.isTopLevelItems()) {
                     while (!stack.isEmpty()) {
@@ -986,7 +980,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public Collection<? extends Job> getAllJobs() {
-        Set<Job> jobs = new HashSet<Job>();
+        Set<Job> jobs = new HashSet<>();
         for (Item i : getItems()) {
             jobs.addAll(i.getAllJobs());
         }
@@ -1007,7 +1001,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     // TODO: @Override and inherit docs once baseline is above 2.222
     public Collection<I> getItems(Predicate<I> pred) {
-        List<I> viewableItems = new ArrayList<I>();
+        List<I> viewableItems = new ArrayList<>();
         for (I item : items.values()) {
             if (pred.test(item) && item.hasPermission(Item.READ)) {
                 viewableItems.add(item);

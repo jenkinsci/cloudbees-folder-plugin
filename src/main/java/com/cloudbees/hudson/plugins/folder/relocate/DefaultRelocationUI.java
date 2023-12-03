@@ -78,7 +78,7 @@ public class DefaultRelocationUI extends RelocationUI {
      * @return the list of destinations that the item can be moved to by the current user.
      */
     public Collection<ItemGroup<?>> listDestinations(Item item) {
-        Collection<ItemGroup<?>> result = new LinkedHashSet<ItemGroup<?>>();
+        Collection<ItemGroup<?>> result = new LinkedHashSet<>();
         for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) == RelocationHandler.HandlingMode.HANDLE) {
                 result.addAll(handler.validDestinations(item));
@@ -111,7 +111,7 @@ public class DefaultRelocationUI extends RelocationUI {
         if (dest == null || dest == item.getParent()) {
             return HttpResponses.forwardToPreviousPage();
         }
-        List<RelocationHandler> chain = new ArrayList<RelocationHandler>();
+        List<RelocationHandler> chain = new ArrayList<>();
         for (RelocationHandler handler : ExtensionList.lookup(RelocationHandler.class)) {
             if (handler.applicability(item) != RelocationHandler.HandlingMode.SKIP) {
                 chain.add(handler);
@@ -120,7 +120,7 @@ public class DefaultRelocationUI extends RelocationUI {
         if (chain.isEmpty()) {
             return new Failure("no known way to handle " + item);
         }
-        HttpResponse response = chain.get(0).handle(item, dest, new AtomicReference<Item>(), chain.subList(1, chain.size()));
+        HttpResponse response = chain.get(0).handle(item, dest, new AtomicReference<>(), chain.subList(1, chain.size()));
         if (response != null) {
             return response;
         } else {

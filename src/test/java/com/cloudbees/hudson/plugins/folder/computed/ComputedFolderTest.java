@@ -90,7 +90,6 @@ import javax.servlet.ServletException;
 import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -206,7 +205,7 @@ public class ComputedFolderTest {
     public void foldersAsChildren() throws Exception {
         final SampleComputedFolderWithFoldersAsChildren d = r.jenkins.createProject(SampleComputedFolderWithFoldersAsChildren.class, "d");
         d.recompute(Result.SUCCESS);
-        d.kids.addAll(Collections.singletonList("A"));
+        d.kids.add("A");
         d.recompute(Result.SUCCESS);
 
         // Folder page opens correctly
@@ -463,12 +462,7 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
-                org.recalculateAfterSubmitted(true);
-            }
-        };
+        org.submit = () -> org.recalculateAfterSubmitted(true);
 
         round = org.round;
         r.configRoundtrip(org);
@@ -476,12 +470,7 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // recalculateAfterSubmitted(false) calls means we suppress
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
-                org.recalculateAfterSubmitted(false);
-            }
-        };
+        org.submit = () -> org.recalculateAfterSubmitted(false);
 
         round = org.round;
         r.configRoundtrip(org);
@@ -496,12 +485,9 @@ public class ComputedFolderTest {
                 r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(true);
                 org.recalculateAfterSubmitted(true);
-            }
         };
 
         int round = org.round;
@@ -510,12 +496,9 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(true);
                 org.recalculateAfterSubmitted(false);
-            }
         };
 
         round = org.round;
@@ -524,12 +507,9 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(false);
                 org.recalculateAfterSubmitted(true);
-            }
         };
 
         round = org.round;
@@ -538,12 +518,9 @@ public class ComputedFolderTest {
         assertThat(org.round, is(round + 1));
 
         // all recalculateAfterSubmitted(false) calls means we suppress
-        org.submit = new Runnable() {
-            @Override
-            public void run() {
+        org.submit = () -> {
                 org.recalculateAfterSubmitted(false);
                 org.recalculateAfterSubmitted(false);
-            }
         };
 
         round = org.round;
@@ -665,7 +642,7 @@ public class ComputedFolderTest {
                 cfg = (HtmlForm) r.createWebClient().goTo(viewUrl).getElementById("enable-project");
                 assertNotNull(cfg);
                 r.submit(cfg);
-                assertTrue("Can enable from view " + view.getViewName(), !folder.isDisabled());
+                assertFalse("Can enable from view " + view.getViewName(), folder.isDisabled());
             } catch (Exception e) {
                 Assert.fail();
             }
@@ -907,7 +884,7 @@ public class ComputedFolderTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolderWithFoldersAsChildren extends ComputedFolder<Folder> {
 
-        List<String> kids = new ArrayList<String>();
+        List<String> kids = new ArrayList<>();
         int round;
 
         private SampleComputedFolderWithFoldersAsChildren(ItemGroup parent, String name) {
@@ -984,7 +961,7 @@ public class ComputedFolderTest {
             final ViewsTabBar tabBar = new DefaultViewsTabBar();
 
             public FixedViewHolder(ViewGroup owner) {
-                views = new ArrayList<View>(Arrays.asList(new AllView("All", owner), new ListView("Empty", owner)));
+                views = new ArrayList<>(Arrays.asList(new AllView("All", owner), new ListView("Empty", owner)));
             }
 
             @NonNull
@@ -1081,7 +1058,7 @@ public class ComputedFolderTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SecondOrderComputedFolder extends ComputedFolder<SampleComputedFolder> {
 
-        List<List<String>> metakids = new ArrayList<List<String>>();
+        List<List<String>> metakids = new ArrayList<>();
 
         private SecondOrderComputedFolder(ItemGroup parent, String name) {
             super(parent, name);
@@ -1090,7 +1067,7 @@ public class ComputedFolderTest {
         @Override
         protected void computeChildren(ChildObserver<SampleComputedFolder> observer, TaskListener listener) throws IOException, InterruptedException {
             for (List<String> kids : metakids) {
-                String childName = StringUtils.join(kids, '+');
+                String childName = String.join("+", kids);
                 listener.getLogger().println("considering " + childName);
                 SampleComputedFolder d = observer.shouldUpdate(childName);
                 try {
@@ -1115,13 +1092,13 @@ public class ComputedFolderTest {
 
         String assertItemNames(String... names) throws Exception {
             String log = doRecompute(this, this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
-            Set<String> actual = new TreeSet<String>();
+            Set<String> actual = new TreeSet<>();
             for (SampleComputedFolder d : getItems()) {
                 d.recompute(d.isDisabled() || this.isDisabled() ? Result.NOT_BUILT : Result.SUCCESS);
                 d.assertItemNames(d.round, d.kids.toArray(new String[0]));
                 actual.add(d.getName());
             }
-            assertEquals(new TreeSet<String>(Arrays.asList(names)).toString(), actual.toString());
+            assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
             return log;
         }
 
@@ -1260,7 +1237,7 @@ public class ComputedFolderTest {
 
     public static class OneUndeletableChildComputedFolder extends ComputedFolder<FreeStyleProject> {
 
-        List<String> kids = new ArrayList<String>();
+        List<String> kids = new ArrayList<>();
         int round;
 
         private OneUndeletableChildComputedFolder(ItemGroup parent, String name) {
@@ -1313,7 +1290,7 @@ public class ComputedFolderTest {
 
         void assertItemNames(int round, String... names) {
             assertEquals(round, this.round);
-            Set<String> actual = new TreeSet<String>();
+            Set<String> actual = new TreeSet<>();
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }

@@ -43,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +54,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;
@@ -216,7 +216,7 @@ public class ChildNameGeneratorRecTest {
         File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
         assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
                 nameFile.isFile(), is(true));
-        String name = FileUtils.readFileToString(nameFile, "UTF-8");
+        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
         assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
                 + " contains the encoded name", name, is(encodedName));
     }
@@ -240,7 +240,7 @@ public class ChildNameGeneratorRecTest {
             }
         }
         buf.append('-');
-        buf.append(hash.substring(0, 23));
+        buf.append(hash, 0, 23);
         return buf.toString();
     }
 
@@ -295,7 +295,7 @@ public class ChildNameGeneratorRecTest {
         }
 
         public void setFatalKids(String... fatalKids) {
-            setFatalKids(new TreeSet<String>(Arrays.asList(fatalKids)));
+            setFatalKids(new TreeSet<>(Arrays.asList(fatalKids)));
         }
 
         public List<String> getKids() {
@@ -378,11 +378,8 @@ public class ChildNameGeneratorRecTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid);
-                            try {
+                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
                                 p = new FreeStyleProject(this, encodedKid);
-                            } finally {
-                                trace.close();
                             }
                             BulkChange bc = new BulkChange(p);
                             try {
@@ -575,7 +572,7 @@ public class ChildNameGeneratorRecTest {
             }
             buffer.write(b);
         }
-        return new String(buffer.toByteArray(), StandardCharsets.UTF_8);
+        return buffer.toString(StandardCharsets.UTF_8);
     }
 
 

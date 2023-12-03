@@ -56,6 +56,6 @@ public abstract class FolderHealthMetricDescriptor extends Descriptor<FolderHeal
 
     @SuppressWarnings({"unchecked"})
     public static DescriptorExtensionList<FolderHealthMetric, FolderHealthMetricDescriptor> all() {
-        return (DescriptorExtensionList) Jenkins.get().getDescriptorList(FolderHealthMetric.class);
+        return Jenkins.get().getDescriptorList(FolderHealthMetric.class);
     }
 }
