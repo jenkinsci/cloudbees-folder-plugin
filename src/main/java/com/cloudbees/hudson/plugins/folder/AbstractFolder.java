@@ -32,7 +32,6 @@ import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.Util;
@@ -43,9 +42,7 @@ import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.AllView;
-import hudson.model.Computer;
 import hudson.model.Descriptor;
-import hudson.model.Executor;
 import hudson.model.Failure;
 import hudson.model.HealthReport;
 import hudson.model.Item;
@@ -55,7 +52,6 @@ import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.ModifiableViewGroup;
 import hudson.model.Queue;
-import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
@@ -63,14 +59,9 @@ import hudson.model.View;
 import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
-import static hudson.model.queue.Executables.getParentOf;
-import hudson.model.queue.Tasks;
-import hudson.model.queue.WorkUnit;
 import hudson.search.CollectionSearchIndex;
 import hudson.search.SearchIndexBuilder;
 import hudson.search.SearchItem;
-import hudson.security.ACL;
-import hudson.security.ACLContext;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.CopyOnWriteMap;
 import hudson.util.DescribableList;
@@ -89,8 +80,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -111,7 +100,6 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
-import jenkins.model.queue.ItemDeletion;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.apache.commons.lang.StringUtils;
@@ -1078,137 +1066,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             v.onJobRenamed(item, item.getName(), null);
         }
         save();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void delete() throws IOException, InterruptedException {
-        // Some parts copied from AbstractItem.
-        checkPermission(DELETE);
-        // TODO JENKINS-35160 core API is not reusable: we need part of AbstractItem.delete but with the deletion of children interjected (and not inside a monitor)
-        boolean responsibleForAbortingBuilds = !ItemDeletion.contains(this);
-        boolean ownsRegistration = ItemDeletion.register(this);
-        if (!ownsRegistration && ItemDeletion.isRegistered(this)) {
-            // we are not the owning thread and somebody else is concurrently deleting this exact item
-            throw new Failure(Messages.AbstractFolder_BeingDeleted(getPronoun()));
-        }
-        try {
-            // if a build is in progress. Cancel it.
-            if (responsibleForAbortingBuilds || ownsRegistration) {
-                Queue queue = Queue.getInstance();
-                if (this instanceof Queue.Task) {
-                    // clear any items in the queue so they do not get picked up
-                    queue.cancel((Queue.Task) this);
-                }
-                // now cancel any child items - this happens after ItemDeletion registration, so we can use a snapshot
-                for (Queue.Item i : queue.getItems()) {
-                    Item item = Tasks.getItemOf(i.task);
-                    while (item != null) {
-                        if (item == this) {
-                            queue.cancel(i);
-                            break;
-                        }
-                        if (item.getParent() instanceof Item) {
-                            item = (Item) item.getParent();
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                // interrupt any builds in progress (and this should be a recursive test so that folders do not pay
-                // the 15 second delay for every child item). This happens after queue cancellation, so will be
-                // a complete set of builds in flight
-                Map<Executor, Queue.Executable> buildsInProgress = new LinkedHashMap<>();
-                for (Computer c : Jenkins.get().getComputers()) {
-                    for (Executor e : c.getAllExecutors()) {
-                        WorkUnit workUnit = e.getCurrentWorkUnit();
-                        if (workUnit != null) {
-                            Queue.Executable executable = workUnit.getExecutable();
-                            if (executable != null) {
-                                Item item = Tasks.getItemOf(getParentOf(executable));
-                                if (item != null) {
-                                    while (item != null) {
-                                        if (item == this) {
-                                            buildsInProgress.put(e, e.getCurrentExecutable());
-                                            e.interrupt(Result.ABORTED);
-                                            break;
-                                        }
-                                        if (item.getParent() instanceof Item) {
-                                            item = (Item) item.getParent();
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!buildsInProgress.isEmpty()) {
-                    // give them 15 seconds or so to respond to the interrupt
-                    long expiration = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
-                    // comparison with executor.getCurrentExecutable() == computation currently should always be true
-                    // as we no longer recycle Executors, but safer to future-proof in case we ever revisit recycling
-                    while (!buildsInProgress.isEmpty() && expiration - System.nanoTime() > 0L) {
-                        // we know that ItemDeletion will prevent any new builds in the queue
-                        // ItemDeletion happens-before Queue.cancel so we know that the Queue will stay clear
-                        // Queue.cancel happens-before collecting the buildsInProgress list
-                        // thus buildsInProgress contains the complete set we need to interrupt and wait for
-                        for (Iterator<Map.Entry<Executor, Queue.Executable>> iterator =
-                             buildsInProgress.entrySet().iterator();
-                             iterator.hasNext(); ) {
-                            Map.Entry<Executor, Queue.Executable> entry = iterator.next();
-                            // comparison with executor.getCurrentExecutable() == executable currently should always be
-                            // true as we no longer recycle Executors, but safer to future-proof in case we ever
-                            // revisit recycling.
-                            if (!entry.getKey().isAlive()
-                                    || entry.getValue() != entry.getKey().getCurrentExecutable()) {
-                                iterator.remove();
-                            }
-                            // I don't know why, but we have to keep interrupting
-                            entry.getKey().interrupt(Result.ABORTED);
-                        }
-                        Thread.sleep(50L);
-                    }
-                    if (!buildsInProgress.isEmpty()) {
-                        throw new Failure(Messages.AbstractFolder_FailureToStopBuilds(
-                                buildsInProgress.size(), getFullDisplayName()
-                        ));
-                    }
-                }
-            }
-            // END of attempted reuse from JENKINS-35160
-
-            // delete individual items first
-            // (disregard whether they would be deletable in isolation)
-            // JENKINS-34939: do not hold the monitor on this folder while deleting them
-            // (thus we cannot do this inside performDelete)
-            try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
-                for (Item i : new ArrayList<Item>(items.values())) {
-                    try {
-                        i.delete();
-                    } catch (AbortException e) {
-                        throw (AbortException) new AbortException(
-                                "Failed to delete " + i.getFullDisplayName() + " : " + e.getMessage()).initCause(e);
-                    } catch (IOException e) {
-                        throw new IOException("Failed to delete " + i.getFullDisplayName(), e);
-                    }
-                }
-            }
-            synchronized (this) {
-                performDelete();
-            }
-            // TODO start of attempted reuse of JENKINS-35160
-        } finally {
-            if (ownsRegistration) {
-                ItemDeletion.deregister(this);
-            }
-        }
-        // END of attempted reuse of JENKINS-35160
-        getParent().onDeleted(AbstractFolder.this);
-        Jenkins.get().rebuildDependencyGraphAsync();
     }
 
     /**
