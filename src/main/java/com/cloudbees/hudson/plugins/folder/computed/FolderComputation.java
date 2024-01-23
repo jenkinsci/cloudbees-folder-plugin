@@ -26,7 +26,6 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import com.jcraft.jzlib.GZIPInputStream;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
@@ -76,6 +75,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
 import java.nio.charset.StandardCharsets;
+import jenkins.model.Loadable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
@@ -89,7 +89,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * A particular “run” of {@link ComputedFolder}.
  * @since 4.11-beta-1
  */
-public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable {
+public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable, Loadable {
 
     /**
      * Our logger.
@@ -203,12 +203,22 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      */
     @Override
     public void save() throws IOException {
+        LOGGER.fine(() -> "saving " + this);
         if (BulkChange.contains(this)) {
             return;
         }
         XmlFile dataFile = getDataFile();
         dataFile.write(this);
         SaveableListener.fireOnChange(this, dataFile);
+    }
+
+    @Override
+    public void load() throws IOException {
+        LOGGER.fine(() -> "loading " + this);
+        XmlFile dataFile = getDataFile();
+        if (dataFile.exists()) {
+            dataFile.unmarshal(this);
+        }
     }
 
     @NonNull
