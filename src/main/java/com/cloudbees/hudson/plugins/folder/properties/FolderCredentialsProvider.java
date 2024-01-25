@@ -524,6 +524,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             checkPermission(CredentialsProvider.UPDATE);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
             if (domainCredentialsMap.containsKey(domain)) {
+                if (current instanceof IdCredentials && replacement instanceof IdCredentials) {
+                    if (!current.equals(replacement)) {
+                        throw new IllegalArgumentException("Credentials' IDs do not match, will not update.");
+                    }
+                }
                 List<Credentials> list = domainCredentialsMap.get(domain);
                 int index = list.indexOf(current);
                 if (index == -1) {
