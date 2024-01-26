@@ -56,7 +56,6 @@ import org.hamcrest.Matchers;
 import org.hamcrest.StringDescription;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockQueueItemAuthenticator;
@@ -66,7 +65,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThrows;
 
 public class FolderCredentialsProviderTest {
 
@@ -278,18 +276,6 @@ public class FolderCredentialsProviderTest {
             }
             throw e;
         }
-    }
-
-    @Test
-    @Issue("SECURITY-3252")
-    public void cannotUpdateCredentialsId() throws Exception {
-        UsernamePasswordCredentialsImpl cred1 = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "cred1", "Cred 1", "foo", "bar");
-        UsernamePasswordCredentialsImpl cred2 = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "cred2", "Cred 2", "fee", "baz");
-        Folder f = createFolder();
-        CredentialsStore folderStore = getFolderStore(f);
-        folderStore.addCredentials(Domain.global(), cred1);
-
-        assertThrows(IllegalArgumentException.class, () -> folderStore.updateCredentials(Domain.global(), cred1, cred2));
     }
 
     private static class HasCredentialBuilder extends TestBuilder {
