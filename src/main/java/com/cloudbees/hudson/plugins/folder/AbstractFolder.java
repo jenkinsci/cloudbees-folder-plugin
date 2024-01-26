@@ -497,6 +497,33 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return configurations;
     }
 
+    @Override
+    public String getItemName(File dir, I item) {
+        ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator = childNameGenerator();
+        String itemName;
+        if (childNameGenerator == null) {
+            itemName = dir.getName();
+        } else {
+            File nameFile = new File(dir, ChildNameGenerator.CHILD_NAME_FILE);
+            if (nameFile.isFile()) {
+                try {
+                    itemName = StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8));
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, e, () ->"Caught an IOException while trying to read " + nameFile + ", assuming child name is " + dir.getName());
+                    itemName = null;
+                }
+                if (itemName == null) {
+                    LOGGER.log(Level.WARNING, "{0} was empty, assuming child name is {1}", new Object[]{nameFile, dir.getName()});
+                    itemName = dir.getName();
+                }
+            } else {
+                itemName = dir.getName();
+            }
+        }
+        String finalItemName = itemName;
+        LOGGER.log(Level.FINE, () -> "itemName = " + finalItemName);
+        return itemName;
+    }
 
     protected final I itemsPut(String name, I item) {
         ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator = childNameGenerator();
