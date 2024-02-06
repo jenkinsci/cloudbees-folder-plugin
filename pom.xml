@@ -21,7 +21,7 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins.version>2.443-rc34587.821dd1a_8eed9</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/8902 -->
+    <jenkins.version>2.444</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
   </properties>
