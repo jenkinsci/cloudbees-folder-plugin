@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import hudson.BulkChange;
 import hudson.Util;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -33,12 +34,19 @@ import hudson.model.ItemGroup;
 import hudson.model.JobProperty;
 import hudson.model.TopLevelItem;
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.WeakHashMap;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.TransientActionFactory;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Provides a way for a {@link ComputedFolder} to break the association between the directory names on disk
@@ -80,6 +88,7 @@ import jenkins.model.TransientActionFactory;
  */
 // TODO migrate this functionality (by changing the base class) into core once baseline Jenkins has JENKINS-41222 merged
 public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends TopLevelItem> {
+    private static final Logger LOGGER = Logger.getLogger(ChildNameGenerator.class.getName());
     /**
      * The name of the file that contains the actual name of the child item. This file is to allow a Jenkins
      * Administrator to determine which child is which when dealing with a folder containing child names that have
@@ -185,6 +194,73 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     @CheckForNull
     public abstract String dirNameFromItem(@NonNull P parent, @NonNull I item);
 
+    public static class ResultWithOptionalSave<I> {
+        private final I wrapped;
+        private final boolean itemNeedsSave;
+
+        private ResultWithOptionalSave(I wrapped, boolean itemNeedsSave) {
+            this.wrapped = wrapped;
+            this.itemNeedsSave = itemNeedsSave;
+        }
+
+        public I getWrapped() {
+            return wrapped;
+        }
+
+        public boolean isItemNeedsSave() {
+            return itemNeedsSave;
+        }
+
+        @Override
+        public String toString() {
+            return "FileResult{" +
+                    "file=" + wrapped +
+                    ", itemNeedsSave=" + itemNeedsSave +
+                    '}';
+        }
+    }
+
+    /**
+     * Ensures that the item is stored in the correct directory, and moves it if necessary.
+     *
+     * @param parent the parent of the given item.
+     * @param item the item to determine directory for.
+     * @param legacyDir The directory name that we are loading an item from.
+     * @return a reference to the (new) directory storing the item, and whether the item needs to be saved.
+     * @throws IOException
+     */
+    @NonNull
+    public final ResultWithOptionalSave<File> ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
+        String legacyName = legacyDir.getName();
+        String dirName = dirNameFromItem(parent, item);
+        File newSubdir;
+        boolean itemNeedsSave = false;
+        if (dirName == null) {
+            dirName = dirNameFromLegacy(parent, legacyName);
+            newSubdir = parent.getRootDirFor(dirName);
+            // suppress any attempt to save as parent not set
+            try (BulkChange ignored = new BulkChange(item)) {
+                recordLegacyName(parent, item, legacyName);
+                itemNeedsSave = true;
+            } catch (IOException e) {
+                throw new IOException("Failed to load " + dirName + " as could not record legacy name", e);
+            }
+        } else {
+            newSubdir = parent.getRootDirFor(dirName);
+        }
+        if (!legacyName.equals(dirName)) {
+            if (!newSubdir.exists()) {
+                LOGGER.log(Level.INFO, () -> "Moving " + legacyDir + " to " + newSubdir + " in accordance with folder naming rules");
+                if (!legacyDir.renameTo(newSubdir)) {
+                    throw new IOException("Failed to move " + legacyDir + " to " + newSubdir);
+                }
+            } else {
+                throw new IOException("Cannot move " + legacyDir + " to " + newSubdir + " as it already exists");
+            }
+        }
+        return new ResultWithOptionalSave<>(newSubdir, itemNeedsSave);
+    }
+
     /**
      * {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} could not help, we are loading the item for the first
      * time since the {@link ChildNameGenerator} was enabled for the parent folder type, this method's mission is
@@ -241,6 +317,58 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @throws IOException if the ideal name could not be attached to the item.
      */
     public abstract void recordLegacyName(P parent, I item, String legacyDirName) throws IOException;
+
+    /**
+     * Reads an item name from the given directory.
+     * @param directory the directory containing the item.
+     * @return The item name obtained from the directory, or the directory name if the name file is missing or empty.
+     */
+    @NonNull
+    public final String readItemName(@NonNull File directory) {
+        String childName = directory.getName();
+        File nameFile = new File(directory, CHILD_NAME_FILE);
+        if (nameFile.isFile()) {
+            try {
+                childName = StringUtils.defaultString(StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8)), directory.getName());
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, () -> "Could not read "+ nameFile + ", assuming child name is " + directory.getName());
+            }
+        }
+        return childName;
+    }
+
+    /**
+     * Writes the item name to the given directory.
+     * @param parent The parent folder of the item.
+     * @param item The item we want to write the name for.
+     * @param itemDirectory The directory where the item is stored.
+     * @param childName The desired name for the item.
+     * @return The name that was written to the directory, and whether the item needs to be saved.
+     */
+    @NonNull
+    public final ResultWithOptionalSave<String> writeItemName(@NonNull P parent, @NonNull I item, @NonNull File itemDirectory, @NonNull String childName) {
+        boolean itemNeedsSave = false;
+        String name = itemNameFromItem(parent, item);
+        if (name == null) {
+            name = itemNameFromLegacy(parent, childName);
+            // suppress any attempt to save as parent not set
+            try (BulkChange ignored = new BulkChange(item)) {
+                recordLegacyName(parent, item, childName);
+                itemNeedsSave = true;
+            } catch (IOException e) {
+                // ditto above exception
+                throw new UncheckedIOException("Failed to load " + name + " as could not record legacy name", e);
+            }
+        }
+        File nameFile = new File(itemDirectory, CHILD_NAME_FILE);
+        try {
+            Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            // Unfortunately not all callers of this method throw IOException, so we need to go unchecked
+            throw new UncheckedIOException("Failed to load " + name + " as could not write " + nameFile, e);
+        }
+        return new ResultWithOptionalSave<>(name, itemNeedsSave);
+    }
 
     /**
      * Traces the creation of a new {@link Item} in a folder. Use
