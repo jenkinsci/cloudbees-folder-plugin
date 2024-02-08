@@ -33,6 +33,7 @@ import hudson.Util;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.JobProperty;
 import hudson.model.JobPropertyDescriptor;
@@ -271,14 +272,12 @@ public class ChildNameGeneratorAltTest {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
+        var itemRootDir = item.getRootDir();
         assertThat("The root directory if the item for name " + idealName + " is mangled",
-                item.getRootDir().getName(), is(mangle(idealName)));
-        File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
-        assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
-                nameFile.isFile(), is(true));
-        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
-        assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
-                + " contains the encoded name", name, is(encodedName));
+                itemRootDir.getName(), is(mangle(idealName)));
+        var loadedItemFromDisk = (FreeStyleProject) Items.load(instance, itemRootDir);
+        var itemName = instance.getItemName(itemRootDir, loadedItemFromDisk);
+        assertThat("The item name after reading back the item root dir should be encoded", itemName, is(encodedName));
     }
 
     public static String encode(String s) {
