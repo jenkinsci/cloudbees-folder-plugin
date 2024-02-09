@@ -86,7 +86,6 @@ import org.apache.commons.lang.StringUtils;
  * @param <I> the type of {@link TopLevelItem} within the folder.
  * @since 5.17
  */
-// TODO migrate this functionality (by changing the base class) into core once baseline Jenkins has JENKINS-41222 merged
 public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends TopLevelItem> {
     private static final Logger LOGGER = Logger.getLogger(ChildNameGenerator.class.getName());
     /**
@@ -194,7 +193,16 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     @CheckForNull
     public abstract String dirNameFromItem(@NonNull P parent, @NonNull I item);
 
-    public static class ResultWithOptionalSave<I> {
+    @NonNull
+    final String dirName(@NonNull P parent, @NonNull I item) {
+        var name = dirNameFromItem(parent, item);
+        if (name == null) {
+            name = dirNameFromLegacy(parent, item.getName());
+        }
+        return name;
+    }
+
+    static class ResultWithOptionalSave<I> {
         private final I wrapped;
         private final boolean itemNeedsSave;
 
@@ -203,11 +211,11 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
             this.itemNeedsSave = itemNeedsSave;
         }
 
-        public I getWrapped() {
+        I getWrapped() {
             return wrapped;
         }
 
-        public boolean isItemNeedsSave() {
+        boolean isItemNeedsSave() {
             return itemNeedsSave;
         }
 
@@ -227,10 +235,10 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @param item the item to determine directory for.
      * @param legacyDir The directory name that we are loading an item from.
      * @return a reference to the (new) directory storing the item, and whether the item needs to be saved.
-     * @throws IOException
+     * @throws IOException In case something went wrong while setting up the expected result directory.
      */
     @NonNull
-    public final ResultWithOptionalSave<File> ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
+    final ResultWithOptionalSave<File> ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
         String legacyName = legacyDir.getName();
         String dirName = dirNameFromItem(parent, item);
         File newSubdir;

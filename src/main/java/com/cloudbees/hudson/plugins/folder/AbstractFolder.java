@@ -335,7 +335,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         Map<String,V> byDirName = new HashMap<>();
         if (parent.items != null) {
             for (V item : parent.items.values()) {
-                byDirName.put(childNameGenerator.dirNameFromItem(parent, item), item);
+                byDirName.put(childNameGenerator.dirName(parent, item), item);
             }
         }
         for (File subdir : subdirs) {
@@ -491,12 +491,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public File getRootDirFor(I child) {
-        var childNameGenerator = childNameGenerator();
-        var name = childNameGenerator.dirNameFromItem(this, child);
-        if (name == null) {
-            name = childNameGenerator.dirNameFromLegacy(this, child.getName());
-        }
-        return getRootDirFor(name);
+        return getRootDirFor(childNameGenerator().dirName(this, child));
     }
 
     /**
