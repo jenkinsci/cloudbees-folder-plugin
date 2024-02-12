@@ -26,7 +26,6 @@ package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.TopLevelItem;
@@ -36,6 +35,7 @@ import hudson.views.ViewsTabBar;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.jenkins.ui.icon.IconSpec;
@@ -216,41 +216,9 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      */
     // TODO figure out how one could un-wind name mangling if one ever wanted to
     // TODO move the name mangling code from branch-api to this plugin so that everyone can use it
-    @NonNull
+    @CheckForNull
     public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
-        return new LegacyChildNameGenerator<>();
+        return null;
     }
 
-    /**
-     * A {@link ChildNameGenerator} that does not mangle the names of child items.
-     * @param <I>
-     */
-    private static class LegacyChildNameGenerator<I extends TopLevelItem>  extends ChildNameGenerator<AbstractFolder<I>,I> {
-        @Override
-        public String itemNameFromItem(@NonNull AbstractFolder<I> parent, @NonNull I item) {
-            return item.getName();
-        }
-
-        @Override
-        public String dirNameFromItem(@NonNull AbstractFolder<I> parent, @NonNull I item) {
-            return item.getName();
-        }
-
-        @NonNull
-        @Override
-        public String itemNameFromLegacy(@NonNull AbstractFolder<I> parent, @NonNull String legacyDirName) {
-            return legacyDirName;
-        }
-
-        @NonNull
-        @Override
-        public String dirNameFromLegacy(@NonNull AbstractFolder<I> parent, @NonNull String legacyDirName) {
-            return legacyDirName;
-        }
-
-        @Override
-        public void recordLegacyName(AbstractFolder<I> parent, I item, String legacyDirName) {
-            // no-op
-        }
-    }
 }
