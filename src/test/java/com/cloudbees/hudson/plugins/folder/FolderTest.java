@@ -184,6 +184,12 @@ public class FolderTest {
                 .getPage(request).getWebResponse().getStatusCode());
     }
 
+    @Test public void itemName() throws IOException {
+        Folder f = createFolder();
+        var foo = f.createProject(FreeStyleProject.class, "foo");
+        assertEquals("foo", f.getItemName(foo.getRootDir(), foo));
+    }
+
     /**
      * When copying a folder, its contents need to be recursively copied.
      */
