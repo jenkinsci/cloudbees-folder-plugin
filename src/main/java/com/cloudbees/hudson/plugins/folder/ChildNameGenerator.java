@@ -246,12 +246,14 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
         if (dirName == null) {
             dirName = dirNameFromLegacy(parent, legacyName);
             newSubdir = parent.getRootDirFor(dirName);
-            // suppress any attempt to save as parent not set
-            try (BulkChange ignored = new BulkChange(item)) {
-                recordLegacyName(parent, item, legacyName);
-                itemNeedsSave = true;
-            } catch (IOException e) {
-                throw new IOException("Failed to load " + dirName + " as could not record legacy name", e);
+            if (!legacyName.equals(dirName)) {
+                // suppress any attempt to save as parent not set
+                try (BulkChange ignored = new BulkChange(item)) {
+                    recordLegacyName(parent, item, legacyName);
+                    itemNeedsSave = true;
+                } catch (IOException e) {
+                    throw new IOException("Failed to load " + dirName + " as could not record legacy name", e);
+                }
             }
         } else {
             newSubdir = parent.getRootDirFor(dirName);
@@ -360,16 +362,22 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
         if (name == null) {
             name = itemNameFromLegacy(parent, childName);
             // suppress any attempt to save as parent not set
-            try (BulkChange ignored = new BulkChange(item)) {
-                recordLegacyName(parent, item, childName);
-                itemNeedsSave = true;
-            } catch (IOException e) {
-                // ditto above exception
-                throw new UncheckedIOException("Failed to load " + name + " as could not record legacy name", e);
+            if (!childName.equals(name)) {
+                try (BulkChange ignored = new BulkChange(item)) {
+                    recordLegacyName(parent, item, childName);
+                    itemNeedsSave = true;
+                } catch (IOException e) {
+                    // ditto above exception
+                    throw new UncheckedIOException("Failed to load " + name + " as could not record legacy name", e);
+                }
             }
         }
         File nameFile = new File(itemDirectory, CHILD_NAME_FILE);
         try {
+            var itemPath = itemDirectory.toPath();
+            if (Files.notExists(itemPath)) {
+                Files.createDirectories(itemPath);
+            }
             Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
         } catch (IOException e) {
             // Unfortunately not all callers of this method throw IOException, so we need to go unchecked
