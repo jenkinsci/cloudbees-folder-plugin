@@ -126,6 +126,22 @@ public class FolderTest {
         assertSame(r.jenkins.getItem("newName"),f);
     }
 
+    @Test public void renameProgrammatically() throws Exception {
+        Folder f = createFolder();
+        var folderFullName = f.getFullName();
+        FreeStyleProject fsProject = new FreeStyleProject(f, "p1");
+        f.add(fsProject, "p1");
+        assertSame(fsProject, Jenkins.get().getItemByFullName(folderFullName + "/p1"));
+        f.renameTo("newName");
+        var itemAfterFolderRename = Jenkins.get().getItemByFullName("newName/p1", FreeStyleProject.class);
+        assertNotNull(itemAfterFolderRename);
+        itemAfterFolderRename.renameTo("newP1");
+        assertEquals("newP1", itemAfterFolderRename.getParent().getItemName(itemAfterFolderRename.getRootDir(), itemAfterFolderRename));
+        var itemAfterRename = Jenkins.get().getItemByFullName("newName/newP1", FreeStyleProject.class);
+        assertNotNull(itemAfterRename);
+        assertEquals("newName/newP1", itemAfterRename.getFullName());
+    }
+
     @Test public void configRoundtrip() throws Exception {
         Folder f = createFolder();
         r.configRoundtrip(f);
@@ -182,6 +198,12 @@ public class FolderTest {
         request.setEncodingType(null);
         assertEquals("Copy Job request has failed", 200, r.createWebClient()
                 .getPage(request).getWebResponse().getStatusCode());
+    }
+
+    @Test public void itemName() throws IOException {
+        Folder f = createFolder();
+        var foo = f.createProject(FreeStyleProject.class, "foo");
+        assertEquals("foo", f.getItemName(foo.getRootDir(), foo));
     }
 
     /**
