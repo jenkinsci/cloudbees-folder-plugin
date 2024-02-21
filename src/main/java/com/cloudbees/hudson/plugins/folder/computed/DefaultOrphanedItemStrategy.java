@@ -27,7 +27,6 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.model.AbstractProject;
 import hudson.model.Executor;
 import hudson.model.Job;
 import hudson.model.Result;
@@ -37,8 +36,6 @@ import hudson.model.TopLevelItem;
 import hudson.tasks.LogRotator;
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -46,6 +43,7 @@ import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
 import jenkins.model.Jenkins;
+import jenkins.model.ParameterizedJobMixIn;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -233,19 +231,12 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     }
 
     private static boolean disabled(TopLevelItem item) {
-        // TODO revisit once on 2.61+ for https://github.com/jenkinsci/jenkins/pull/2866
         if (item instanceof AbstractFolder) {
             return ((AbstractFolder) item).isDisabled();
-        } else if (item instanceof AbstractProject) {
-            return ((AbstractProject) item).isDisabled();
+        } else if (item instanceof ParameterizedJobMixIn.ParameterizedJob) {
+            return ((ParameterizedJobMixIn.ParameterizedJob) item).isDisabled();
         } else {
-            try {
-                Method isDisabled = item.getClass().getMethod("isDisabled");
-                return boolean.class.equals(isDisabled.getReturnType()) && (Boolean)isDisabled.invoke(item);
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                // assume not disabled
-                return false;
-            }
+            return false;
         }
     }
 

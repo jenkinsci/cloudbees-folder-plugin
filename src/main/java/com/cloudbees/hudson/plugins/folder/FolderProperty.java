@@ -60,6 +60,7 @@ public abstract class FolderProperty<C extends Folder> extends AbstractFolderPro
      * @deprecated Use {@link TransientActionFactory} instead.
      */
     @NonNull
+    @Deprecated
     public Collection<? extends Action> getFolderActions() {
         return Collections.emptyList();
     }

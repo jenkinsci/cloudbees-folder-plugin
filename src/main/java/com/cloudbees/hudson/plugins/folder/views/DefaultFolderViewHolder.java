@@ -25,34 +25,21 @@
 package com.cloudbees.hudson.plugins.folder.views;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AllView;
 import hudson.model.View;
 import hudson.views.ViewsTabBar;
 import java.io.ObjectStreamException;
-import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * The default implementation of {@link AbstractFolderViewHolder} which allows all the elements to be modified.
  */
 public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
-    /**
-     * Our logger.
-     */
-    private static final Logger LOGGER = Logger.getLogger(DefaultFolderViewHolder.class.getName());
 
-    private static final Boolean MIGRATE_ALLVIEW = Boolean.valueOf(System.getProperty(AllView.class.getName()+".JENKINS-38606", "true"));
     /**
      * The views.
      */
@@ -139,58 +126,9 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
 
     private Object readResolve() throws ObjectStreamException {
         if (primaryView != null) {
-            primaryView = migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
+            primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
         }
         return this;
-    }
-
-    // TODO 2.86 JENKINS-47416: use method in AllView
-    @Restricted(NoExternalUse.class)
-    @NonNull
-    public static String migrateLegacyPrimaryAllViewLocalizedName(@NonNull List<View> views,
-                                                                  @NonNull String primaryView) {
-        if (AllView.DEFAULT_VIEW_NAME.equals(primaryView)) {
-            // modern name, we are safe
-            return primaryView;
-        }
-        if (MIGRATE_ALLVIEW) {
-            AllView allView = null;
-            for (View v : views) {
-                if (AllView.DEFAULT_VIEW_NAME.equals(v.getViewName())) {
-                    // name conflict, we cannot rename the all view anyway
-                    return primaryView;
-                }
-                if (StringUtils.equals(v.getViewName(), primaryView)) {
-                    if (v instanceof AllView) {
-                        allView = (AllView) v;
-                    } else {
-                        // none of our business fixing as we can only safely fix the primary view
-                        return primaryView;
-                    }
-                }
-            }
-            if (allView != null) {
-                // the primary view is an AllView but using a non-default name
-                for (Locale l : Locale.getAvailableLocales()) {
-                    if (primaryView.equals(Messages._Hudson_ViewName().toString(l))) {
-                        // bingo JENKINS-38606 detected
-                        LOGGER.log(Level.INFO,
-                                "JENKINS-38606 detected for AllView in {0}; renaming view from {1} to {2}",
-                                new Object[]{allView.getOwner(), primaryView, AllView.DEFAULT_VIEW_NAME}); // PATCHED
-                        try {
-                            Field name = View.class.getDeclaredField("name");
-                            name.setAccessible(true);
-                            name.set(allView, AllView.DEFAULT_VIEW_NAME);
-                        } catch (Exception x) {
-                            LOGGER.log(Level.WARNING, null, x);
-                            return primaryView;
-                        }
-                        return AllView.DEFAULT_VIEW_NAME;
-                    }
-                }
-            }
-        }
-        return primaryView;
     }
 
 }

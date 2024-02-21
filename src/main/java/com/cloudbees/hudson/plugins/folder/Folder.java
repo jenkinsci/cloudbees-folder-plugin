@@ -78,12 +78,14 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
+    @Deprecated
     private transient DescribableList<ListViewColumn, Descriptor<ListViewColumn>> columns;
 
     /**
      * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
+    @Deprecated
     private transient DescribableList<ViewJobFilter, Descriptor<ViewJobFilter>> filters;
 
     private transient /*final*/ ItemGroupMixIn mixin;
@@ -118,6 +120,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void initViews(List<View> views) throws IOException {
         if (columns != null || filters != null) {
             // we're loading an ancient config
@@ -197,6 +200,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @deprecated as of 1.7
      *             Folder is no longer a view by itself.
      */
+    @Deprecated
     public DescribableList<ListViewColumn, Descriptor<ListViewColumn>> getColumns() {
         return new DescribableList<>(this,
                 ListViewColumn.createDefaultInitialColumnList());
@@ -313,7 +317,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
                 return false;
             }
         }
-        if (!getACL().hasCreatePermission(Jenkins.getAuthentication(), this, tid)) {
+        if (!getACL().hasCreatePermission2(Jenkins.getAuthentication2(), this, tid)) {
             return false;
         }
         return tid.isApplicableIn(this);
