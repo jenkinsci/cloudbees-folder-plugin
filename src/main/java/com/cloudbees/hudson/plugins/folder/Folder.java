@@ -347,10 +347,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         if (!canAdd(item)) {
             throw new IllegalArgumentException();
         }
-        if (items.containsKey(name)) {
-            throw new IllegalArgumentException("already an item '" + name + "'");
-        }
-        itemsPut(item.getName(), item);
+        addLoadedChild(item, name);
         return item;
     }
 

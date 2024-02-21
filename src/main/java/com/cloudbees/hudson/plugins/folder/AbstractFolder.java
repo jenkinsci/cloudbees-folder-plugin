@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
@@ -94,6 +95,7 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletException;
+import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
@@ -101,6 +103,7 @@ import jenkins.model.TransientActionFactory;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AccessDeniedException;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.Beta;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
@@ -147,6 +150,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     private static final AtomicInteger jobEncountered = new AtomicInteger();
     private static final AtomicBoolean loadJobTotalRan = new AtomicBoolean();
     private static final int TICK_INTERVAL = 15000;
+
+    /** Whether execution is currently inside {@link #reloadThis}. */
+    @Restricted(NoExternalUse.class)
+    protected static final ThreadLocal<Boolean> reloadingThis = ThreadLocal.withInitial(() -> false);
 
     @Initializer(before=InitMilestone.JOB_LOADED, fatal=false)
     public static void loadJobTotal() {
@@ -405,12 +412,49 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /**
+     * Reloads this folder itself.
+     * Compared to {@link #load}, this method skips parts of {@link #onLoad} such as the call to {@link #loadChildren}.
+     * Nor will it set {@link Items#whileUpdatingByXml}.
+     * In the case of a {@link ComputedFolder} it also will not call {@link FolderComputation#load}.
+     */
+    @SuppressWarnings("unchecked")
+    @Restricted(Beta.class)
+    public void reloadThis() throws IOException {
+        LOGGER.fine(() -> "reloadThis " + this);
+        checkPermission(Item.CONFIGURE);
+        getConfigFile().unmarshal(this);
+        boolean old = reloadingThis.get();
+        try {
+            reloadingThis.set(true);
+            onLoad(getParent(), getParent().getItemName(getRootDir(), this));
+        } finally {
+            reloadingThis.set(old);
+        }
+    }
+
+    /**
+     * Adds an item to be the folder which was already loaded via {@link Items#load}.
+     * Unlike {@link DirectlyModifiableTopLevelItemGroup#add} this can be used even on a {@link ComputedFolder}.
+     */
+    @Restricted(Beta.class)
+    public void addLoadedChild(I item, String name) throws IOException, IllegalArgumentException {
+        if (items.containsKey(name)) {
+            throw new IllegalArgumentException("already an item '" + name + "'");
+        }
+        itemsPut(item.getName(), item);
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
         init();
+        if (reloadingThis.get()) {
+            LOGGER.fine(() -> this + " skipping the rest of onLoad");
+            return;
+        }
         final Thread t = Thread.currentThread();
         String n = t.getName();
         try {
