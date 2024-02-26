@@ -45,6 +45,7 @@ public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDes
      * @return all {@link AbstractFolderPropertyDescriptor} applicable to the supplied type of folder.
      * @deprecated Use {@link AbstractFolderPropertyDescriptor#getApplicableDescriptors} instead.
      */
+    @Deprecated
     public static List<FolderPropertyDescriptor> getPropertyDescriptors(Class<? extends Folder> containerType) {
         List<FolderPropertyDescriptor> r = new ArrayList<>();
         for (FolderPropertyDescriptor p : ExtensionList.lookup(FolderPropertyDescriptor.class))

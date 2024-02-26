@@ -99,7 +99,6 @@ import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
 import net.sf.json.JSONObject;
-import org.acegisecurity.AccessDeniedException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpRedirect;
@@ -112,6 +111,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * A general-purpose {@link ItemGroup}.
@@ -236,7 +236,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (folderViews == null) {
             if (views != null && !views.isEmpty()) {
                 if (primaryView != null) {
-                    primaryView = DefaultFolderViewHolder.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
+                    primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
                 }
                 folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
                         : viewsTabBar);
@@ -860,9 +860,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /**
-     * Gets all the items in this collection in a read-only view that matches supplied Predicate
+     * {@inheritDoc}
      */
-    // TODO: @Override and inherit docs once baseline is above 2.222
+    @Override
     public Collection<I> getItems(Predicate<I> pred) {
         List<I> viewableItems = new ArrayList<>();
         for (I item : items.values()) {
@@ -1095,7 +1095,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
         ProjectNamingStrategy namingStrategy = Jenkins.get().getProjectNamingStrategy();
             if (namingStrategy.isForceExistingJobs()) {
-                namingStrategy.checkName(name);
+                namingStrategy.checkName(getParent().getFullName(), name);
             }
             FormApply.success(getSuccessfulDestination()).generateResponse(req, rsp, this);
     }

@@ -73,7 +73,7 @@ import java.util.TreeSet;
 import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
-import org.acegisecurity.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -375,12 +375,12 @@ public class FolderTest {
                 grant(Item.READ).onItems(d).toEveryone().
                 grant(Item.READ).onItems(p1).to("alice"));
         FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
-        ACL.impersonate(Jenkins.ANONYMOUS, () -> {
+        try (var context = ACL.as2(Jenkins.ANONYMOUS2)) {
                 assertEquals(Collections.emptyList(), d.getItems());
                 assertNull(d.getItem("p1"));
                 assertNull(d.getItem("p2"));
-        });
-        ACL.impersonate(User.get("alice").impersonate(), () -> {
+        }
+        try (var context = ACL.as2(User.getById("alice", true).impersonate2())) {
                 assertEquals(Collections.singletonList(p1), d.getItems());
                 assertEquals(p1, d.getItem("p1"));
                 try {
@@ -389,7 +389,7 @@ public class FolderTest {
                 } catch (AccessDeniedException x) {
                     // correct
                 }
-        });
+        }
     }
 
     @Test public void addAction() throws Exception {
@@ -498,7 +498,7 @@ public class FolderTest {
         try (ACLContext ctx = ACL.as(User.get("alice", true, Collections.emptyMap()))) {
             assertTrue(f.hasVisibleItems());
         }
-        try (ACLContext ctx = ACL.as(Jenkins.ANONYMOUS)) {
+        try (ACLContext ctx = ACL.as2(Jenkins.ANONYMOUS2)) {
             assertFalse(f.hasVisibleItems());
         }
         child.delete();
