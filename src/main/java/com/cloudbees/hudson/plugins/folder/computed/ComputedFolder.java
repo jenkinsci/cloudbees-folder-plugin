@@ -209,6 +209,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
+        if (reloadingThis.get()) {
+            LOGGER.fine(() -> this + " skipping the rest of onLoad");
+            return;
+        }
         try {
             FileUtils.forceMkdir(getComputationDir());
         } catch (IOException x) {

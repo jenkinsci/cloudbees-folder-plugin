@@ -23,7 +23,6 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import antlr.ANTLRException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -60,10 +59,9 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
      * Constructor.
      *
      * @param interval the interval.
-     * @throws ANTLRException impossible but we cannot suppress it
      */
     @DataBoundConstructor
-    public PeriodicFolderTrigger(String interval) throws ANTLRException {
+    public PeriodicFolderTrigger(String interval) {
         super(toCrontab(interval));
         long intervalMillis = toIntervalMillis(interval);
         this.interval = intervalMillis;

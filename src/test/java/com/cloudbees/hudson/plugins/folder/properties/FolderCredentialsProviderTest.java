@@ -47,10 +47,8 @@ import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
-import org.acegisecurity.Authentication;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.StringDescription;
@@ -162,9 +160,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
-        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -189,9 +185,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
-        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -220,9 +214,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
-        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -263,9 +255,7 @@ public class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        HashMap<String, Authentication> jobsToUsers = new HashMap<>();
-        jobsToUsers.put(prj.getFullName(), User.getOrCreateByIdOrFullName("bob").impersonate());
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator(jobsToUsers);
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
