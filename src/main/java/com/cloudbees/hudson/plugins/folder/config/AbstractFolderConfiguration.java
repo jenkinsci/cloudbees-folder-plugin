@@ -5,8 +5,10 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import hudson.Extension;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import hudson.security.Permission;
 import hudson.util.DescribableList;
 import jenkins.model.GlobalConfiguration;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -22,6 +24,13 @@ import java.util.List;
 public class AbstractFolderConfiguration extends GlobalConfiguration {
 
     private List<FolderHealthMetric> healthMetrics;
+
+
+    @NonNull
+    @Override
+    public Permission getRequiredGlobalConfigPagePermission() {
+        return Jenkins.MANAGE;
+    }
 
     @NonNull
     public static AbstractFolderConfiguration get() {
