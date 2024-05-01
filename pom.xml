@@ -24,7 +24,9 @@
     <jenkins.version>2.454</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
+    <useBeta>true</useBeta> <!-- needed for Jenkins.MANAGE support -->
   </properties>
+
   <licenses>
     <license>
       <name>MIT</name>
