@@ -24,6 +24,7 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CopyOnWrite;
 import hudson.Extension;
 import hudson.Util;
@@ -270,15 +271,16 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return nue;
     }
 
-    public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name));
+    public <T extends TopLevelItem> T createProject(@NonNull Class<T> type, @NonNull String name) throws IOException {
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptorOrDie(type), name));
     }
 
-    public TopLevelItem createProject(TopLevelItemDescriptor type, String name) throws IOException {
+    public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name) throws IOException {
         return createProject(type, name, true);
     }
 
-    public TopLevelItem createProject(TopLevelItemDescriptor type, String name, boolean notify) throws IOException {
+    @Override
+    public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify) throws IOException {
         if (!isAllowedChildDescriptor(type)) {
             throw new IOException("forbidden child type");
         }

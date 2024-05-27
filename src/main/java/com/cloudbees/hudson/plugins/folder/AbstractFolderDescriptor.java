@@ -155,7 +155,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
      */
     @Override
     public String getIconClassName() {
-        return "icon-folder";
+        return "symbol-folder-outline plugin-ionicons-api";
     }
 
     public boolean isIconConfigurable() {
