@@ -25,7 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
-import com.jcraft.jzlib.GZIPInputStream;
+import java.util.zip.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
