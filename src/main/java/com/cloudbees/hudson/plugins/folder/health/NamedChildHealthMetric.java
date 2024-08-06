@@ -33,6 +33,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import hudson.Extension;
 import hudson.model.AutoCompletionCandidates;
@@ -42,7 +43,7 @@ import hudson.model.ItemGroup;
 
 /**
  * A health metric for a named child item.
- * 
+ *
  * @author strangelookingnerd
  *
  */
@@ -52,7 +53,7 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
     /**
      * Ctor.
-     * 
+     *
      * @param childName
      *            name of the child
      */
@@ -80,7 +81,7 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
     /**
      * Descriptor Implementation.
-     * 
+     *
      * @author strangelookingnerd
      *
      */
@@ -101,13 +102,14 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
         /**
          * Auto-completion for the "child names" field in the configuration.
-         * 
+         *
          * @param value
          *            the input
          * @param container
          *            the context
          * @return the candidates
          */
+        @RequirePOST
         @Restricted(DoNotUse.class)
         public AutoCompletionCandidates doAutoCompleteChildName(@QueryParameter String value,
                 @AncestorInPath ItemGroup<Item> container) {
@@ -127,7 +129,7 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
 
         /**
          * Ctor.
-         * 
+         *
          * @param childName
          *            name of the child
          */
