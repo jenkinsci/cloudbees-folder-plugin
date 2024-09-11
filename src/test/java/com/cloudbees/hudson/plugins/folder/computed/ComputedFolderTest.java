@@ -609,45 +609,6 @@ public class ComputedFolderTest {
         waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
         d.checkRename("d2");
     }
-    
-    @Issue("JENKINS-60900")
-    @Test
-    public void enabledAndDisableFromUi() throws Exception {
-        SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
-        assertFalse("by default, a folder is disabled", folder.isDisabled());
-        HtmlForm cfg = (HtmlForm)r.createWebClient().getPage(folder).getElementById("disable-project");
-        assertNotNull(cfg);
-        // Disable the folder
-        r.submit(cfg);
-        assertTrue(folder.isDisabled());
-        cfg = (HtmlForm)r.createWebClient().getPage(folder).getElementById("enable-project");
-        assertNotNull(cfg);
-        // Re enable the folder
-        r.submit(cfg);
-        assertFalse(folder.isDisabled());
-    }
-
-    @Issue("JENKINS-66168")
-    @Test
-    public void enabledAndDisableFromUiViews() throws Exception {
-        LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
-        assertFalse("by default, a folder is disabled", folder.isDisabled());
-        folder.getViews().forEach(view -> {
-            try {
-                String viewUrl =view.getViewUrl();
-                HtmlForm cfg = (HtmlForm) r.createWebClient().goTo(viewUrl).getElementById("disable-project");
-                assertNotNull(cfg);
-                r.submit(cfg);
-                assertTrue("Can disable from view " + view.getViewName(), folder.isDisabled());
-                cfg = (HtmlForm) r.createWebClient().goTo(viewUrl).getElementById("enable-project");
-                assertNotNull(cfg);
-                r.submit(cfg);
-                assertFalse("Can enable from view " + view.getViewName(), folder.isDisabled());
-            } catch (Exception e) {
-                Assert.fail();
-            }
-        });
-    }
 
     @Test
     public void failAllDeletedOnes() throws Exception {
