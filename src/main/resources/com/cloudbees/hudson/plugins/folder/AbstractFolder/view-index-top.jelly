@@ -42,9 +42,6 @@ THE SOFTWARE.
         <l:breakable value="${it.displayName}"/>
       </h1>
     </div>
-    <div class="jenkins-app-bar__controls">
-      <t:editDescriptionButton description="${it.primaryView.description}" permission="${it.CONFIGURE}"/>
-    </div>
   </div>
   <j:if test="${(it.fullName!=it.fullDisplayName)}">
     <j:choose>
@@ -57,11 +54,12 @@ THE SOFTWARE.
     </j:choose>
   </j:if>
   <div id="view-message">
-    <div id="systemmessage">
-      <j:out value="${app.systemMessage!=null ? app.markupFormatter.translate(app.systemMessage) : ''}"/>
-    </div>
-    <t:editableDescription description="${it.primaryView.description}" permission="${it.CONFIGURE}" hideButton="true"/>
+      <div id="systemmessage">
+          <j:out value="${app.systemMessage!=null ? app.markupFormatter.translate(app.systemMessage) : ''}"/>
+      </div>
+      <j:out value="${it.description!=null ? app.markupFormatter.translate(it.description) : ''}"/>
   </div>
+  <this:description />
   <j:choose>
       <j:when test="${!it.supportsMakeDisabled()}">
           <!-- for now, quietly omit the option -->
