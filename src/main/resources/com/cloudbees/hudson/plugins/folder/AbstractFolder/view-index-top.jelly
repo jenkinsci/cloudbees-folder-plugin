@@ -56,7 +56,12 @@ THE SOFTWARE.
       </j:otherwise>
     </j:choose>
   </j:if>
-  <t:editableDescription description="${it.primaryView.description}" permission="${it.CONFIGURE}" hideButton="true"/>
+  <div id="view-message">
+    <div id="systemmessage">
+      <j:out value="${app.systemMessage!=null ? app.markupFormatter.translate(app.systemMessage) : ''}"/>
+    </div>
+    <t:editableDescription description="${it.primaryView.description}" permission="${it.CONFIGURE}" hideButton="true"/>
+  </div>
   <j:choose>
       <j:when test="${!it.supportsMakeDisabled()}">
           <!-- for now, quietly omit the option -->
