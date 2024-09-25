@@ -963,7 +963,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, oldName, newName);
         }
-        save();
     }
 
     /**
@@ -978,7 +977,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, item.getName(), null);
         }
-        save();
     }
 
     /**
