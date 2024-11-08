@@ -164,7 +164,7 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         listener.started(getCauses());
         Result _result = Result.NOT_BUILT; // cf. isLogUpdated, do not set this.result until listener closed
         try {
-            folder.updateChildren(listener);
+            doRun(listener);
             _result = Result.SUCCESS;
         } catch (InterruptedException x) {
             LOGGER.log(Level.FINE, "recomputation of " + folder.getFullName() + " was aborted", x);
@@ -196,6 +196,10 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
                 LOGGER.log(Level.WARNING, null, x);
             }
         }
+    }
+
+    protected void doRun(StreamBuildListener listener) throws IOException, InterruptedException {
+        folder.updateChildren(listener);
     }
 
     /**
