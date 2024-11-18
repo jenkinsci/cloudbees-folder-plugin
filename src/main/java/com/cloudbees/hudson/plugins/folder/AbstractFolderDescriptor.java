@@ -44,7 +44,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Category of {@link AbstractFolder}.
@@ -124,7 +124,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
                 r.add(p);
             }
         }
-        StaplerRequest request = Stapler.getCurrentRequest();
+        StaplerRequest2 request = Stapler.getCurrentRequest2();
         if (request != null) {
             AbstractFolder<?> folder = request.findAncestorObject(AbstractFolder.class);
             if (folder != null) {
