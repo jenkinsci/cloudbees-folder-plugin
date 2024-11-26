@@ -84,6 +84,7 @@ import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
@@ -528,6 +529,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      *
      * @return {@code true} if this folder can currently be recomputed.
      */
+    @Exported
     public boolean isBuildable() {
         if (isDisabled()) {
             return false;
