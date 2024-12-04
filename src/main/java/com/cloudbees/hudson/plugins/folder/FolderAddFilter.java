@@ -30,7 +30,7 @@ import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Restricts additions to a folder via {@code View/newJob.jelly}.
@@ -39,7 +39,7 @@ import org.kohsuke.stapler.StaplerRequest;
 @Extension public class FolderAddFilter extends DescriptorVisibilityFilter {
 
     @Override public boolean filter(Object context, Descriptor descriptor) {
-        StaplerRequest req = Stapler.getCurrentRequest();
+        StaplerRequest2 req = Stapler.getCurrentRequest2();
         // View/newJob.jelly for 1.x, View.doItemCategories for 2.x
         if (req == null || !req.getRequestURI().matches(".*/(newJob|itemCategories)")) {
             return true;
