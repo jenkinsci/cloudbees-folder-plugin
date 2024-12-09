@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -40,7 +41,6 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import org.htmlunit.html.DomElement;
-import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -623,6 +623,21 @@ public class ComputedFolderTest {
 
         // But B has been deleted
         d.assertItemNames(2, "A");
+    }
+
+    @Issue("JENKINS-73930")
+    @Test
+    public void disabledWarningFromUiViews() throws Exception {
+        LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
+        assertFalse("by default, a folder is disabled", folder.isDisabled());
+        for(View view : folder.getViews()){
+            assertNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
+        }
+        folder.setDisabled(true);
+        folder.save();
+        for(View view : folder.getViews()){
+            assertNotNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
+        }
     }
 
     /**
