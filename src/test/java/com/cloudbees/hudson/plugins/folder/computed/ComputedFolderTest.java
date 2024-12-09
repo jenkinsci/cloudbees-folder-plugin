@@ -630,22 +630,14 @@ public class ComputedFolderTest {
     public void disabledWarningFromUiViews() throws Exception {
         LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
         assertFalse("by default, a folder is disabled", folder.isDisabled());
-        folder.getViews().forEach(view -> {
-            try {
-                assertNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
-            } catch (Exception e) {
-                Assert.fail();
-            }
-        });
+        for(View view : folder.getViews()){
+            assertNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
+        }
         folder.setDisabled(true);
         folder.save();
-        folder.getViews().forEach(view -> {
-            try {
-                assertNotNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
-            } catch (Exception e) {
-                Assert.fail();
-            }
-        });
+        for(View view : folder.getViews()){
+            assertNotNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
+        }
     }
 
     /**
