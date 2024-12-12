@@ -101,7 +101,6 @@ import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
 import net.sf.json.JSONObject;
-import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.Beta;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -135,7 +134,7 @@ import org.springframework.security.access.AccessDeniedException;
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
-public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable, IconSpec {
+public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
 
     /**
      * Our logger.
@@ -304,11 +303,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
         }
         return new DefaultFolderViewHolder(views, null, newDefaultViewsTabBar());
-    }
-
-    @Override
-    public String getIconClassName() {
-        return icon.getIconClassName();
     }
 
     protected FolderIcon newDefaultFolderIcon() {
