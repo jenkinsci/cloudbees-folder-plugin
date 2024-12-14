@@ -53,6 +53,9 @@ THE SOFTWARE.
     <j:when test="${!it.supportsMakeDisabled()}">
       <!-- for now, quietly omit the option -->
     </j:when>
+    <j:when test="${it.disabled}">
+      <div id="disabled-message" class="warning">${%disabled(it.pronoun)}</div>
+    </j:when>
   </j:choose>
   <!-- give actions a chance to contribute summary item -->
   <j:forEach var="a" items="${it.allActions}">
