@@ -302,7 +302,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to set up the initial view", e);
         }
-        return new DefaultFolderViewHolder(views, null, newDefaultViewsTabBar());
+        if (primaryView != null) {
+            primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
+        }
+        return new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
+                : viewsTabBar);
     }
 
     protected FolderIcon newDefaultFolderIcon() {
