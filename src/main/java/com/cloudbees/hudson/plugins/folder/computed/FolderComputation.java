@@ -72,6 +72,7 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.diagnosis.OldDataMonitor;
 import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
 import java.nio.charset.StandardCharsets;
@@ -291,6 +292,14 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     @Override
     public String getDisplayName() {
         return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
+    }
+
+    /**
+     * May be used by {@link OldDataMonitor} in its {@code manage} view.
+     * @return {@link ComputedFolder#getFullName}
+     */
+    public String getFullName() {
+        return folder.getFullName();
     }
 
     /**
