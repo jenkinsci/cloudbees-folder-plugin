@@ -13,7 +13,7 @@ import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.ArrayList;
@@ -84,7 +84,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
     }
 
     @Override
-    public boolean configure(StaplerRequest req, JSONObject json) {
+    public boolean configure(StaplerRequest2 req, JSONObject json) {
         if(json.containsKey("healthMetrics")) {
             req.bindJSON(this, json);
             this.save();

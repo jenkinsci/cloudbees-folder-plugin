@@ -53,6 +53,7 @@ import hudson.util.AlternativeUiTextProvider.Message;
 import hudson.util.HttpResponses;
 import hudson.util.StreamTaskListener;
 import hudson.util.io.RewindableRotatingFileOutputStream;
+import jakarta.servlet.ServletException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -72,8 +73,8 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import jenkins.security.stapler.StaplerNotDispatchable;
 import hudson.diagnosis.OldDataMonitor;
-import javax.servlet.ServletException;
 import net.jcip.annotations.GuardedBy;
 import java.nio.charset.StandardCharsets;
 import jenkins.model.Loadable;
@@ -82,7 +83,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -386,9 +389,26 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      * @param rsp the response.
      * @throws IOException if things go wrong.
      */
+    public void doConsoleText(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
+        if (Util.isOverridden(FolderComputation.class, getClass(), "doConsoleText", StaplerRequest.class, StaplerResponse.class)) {
+            doConsoleText(StaplerRequest.fromStaplerRequest2(req), StaplerResponse.fromStaplerResponse2(rsp));
+        } else {
+            doConsoleTextImpl(req, rsp);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doConsoleText(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @StaplerNotDispatchable
     public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        doConsoleTextImpl(StaplerRequest.toStaplerRequest2(req), StaplerResponse.toStaplerResponse2(rsp));
+    }
+
+    private void doConsoleTextImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
         rsp.setContentType("text/plain;charset=UTF-8");
-        try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
+        try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getOutputStream());
              InputStream input = getLogInputStream()) {
                     IOUtils.copy(input, out);
                     out.flush();

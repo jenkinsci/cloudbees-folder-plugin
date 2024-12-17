@@ -17,7 +17,7 @@ import org.kohsuke.stapler.Ancestor;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerFallback;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * A fake {@link Run} used to render last build information via Stapler and Jelly
@@ -34,7 +34,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
         return "log";
     }
 
-    public RunUrl decompose(StaplerRequest req) {
+    public RunUrl decompose(StaplerRequest2 req) {
         List<Ancestor> ancestors = req.getAncestors();
 
         // find the first and last Run instances
@@ -104,15 +104,15 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
         return computation;
     }
 
-    public HttpResponse doIndex(StaplerRequest request) {
+    public HttpResponse doIndex(StaplerRequest2 request) {
         return HttpResponses.redirectViaContextPath(computation.getUrl());
     }
 
-    public HttpResponse doConsole(StaplerRequest request) {
+    public HttpResponse doConsole(StaplerRequest2 request) {
         return HttpResponses.redirectViaContextPath(computation.getUrl() + "console");
     }
 
-    public HttpResponse doConsoleText(StaplerRequest request) {
+    public HttpResponse doConsoleText(StaplerRequest2 request) {
         return HttpResponses.redirectViaContextPath(computation.getUrl() + "consoleText");
     }
 

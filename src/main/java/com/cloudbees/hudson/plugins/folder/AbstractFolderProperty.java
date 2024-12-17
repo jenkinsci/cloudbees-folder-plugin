@@ -27,6 +27,7 @@ package com.cloudbees.hudson.plugins.folder;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionPoint;
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.HealthReport;
@@ -39,6 +40,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Property potentially applicable to any {@link AbstractFolder}.
@@ -89,7 +91,24 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
     }
 
     @Override
+    public AbstractFolderProperty<?> reconfigure(StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {
+        if (Util.isOverridden(AbstractFolderProperty.class, getClass(), "reconfigure", StaplerRequest.class, JSONObject.class)) {
+            return reconfigure(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, form);
+        } else {
+            return reconfigureImpl(req, form);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #reconfigure(StaplerRequest2, JSONObject)}
+     */
+    @Deprecated
+    @Override
     public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        return reconfigureImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, form);
+    }
+
+    private AbstractFolderProperty<?> reconfigureImpl(StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {
         return form == null ? null : getDescriptor().newInstance(req, form);
     }
 
