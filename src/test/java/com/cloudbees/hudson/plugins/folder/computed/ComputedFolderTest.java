@@ -70,6 +70,7 @@ import hudson.triggers.Trigger;
 import hudson.util.StreamTaskListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
+import jakarta.servlet.ServletException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.management.ThreadInfo;
@@ -86,7 +87,6 @@ import java.util.TreeSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import javax.servlet.ServletException;
 import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
 import jenkins.model.Jenkins;
@@ -101,8 +101,8 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 public class ComputedFolderTest {
 
@@ -998,7 +998,7 @@ public class ComputedFolderTest {
         }
 
         @Override
-        protected void submit(StaplerRequest req, StaplerResponse rsp)
+        protected void submit(StaplerRequest2 req, StaplerResponse2 rsp)
                 throws IOException, ServletException, Descriptor.FormException {
             super.submit(req, rsp);
             if (submit != null) {
