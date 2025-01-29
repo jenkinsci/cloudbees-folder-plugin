@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
@@ -98,7 +98,7 @@ public class DefaultRelocationUI extends RelocationUI {
      * @throws InterruptedException if interrupted.
      */
     @RequirePOST
-    public HttpResponse doMove(StaplerRequest req, @AncestorInPath Item item, @QueryParameter String destination)
+    public HttpResponse doMove(StaplerRequest2 req, @AncestorInPath Item item, @QueryParameter String destination)
             throws IOException, InterruptedException {
         item.checkPermission(RelocationAction.RELOCATE);
         ItemGroup dest = null;

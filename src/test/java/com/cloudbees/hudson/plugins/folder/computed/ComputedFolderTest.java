@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -40,7 +41,6 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import org.htmlunit.html.DomElement;
-import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -70,6 +70,7 @@ import hudson.triggers.Trigger;
 import hudson.util.StreamTaskListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
+import jakarta.servlet.ServletException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.management.ThreadInfo;
@@ -86,7 +87,6 @@ import java.util.TreeSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import javax.servlet.ServletException;
 import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
 import jenkins.model.Jenkins;
@@ -101,8 +101,8 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 public class ComputedFolderTest {
 
@@ -625,6 +625,21 @@ public class ComputedFolderTest {
         d.assertItemNames(2, "A");
     }
 
+    @Issue("JENKINS-73930")
+    @Test
+    public void disabledWarningFromUiViews() throws Exception {
+        LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
+        assertFalse("by default, a folder is disabled", folder.isDisabled());
+        for(View view : folder.getViews()){
+            assertNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
+        }
+        folder.setDisabled(true);
+        folder.save();
+        for(View view : folder.getViews()){
+            assertNotNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
+        }
+    }
+
     /**
      * Waits until Hudson finishes building everything, including those in the queue, or fail the test
      * if the specified timeout milliseconds is
@@ -983,7 +998,7 @@ public class ComputedFolderTest {
         }
 
         @Override
-        protected void submit(StaplerRequest req, StaplerResponse rsp)
+        protected void submit(StaplerRequest2 req, StaplerResponse2 rsp)
                 throws IOException, ServletException, Descriptor.FormException {
             super.submit(req, rsp);
             if (submit != null) {
