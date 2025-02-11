@@ -102,6 +102,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
+import jenkins.search.SearchGroup;
 import jenkins.security.stapler.StaplerNotDispatchable;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
@@ -139,7 +140,7 @@ import org.springframework.security.access.AccessDeniedException;
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
 @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
-public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
+public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable, SearchItem {
 
     /**
      * Our logger.
@@ -722,6 +723,11 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 return AbstractFolder.this;
             }
         });
+    }
+
+    @Override
+    public SearchGroup getSearchGroup() {
+        return SearchGroup.get(SearchGroup.JobSearchGroup.class);
     }
 
     /**
