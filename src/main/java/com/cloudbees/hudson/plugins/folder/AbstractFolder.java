@@ -727,7 +727,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public SearchGroup getSearchGroup() {
-        return SearchGroup.get(SearchGroup.JobSearchGroup.class);
+        return SearchGroup.get(SearchGroup.ItemSearchGroup.class);
     }
 
     /**
