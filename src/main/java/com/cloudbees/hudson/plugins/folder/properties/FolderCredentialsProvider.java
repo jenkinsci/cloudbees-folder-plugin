@@ -72,7 +72,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.springframework.security.core.Authentication;
 
 /**
@@ -545,7 +545,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          * {@inheritDoc}
          */
         @Override
-        public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws FormException {
+        public AbstractFolderProperty<?> reconfigure(StaplerRequest2 req, JSONObject form) throws FormException {
             return this;
         }
 
