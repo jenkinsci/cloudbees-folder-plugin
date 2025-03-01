@@ -23,8 +23,7 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<st:compress xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"
-xmlns:fo="/lib/folder">
+<st:compress xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
     <l:layout title="${it.parent.displayName} ${it.displayName} Log">
         <st:include page="sidepanel.jelly" it="${it.parent}" />
         <l:main-panel>
@@ -34,7 +33,7 @@ xmlns:fo="/lib/folder">
                     (<i:formatDate value="${it.timestamp.time}" type="both" dateStyle="medium" timeStyle="medium"/>)
                 </j:if>
             </t:buildCaption>
-            <fo:blockWrapper>
+            <table style="margin-top: 1em; margin-left:1em;">
                 <t:summary icon="icon-notepad">
                     <j:choose>
                         <j:when test="${it.result==null}">
@@ -49,7 +48,7 @@ xmlns:fo="/lib/folder">
                         </j:otherwise>
                     </j:choose>
                 </t:summary>
-            </fo:blockWrapper>
+            </table>
         </l:main-panel>
     </l:layout>
 </st:compress>

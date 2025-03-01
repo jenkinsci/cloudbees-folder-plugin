@@ -24,7 +24,7 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:p="/lib/hudson/project" xmlns:fo="/lib/folder">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:p="/lib/hudson/project">
     <st:include page="configure-entries" optional="true"/>
     <f:descriptorList title="${%triggers(it.computation.displayName)}"
                       descriptors="${it.triggerDescriptors}"
@@ -38,12 +38,12 @@ THE SOFTWARE.
             <j:choose>
                 <j:when test="${orphanedItemStrategyDescriptors.size() == 1}">
                     <j:scope>
-                        <fo:blockWrapper name="orphanedItemStrategy">
+                        <div name="orphanedItemStrategy">
                             <j:set var="descriptor" value="${orphanedItemStrategyDescriptors.get(0)}"/>
                             <j:set var="instance" value="${it.orphanedItemStrategy}"/>
                             <f:class-entry descriptor="${descriptor}"/>
                             <st:include from="${descriptor}" page="${descriptor.configPage}" optional="true"/>
-                        </fo:blockWrapper>
+                        </div>
                     </j:scope>
                 </j:when>
                 <j:otherwise>
