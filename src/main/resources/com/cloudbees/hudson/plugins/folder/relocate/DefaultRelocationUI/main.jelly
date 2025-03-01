@@ -3,29 +3,32 @@
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <h1>${%Move}</h1>
   <form method="post" action="move">
-    ${%blurb(item.pronoun, item.displayName)}
-    <select name="destination" class="select setting-input">
-      <j:forEach var="destination" items="${it.listDestinations(item)}">
-        <j:choose>
-          <j:when test="${destination == itemParent and destination == app}">
-            <option selected="yes" value="/${destination.fullName}">${app.displayName}</option>
-          </j:when>
-          <j:when test="${destination == itemParent and destination != app}">
-            <option selected="yes" value="/${destination.fullName}">
-              ${app.displayName} &#187; ${destination.fullDisplayName}
-            </option>
-          </j:when>
-          <j:when test="${destination != itemParent and destination == app}">
-            <option value="/${destination.fullName}">${app.displayName}</option>
-          </j:when>
-          <j:otherwise>
-            <option value="/${destination.fullName}">
-              ${app.displayName} &#187; ${destination.fullDisplayName}
-            </option>
-          </j:otherwise>
-        </j:choose>
-      </j:forEach>
-    </select>
+    <f:entry title="${%blurb(item.pronoun, item.displayName)}">
+      <div class="jenkins-select">
+        <select name="destination" class="jenkins-select__input">
+          <j:forEach var="destination" items="${it.listDestinations(item)}">
+            <j:choose>
+              <j:when test="${destination == itemParent and destination == app}">
+                <option selected="yes" value="/${destination.fullName}">${app.displayName}</option>
+              </j:when>
+              <j:when test="${destination == itemParent and destination != app}">
+                <option selected="yes" value="/${destination.fullName}">
+                  ${app.displayName} &#187; ${destination.fullDisplayName}
+                </option>
+              </j:when>
+              <j:when test="${destination != itemParent and destination == app}">
+                <option value="/${destination.fullName}">${app.displayName}</option>
+              </j:when>
+              <j:otherwise>
+                <option value="/${destination.fullName}">
+                  ${app.displayName} &#187; ${destination.fullDisplayName}
+                </option>
+              </j:otherwise>
+            </j:choose>
+          </j:forEach>
+        </select>
+      </div>
+    </f:entry>
     <f:submit value="${%Move}"/>
   </form>
 </j:jelly>

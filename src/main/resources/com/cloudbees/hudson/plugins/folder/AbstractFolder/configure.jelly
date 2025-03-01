@@ -23,8 +23,7 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"
-         xmlns:fo="/lib/folder" xmlns:p="/lib/hudson/project">
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"  xmlns:p="/lib/hudson/project">
   <l:layout title="${it.displayName} Config" permission="${it.EXTENDED_READ}">
     <j:set var="readOnlyMode" value="${!it.hasPermission(it.CONFIGURE)}" />
     <l:breadcrumb title="${%Configuration}" />
@@ -100,9 +99,7 @@ THE SOFTWARE.
                   </j:when>
                   <j:otherwise>
                     <f:invisibleEntry>
-                      <fo:blockWrapper>
                         <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
-                      </fo:blockWrapper>
                     </f:invisibleEntry>
                   </j:otherwise>
                 </j:choose>
@@ -114,9 +111,7 @@ THE SOFTWARE.
                 </j:when>
                 <j:otherwise>
                   <f:invisibleEntry>
-                    <fo:blockWrapper>
                       <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
-                    </fo:blockWrapper>
                   </f:invisibleEntry>
                 </j:otherwise>
               </j:choose>
@@ -125,9 +120,7 @@ THE SOFTWARE.
           </j:when>
           <j:otherwise>
             <f:invisibleEntry>
-              <fo:blockWrapper>
                 <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
-              </fo:blockWrapper>
             </f:invisibleEntry>
           </j:otherwise>
         </j:choose>
