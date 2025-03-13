@@ -43,7 +43,6 @@ import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
 import hudson.views.ListViewColumn;
 import hudson.views.ViewJobFilter;
-import io.jenkins.servlet.ServletExceptionWrapper;
 import jakarta.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
@@ -57,14 +56,11 @@ import java.util.logging.Logger;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
-import jenkins.security.stapler.StaplerNotDispatchable;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerRequest2;
-import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.verb.POST;
 
@@ -239,31 +235,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     @POST
     public TopLevelItem doCreateItem(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-        if (Util.isOverridden(Folder.class, getClass(), "doCreateItem", StaplerRequest.class, StaplerResponse.class)) {
-            try {
-                return doCreateItem(req != null ? StaplerRequest.fromStaplerRequest2(req) : null,  rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
-            } catch (javax.servlet.ServletException e) {
-                throw ServletExceptionWrapper.toJakartaServletException(e);
-            }
-        } else {
-            return doCreateItemImpl(req, rsp);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #doCreateItem(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    @StaplerNotDispatchable
-    public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException {
-        try {
-            return doCreateItemImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
-        } catch (ServletException e) {
-            throw ServletExceptionWrapper.fromJakartaServletException(e);
-        }
-    }
-
-    private TopLevelItem doCreateItemImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         TopLevelItem nue = mixin.createTopLevelItem(req, rsp);
         if (!isAllowedChild(nue)) {
             // TODO would be better to intercept it before creation, if mode is set
@@ -318,31 +289,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
     @Override
     protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, FormException {
-        if (Util.isOverridden(Folder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
-            try {
-                submit(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
-            } catch (javax.servlet.ServletException e) {
-                throw ServletExceptionWrapper.toJakartaServletException(e);
-            }
-        } else {
-            submitImpl(req, rsp);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    @Override
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, FormException {
-        try {
-            submitImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
-        } catch (ServletException e) {
-            throw ServletExceptionWrapper.fromJakartaServletException(e);
-        }
-    }
-
-    private void submitImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, FormException {
         updateTransientActions();
     }
 
