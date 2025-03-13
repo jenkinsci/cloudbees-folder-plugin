@@ -26,7 +26,6 @@ package com.cloudbees.hudson.plugins.folder.relocate;
 
 import com.cloudbees.hudson.plugins.folder.Messages;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
@@ -155,7 +154,6 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
     /**
      * Makes sure that {@link Item}s have the action.
      */
-    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT", justification = "ensure loaded eagerly")
     @Extension
     public static class TransientActionFactoryImpl extends TransientActionFactory<Item> {
 
