@@ -3,13 +3,7 @@
     <f:section title="${%Folder}">
         <f:entry title="${%Health Metrics}"
                  description="${%List of default health metrics for Folders}">
-            <f:repeatableHeteroProperty field="healthMetrics" oneEach="true" honorOrder="true" hasHeader="true">
-                <f:entry title="">
-                    <div align="right">
-                        <f:repeatableDeleteButton/>
-                    </div>
-                </f:entry>
-            </f:repeatableHeteroProperty>
+            <f:repeatableHeteroProperty field="healthMetrics" oneEach="true" honorOrder="true" hasHeader="true"/>
         </f:entry>
     </f:section>
 </j:jelly>
