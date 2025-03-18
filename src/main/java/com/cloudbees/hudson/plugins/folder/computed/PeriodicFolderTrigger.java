@@ -45,7 +45,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
  *
  * @author Stephen Connolly
  */
-@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
 
     private static final Logger LOGGER = Logger.getLogger(PeriodicFolderTrigger.class.getName());
