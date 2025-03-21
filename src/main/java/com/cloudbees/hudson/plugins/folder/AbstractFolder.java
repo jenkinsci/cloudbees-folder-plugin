@@ -386,11 +386,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 configurations.put(key.apply(item), item);
             } catch (Exception e) {
                 File finalEffectiveSubdir = effectiveSubdir;
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, e, () -> "could not load " + finalEffectiveSubdir);
-                } else {
-                    LOGGER.log(Level.WARNING, "could not load " + finalEffectiveSubdir + " due to " + e);
-                }
+                LOGGER.warning(() -> "could not load " + finalEffectiveSubdir + " due to " + e);
+                LOGGER.log(Level.FINE, null, e);
             }
         }
 
