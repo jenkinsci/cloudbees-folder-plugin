@@ -69,7 +69,6 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
-import io.jenkins.servlet.ServletExceptionWrapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -101,7 +100,6 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
-import jenkins.security.stapler.StaplerNotDispatchable;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.Beta;
@@ -111,9 +109,7 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
 import org.kohsuke.stapler.StaplerOverridable;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerRequest2;
-import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -728,24 +724,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public ContextMenu doChildrenContextMenu(StaplerRequest2 request, StaplerResponse2 response) {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doChildrenContextMenu", StaplerRequest.class, StaplerResponse.class)) {
-            return doChildrenContextMenu(request != null ? StaplerRequest.fromStaplerRequest2(request) : null, response != null ? StaplerResponse.fromStaplerResponse2(response) : null);
-        } else {
-            return doChildrenContextMenuImpl(request, response);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #doChildrenContextMenu(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    @Override
-    @StaplerNotDispatchable
-    public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
-        return doChildrenContextMenuImpl(request != null ? StaplerRequest.toStaplerRequest2(request) : null, response != null ? StaplerResponse.toStaplerResponse2(response) : null);
-    }
-
-    private ContextMenu doChildrenContextMenuImpl(StaplerRequest2 request, StaplerResponse2 response) {
         ContextMenu menu = new ContextMenu();
         for (View view : getViews()) {
             menu.add(view.getAbsoluteUrl(),view.getDisplayName());
@@ -755,33 +733,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @POST
     public synchronized void doCreateView(StaplerRequest2 req, StaplerResponse2 rsp)
-            throws IOException, ServletException, ParseException, Descriptor.FormException {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doCreateView", StaplerRequest.class, StaplerResponse.class)) {
-            try {
-                doCreateView(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
-            } catch (javax.servlet.ServletException e) {
-                throw ServletExceptionWrapper.toJakartaServletException(e);
-            }
-        } else {
-            doCreateViewImpl(req, rsp);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #doCreateView(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    @StaplerNotDispatchable
-    public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
-            throws IOException, javax.servlet.ServletException, ParseException, Descriptor.FormException {
-        try {
-            doCreateViewImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
-        } catch (ServletException e) {
-            throw ServletExceptionWrapper.fromJakartaServletException(e);
-        }
-    }
-
-    private void doCreateViewImpl(StaplerRequest2 req, StaplerResponse2 rsp)
             throws IOException, ServletException, ParseException, Descriptor.FormException {
         checkPermission(View.CREATE);
         addView(View.create(req, rsp, this));
@@ -910,23 +861,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     public HttpResponse doLastBuild(StaplerRequest2 req) {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doLastBuild", StaplerRequest.class)) {
-            return doLastBuild(req != null ? StaplerRequest.fromStaplerRequest2(req) : null);
-        } else {
-            return doLastBuildImpl(req);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #doLastBuild(StaplerRequest2)}
-     */
-    @Deprecated
-    @StaplerNotDispatchable
-    public HttpResponse doLastBuild(StaplerRequest req) {
-        return doLastBuildImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null);
-    }
-
-    private HttpResponse doLastBuildImpl(StaplerRequest2 req) {
         return HttpResponses.redirectToDot();
     }
 
@@ -1159,32 +1093,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public synchronized void doSubmitDescription(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doSubmitDescription", StaplerRequest.class, StaplerResponse.class)) {
-            try {
-                doSubmitDescription(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
-            } catch (javax.servlet.ServletException e) {
-                throw ServletExceptionWrapper.toJakartaServletException(e);
-            }
-        } else {
-            doSubmitDescriptionImpl(req, rsp);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #doSubmitDescription(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    @Override
-    @StaplerNotDispatchable
-    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException {
-        try {
-            doSubmitDescriptionImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
-        } catch (ServletException e) {
-            throw ServletExceptionWrapper.fromJakartaServletException(e);
-        }
-    }
-
-    private void doSubmitDescriptionImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
@@ -1247,21 +1155,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return ".";
     }
 
-    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
-            try {
-                submit(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
-            } catch (javax.servlet.ServletException e) {
-                throw ServletExceptionWrapper.toJakartaServletException(e);
-            }
-        }
-    }
-
-    /**
-     * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {}
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {}
 
     /**
      * {@inheritDoc}
