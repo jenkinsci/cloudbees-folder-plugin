@@ -32,7 +32,6 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.Util;
@@ -70,6 +69,9 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
+import io.jenkins.servlet.ServletExceptionWrapper;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -94,12 +96,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
+import jenkins.security.stapler.StaplerNotDispatchable;
 import net.sf.json.JSONObject;
 import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
@@ -111,7 +113,9 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
 import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
@@ -134,7 +138,6 @@ import org.springframework.security.access.AccessDeniedException;
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
-@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable, IconSpec {
 
     /**
@@ -393,7 +396,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 configurations.put(key.apply(item), item);
             } catch (Exception e) {
                 File finalEffectiveSubdir = effectiveSubdir;
-                LOGGER.log(Level.WARNING, e, () -> "could not load " + finalEffectiveSubdir);
+                LOGGER.warning(() -> "could not load " + finalEffectiveSubdir + " due to " + e);
+                LOGGER.log(Level.FINE, null, e);
             }
         }
 
@@ -733,7 +737,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * {@inheritDoc}
      */
     @Override
+    public ContextMenu doChildrenContextMenu(StaplerRequest2 request, StaplerResponse2 response) {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doChildrenContextMenu", StaplerRequest.class, StaplerResponse.class)) {
+            return doChildrenContextMenu(request != null ? StaplerRequest.fromStaplerRequest2(request) : null, response != null ? StaplerResponse.fromStaplerResponse2(response) : null);
+        } else {
+            return doChildrenContextMenuImpl(request, response);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doChildrenContextMenu(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @Override
+    @StaplerNotDispatchable
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
+        return doChildrenContextMenuImpl(request != null ? StaplerRequest.toStaplerRequest2(request) : null, response != null ? StaplerResponse.toStaplerResponse2(response) : null);
+    }
+
+    private ContextMenu doChildrenContextMenuImpl(StaplerRequest2 request, StaplerResponse2 response) {
         ContextMenu menu = new ContextMenu();
         for (View view : getViews()) {
             menu.add(view.getAbsoluteUrl(),view.getDisplayName());
@@ -742,7 +764,34 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @POST
+    public synchronized void doCreateView(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, ParseException, Descriptor.FormException {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doCreateView", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                doCreateView(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        } else {
+            doCreateViewImpl(req, rsp);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doCreateView(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @StaplerNotDispatchable
     public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException, ParseException, Descriptor.FormException {
+        try {
+            doCreateViewImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+        } catch (ServletException e) {
+            throw ServletExceptionWrapper.fromJakartaServletException(e);
+        }
+    }
+
+    private void doCreateViewImpl(StaplerRequest2 req, StaplerResponse2 rsp)
             throws IOException, ServletException, ParseException, Descriptor.FormException {
         checkPermission(View.CREATE);
         addView(View.create(req, rsp, this));
@@ -870,7 +919,24 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return healthMetrics;
     }
 
+    public HttpResponse doLastBuild(StaplerRequest2 req) {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doLastBuild", StaplerRequest.class)) {
+            return doLastBuild(req != null ? StaplerRequest.fromStaplerRequest2(req) : null);
+        } else {
+            return doLastBuildImpl(req);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doLastBuild(StaplerRequest2)}
+     */
+    @Deprecated
+    @StaplerNotDispatchable
     public HttpResponse doLastBuild(StaplerRequest req) {
+        return doLastBuildImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null);
+    }
+
+    private HttpResponse doLastBuildImpl(StaplerRequest2 req) {
         return HttpResponses.redirectToDot();
     }
 
@@ -1102,13 +1168,39 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * {@inheritDoc}
      */
     @Override
-    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public synchronized void doSubmitDescription(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doSubmitDescription", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                doSubmitDescription(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        } else {
+            doSubmitDescriptionImpl(req, rsp);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doSubmitDescription(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @Override
+    @StaplerNotDispatchable
+    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException {
+        try {
+            doSubmitDescriptionImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+        } catch (ServletException e) {
+            throw ServletExceptionWrapper.fromJakartaServletException(e);
+        }
+    }
+
+    private void doSubmitDescriptionImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
     @Restricted(NoExternalUse.class)
     @RequirePOST
-    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
         checkPermission(CONFIGURE);
 
         req.setCharacterEncoding("UTF-8");
@@ -1157,7 +1249,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      *
      * @return A string that represents the redirect location URL.
      *
-     * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
+     * @see HttpServletResponse#sendRedirect(String)
      */
     @Restricted(NoExternalUse.class)
     @NonNull
@@ -1165,7 +1257,21 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return ".";
     }
 
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                submit(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        }
+    }
+
+    /**
+     * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {}
 
     /**
      * {@inheritDoc}

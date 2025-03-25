@@ -39,12 +39,8 @@ import java.util.List;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.jenkins.ui.icon.IconSpec;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Category of {@link AbstractFolder}.
@@ -124,7 +120,7 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
                 r.add(p);
             }
         }
-        StaplerRequest request = Stapler.getCurrentRequest();
+        StaplerRequest2 request = Stapler.getCurrentRequest2();
         if (request != null) {
             AbstractFolder<?> folder = request.findAncestorObject(AbstractFolder.class);
             if (folder != null) {
@@ -133,12 +129,6 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
         }
         return r;
     }
-
-    @Restricted(NoExternalUse.class)
-    public FormValidation doCheckDisplayNameOrNull(@AncestorInPath AbstractFolder folder, @QueryParameter String value) {
-        return Jenkins.get().doCheckDisplayName(value, folder.getName());
-    }
-
 
     /**
      * Needed if it wants Folder are categorized in Jenkins 2.x.
