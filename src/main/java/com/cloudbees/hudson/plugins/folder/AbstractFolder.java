@@ -364,7 +364,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             // Try to retain the identity of an existing child object if we can.
             V itemFromDir;
             V item;
-            boolean itemNeedsSave = false;
             String name;
             item = itemFromDir = byDirName.get(childName);
             var legacyName = subdir.getName();
@@ -373,16 +372,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     XmlFile xmlFile = Items.getConfigFile(subdir);
                     if (xmlFile.exists()) {
                         item = (V) xmlFile.read();
-                        var dirNameResult = childNameGenerator.ensureItemDirectory(parent, item, subdir);
-                        itemNeedsSave |= dirNameResult.isItemNeedsSave();
-                        effectiveSubdir = dirNameResult.getWrapped();
+                        effectiveSubdir = childNameGenerator.ensureItemDirectory(parent, item, subdir);
                     } else {
                         throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
                     }
                 }
-                var writeResult = childNameGenerator.writeItemName(parent, item, effectiveSubdir, childName);
-                name = writeResult.getWrapped();
-                itemNeedsSave |= writeResult.isItemNeedsSave();
+                name = childNameGenerator.writeItemName(parent, item, effectiveSubdir, childName);
                 if (item instanceof AbstractItem) {
                     var abstractItem = (AbstractItem) item;
                     if (itemFromDir != null && !legacyName.equals(name) && abstractItem.getDisplayNameOrNull() == null) {
@@ -392,7 +387,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     }
                 }
                 item.onLoad(parent, name);
-                saveIfNeeded(item, itemNeedsSave);
                 configurations.put(key.apply(item), item);
             } catch (Exception e) {
                 File finalEffectiveSubdir = effectiveSubdir;
@@ -402,17 +396,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
 
         return configurations;
-    }
-
-    private static <V extends TopLevelItem> void saveIfNeeded(V item, boolean itemNeedsSave) {
-        if (itemNeedsSave) {
-            try {
-                item.save();
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Could not update {0} after applying folder naming rules",
-                        item.getFullName());
-            }
-        }
     }
 
     @Override

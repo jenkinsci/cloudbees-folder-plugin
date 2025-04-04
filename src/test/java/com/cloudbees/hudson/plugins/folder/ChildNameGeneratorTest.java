@@ -60,7 +60,6 @@ import org.junit.Test;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
@@ -144,82 +143,6 @@ public class ChildNameGeneratorTest {
                 checkComputedFolder(instance, 0, Normalizer.Form.NFC);
                 instance.doReload();
                 checkComputedFolder(instance, 0, Normalizer.Form.NFC);
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgrade() {
-        // The test data was generated using NFC filename encodings... but when unzipping the name can be changed
-        // to NFD by the filesystem, so we need to check the expected outcome based on the inferred canonical form
-        // used by the filesystem.
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                instance.doReload();
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgradeNFD() {
-        // The test data was generated using NFD filename encodings... but when unzipping the name can be changed
-        // to NFC by the filesystem, so we need to check the expected outcome based on the inferred canonical form
-        // used by the filesystem.
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                instance.doReload();
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
             }
         });
     }

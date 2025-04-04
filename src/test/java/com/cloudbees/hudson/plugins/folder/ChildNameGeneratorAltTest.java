@@ -60,7 +60,6 @@ import org.junit.Test;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorTest.asJavaStrings;
@@ -107,41 +106,6 @@ public class ChildNameGeneratorAltTest {
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                instance.doReload();
-                checkComputedFolder(instance, 0);
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgrade() throws Exception {
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
             }
         });
         r.addStep(new Statement() {
