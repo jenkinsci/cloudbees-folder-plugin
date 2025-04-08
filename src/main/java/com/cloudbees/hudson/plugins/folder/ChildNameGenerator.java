@@ -25,7 +25,6 @@
 package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
-import hudson.BulkChange;
 import hudson.Util;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -202,32 +201,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
         return name;
     }
 
-    static class ResultWithOptionalSave<I> {
-        private final I wrapped;
-        private final boolean itemNeedsSave;
-
-        private ResultWithOptionalSave(I wrapped, boolean itemNeedsSave) {
-            this.wrapped = wrapped;
-            this.itemNeedsSave = itemNeedsSave;
-        }
-
-        I getWrapped() {
-            return wrapped;
-        }
-
-        boolean isItemNeedsSave() {
-            return itemNeedsSave;
-        }
-
-        @Override
-        public String toString() {
-            return "FileResult{" +
-                    "file=" + wrapped +
-                    ", itemNeedsSave=" + itemNeedsSave +
-                    '}';
-        }
-    }
-
     /**
      * Ensures that the item is stored in the correct directory, and moves it if necessary.
      *
@@ -238,26 +211,13 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @throws IOException In case something went wrong while setting up the expected result directory.
      */
     @NonNull
-    final ResultWithOptionalSave<File> ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
+    final File ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
         String legacyName = legacyDir.getName();
         String dirName = dirNameFromItem(parent, item);
-        File newSubdir;
-        boolean itemNeedsSave = false;
         if (dirName == null) {
             dirName = dirNameFromLegacy(parent, legacyName);
-            newSubdir = parent.getRootDirFor(dirName);
-            if (!legacyName.equals(dirName)) {
-                // suppress any attempt to save as parent not set
-                try (BulkChange ignored = new BulkChange(item)) {
-                    recordLegacyName(parent, item, legacyName);
-                    itemNeedsSave = true;
-                } catch (IOException e) {
-                    throw new IOException("Failed to load " + dirName + " as could not record legacy name", e);
-                }
-            }
-        } else {
-            newSubdir = parent.getRootDirFor(dirName);
         }
+        File newSubdir = parent.getRootDirFor(dirName);
         if (!legacyName.equals(dirName)) {
             if (!newSubdir.exists()) {
                 LOGGER.log(Level.INFO, () -> "Moving " + legacyDir + " to " + newSubdir + " in accordance with folder naming rules");
@@ -268,7 +228,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
                 throw new IOException("Cannot move " + legacyDir + " to " + newSubdir + " as it already exists");
             }
         }
-        return new ResultWithOptionalSave<>(newSubdir, itemNeedsSave);
+        return newSubdir;
     }
 
     /**
@@ -325,6 +285,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @param item the item.
      * @param legacyDirName the name of the directory that the item was loaded from.
      * @throws IOException if the ideal name could not be attached to the item.
+     * @deprecated removed without replacement
      */
     public abstract void recordLegacyName(P parent, I item, String legacyDirName) throws IOException;
 
@@ -356,21 +317,10 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * @return The name that was written to the directory, and whether the item needs to be saved.
      */
     @NonNull
-    public final ResultWithOptionalSave<String> writeItemName(@NonNull P parent, @NonNull I item, @NonNull File itemDirectory, @NonNull String childName) {
-        boolean itemNeedsSave = false;
+    public final String writeItemName(@NonNull P parent, @NonNull I item, @NonNull File itemDirectory, @NonNull String childName) {
         String name = itemNameFromItem(parent, item);
         if (name == null) {
             name = itemNameFromLegacy(parent, childName);
-            // suppress any attempt to save as parent not set
-            if (!childName.equals(name)) {
-                try (BulkChange ignored = new BulkChange(item)) {
-                    recordLegacyName(parent, item, childName);
-                    itemNeedsSave = true;
-                } catch (IOException e) {
-                    // ditto above exception
-                    throw new UncheckedIOException("Failed to load " + name + " as could not record legacy name", e);
-                }
-            }
         }
         File nameFile = new File(itemDirectory, CHILD_NAME_FILE);
         try {
@@ -391,7 +341,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
             // Unfortunately not all callers of this method throw IOException, so we need to go unchecked
             throw new UncheckedIOException("Failed to load " + name + " as could not write " + nameFile, e);
         }
-        return new ResultWithOptionalSave<>(name, itemNeedsSave);
+        return name;
     }
 
     /**
