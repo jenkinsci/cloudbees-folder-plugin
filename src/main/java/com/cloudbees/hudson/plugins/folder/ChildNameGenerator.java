@@ -378,7 +378,15 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
             if (Files.notExists(itemPath)) {
                 Files.createDirectories(itemPath);
             }
-            Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
+            String existingName;
+            if (Files.exists(nameFile.toPath())) {
+                existingName = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
+            } else {
+                existingName = null;
+            }
+            if (existingName == null || !existingName.equals(name)) {
+                Files.writeString(nameFile.toPath(), name, StandardCharsets.UTF_8);
+            }
         } catch (IOException e) {
             // Unfortunately not all callers of this method throw IOException, so we need to go unchecked
             throw new UncheckedIOException("Failed to load " + name + " as could not write " + nameFile, e);
