@@ -378,6 +378,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     }
                 }
                 name = childNameGenerator.writeItemName(parent, item, effectiveSubdir, childName);
+                String computedName = childNameGenerator.itemNameFromItem(parent, item);
+                if (computedName == null) {
+                    computedName = subdir.getName();
+                }
+                if (!computedName.equals(name)) {
+                    throw new IllegalStateException("Computed name '" + computedName + "' does not match name written to file '" + name + "'");
+                }
                 if (item instanceof AbstractItem) {
                     var abstractItem = (AbstractItem) item;
                     if (itemFromDir != null && !legacyName.equals(name) && abstractItem.getDisplayNameOrNull() == null) {
@@ -400,7 +407,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public String getItemName(File dir, I item) {
-        return childNameGenerator().readItemName(dir);
+        String name = childNameGenerator().readItemName(dir);
+        String computedName = childNameGenerator().itemNameFromItem(this, item);
+        if (computedName == null) {
+            computedName = dir.getName();
+        }
+        if (!computedName.equals(name)) {
+            throw new IllegalStateException("Computed name '" + computedName + "' does not match name read from file '" + name + "'");
+        }
+        return name;
     }
 
     protected final I itemsPut(String name, I item) {
