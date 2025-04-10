@@ -342,9 +342,7 @@ public class ChildNameGeneratorRecTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
-                                p = new FreeStyleProject(this, encodedKid);
-                            }
+                            p = new FreeStyleProject(this, encodedKid);
                             BulkChange bc = new BulkChange(p);
                             try {
                                 p.addProperty(new NameProperty(kid));
@@ -476,7 +474,7 @@ public class ChildNameGeneratorRecTest {
             if (property != null) {
                 return encode(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : encode(name);
         }
 
@@ -487,7 +485,7 @@ public class ChildNameGeneratorRecTest {
             if (property != null) {
                 return mangle(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : mangle(name);
         }
 
