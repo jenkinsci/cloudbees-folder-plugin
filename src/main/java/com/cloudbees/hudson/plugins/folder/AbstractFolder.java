@@ -383,7 +383,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     computedName = subdir.getName();
                 }
                 if (!computedName.equals(name)) {
-                    throw new IllegalStateException("Computed name '" + computedName + "' does not match name read from file '" + name + "'");
+                    throw new IllegalStateException("Computed name '" + computedName + "' does not match name written to file '" + name + "'");
                 }
                 if (item instanceof AbstractItem) {
                     var abstractItem = (AbstractItem) item;
