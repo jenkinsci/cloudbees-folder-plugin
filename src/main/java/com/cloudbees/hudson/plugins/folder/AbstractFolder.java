@@ -365,8 +365,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             V itemFromDir;
             V item;
             String name;
-            item = itemFromDir = byDirName.get(childName);
             var legacyName = subdir.getName();
+            item = itemFromDir = byDirName.get(legacyName);
             try {
                 if (item == null) {
                     XmlFile xmlFile = Items.getConfigFile(subdir);
