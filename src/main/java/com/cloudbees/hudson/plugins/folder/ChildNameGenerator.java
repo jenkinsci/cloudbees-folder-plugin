@@ -219,14 +219,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
         }
         File newSubdir = parent.getRootDirFor(dirName);
         if (!legacyName.equals(dirName)) {
-            if (!newSubdir.exists()) {
-                LOGGER.log(Level.INFO, () -> "Moving " + legacyDir + " to " + newSubdir + " in accordance with folder naming rules");
-                if (!legacyDir.renameTo(newSubdir)) {
-                    throw new IOException("Failed to move " + legacyDir + " to " + newSubdir);
-                }
-            } else {
-                throw new IOException("Cannot move " + legacyDir + " to " + newSubdir + " as it already exists");
-            }
+            throw new IllegalStateException("Actual directory name '" + legacyName + "' does not match expected name '" + dirName + "'");
         }
         return newSubdir;
     }
