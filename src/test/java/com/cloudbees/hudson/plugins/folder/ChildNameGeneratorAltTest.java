@@ -68,6 +68,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 
 /**
@@ -114,8 +115,15 @@ public class ChildNameGeneratorAltTest {
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0);
+                var items = new ArrayList<>(instance.getItems());
                 instance.doReload();
                 checkComputedFolder(instance, 0);
+                var newItems = new ArrayList<>(instance.getItems());
+                // Check child items identity is preserved
+                assertThat("Items are the same", items, is(newItems));
+                for (int k = 0; k < items.size(); k++) {
+                    assertSame("Individual items must be the same", items.get(k), newItems.get(k));
+                }
         });
     }
 
