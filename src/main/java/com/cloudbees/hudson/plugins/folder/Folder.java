@@ -457,7 +457,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
 
         @Override
         protected void add(TopLevelItem item) {
-            itemsPut(item.getName(), item);
+            items.put(item.getName(), item);
         }
 
         @Override
