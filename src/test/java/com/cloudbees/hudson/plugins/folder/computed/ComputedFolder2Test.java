@@ -41,38 +41,31 @@ import static org.junit.Assert.assertNotNull;
 
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
 
 public class ComputedFolder2Test {
 
     @Rule
-    public RestartableJenkinsRule rr = new RestartableJenkinsRule();
+    public JenkinsSessionRule rr = new JenkinsSessionRule();
 
     @Issue("JENKINS-42593")
     @Test
-    public void eventAfterRestart() {
-        rr.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                EventableFolder d = rr.j.jenkins.createProject(EventableFolder.class, "d");
+    public void eventAfterRestart() throws Throwable {
+        rr.then(j -> {
+                EventableFolder d = j.createProject(EventableFolder.class, "d");
                 d.add("one");
                 String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
                 assertThat(log, d.getItems(), hasSize(equalTo(1)));
-            }
         });
-        rr.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                EventableFolder d = rr.j.jenkins.getItemByFullName("d", EventableFolder.class);
+        rr.then(j -> {
+                EventableFolder d = j.jenkins.getItemByFullName("d", EventableFolder.class);
                 assertNotNull(d);
                 assertThat(d.getItems(), hasSize(equalTo(1)));
                 d.add("two");
                 String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
                 assertThat(log, d.getItems(), hasSize(equalTo(1)));
-            }
         });
     }
 
