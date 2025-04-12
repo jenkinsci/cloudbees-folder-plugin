@@ -51,7 +51,6 @@ import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
-import io.jenkins.servlet.ServletExceptionWrapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -84,9 +83,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerRequest2;
-import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -432,47 +429,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Override
     protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
-        if (Util.isOverridden(ComputedFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
-            try {
-                submit(StaplerRequest.fromStaplerRequest2(req), StaplerResponse.fromStaplerResponse2(rsp));
-            } catch (javax.servlet.ServletException e) {
-                throw ServletExceptionWrapper.toJakartaServletException(e);
-            }
-        } else {
-            String oisDigest = null;
-            try {
-                oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
-            } catch (XStreamException e) {
-                // ignore
-            }
-            super.submit(req, rsp);
-            JSONObject json = req.getSubmittedForm();
-            orphanedItemStrategy = req.bindJSON(OrphanedItemStrategy.class, json.getJSONObject("orphanedItemStrategy"));
-            for (Trigger t : triggers) {
-                t.stop();
-            }
-            triggers.rebuild(req, json, Trigger.for_(this));
-            for (Trigger t : triggers) {
-                t.start(this, true);
-            }
-            try {
-                if (oisDigest == null || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
-                    // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find orphans
-                    recalculateAfterSubmitted(true);
-                }
-            } catch (XStreamException e) {
-                // force a recalculation anyway in this case
-                recalculateAfterSubmitted(true);
-            }
-        }
-    }
-
-    /**
-     * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
-     */
-    @Deprecated
-    @Override
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {
         String oisDigest = null;
         try {
             oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
