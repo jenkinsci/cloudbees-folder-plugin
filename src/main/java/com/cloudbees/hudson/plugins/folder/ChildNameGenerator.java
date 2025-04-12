@@ -26,20 +26,15 @@ package com.cloudbees.hudson.plugins.folder;
 
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import hudson.Util;
-import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.Item;
-import hudson.model.ItemGroup;
 import hudson.model.JobProperty;
 import hudson.model.TopLevelItem;
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Map;
-import java.util.WeakHashMap;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.logging.Level;
@@ -58,15 +53,6 @@ import org.apache.commons.lang.StringUtils;
  * <ul>
  * <li>See the notes on {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} and
  * {@link #dirNameFromItem(AbstractFolder, TopLevelItem)} regarding the constraints on how to name things</li>
- * <li>There are some items which need the {@link Item#getRootDir()} during construction (those are bold evil item types
- * that leak side-effects, you should fix them if you find them). While you wait for them to be fixed you will need
- * to work-around the issue by ensuring that you call {@link #beforeCreateItem(AbstractFolder, String, String)}
- * passing the {@link Item#getName()} you want the item to have <strong>and</strong> the ideal unmangled name
- * <strong>before</strong> you call {@code new ChildItemType(parent,name)} and then call
- * {@link #afterItemCreated(Trace)} when the constructor has returned. Then insure that your
- * {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} and {@link #dirNameFromItem(AbstractFolder, TopLevelItem)}
- * fall back to {@link #idealNameFromItem(AbstractFolder, TopLevelItem)} when the magic property they are looking
- * for is missing.</li>
  * </ul>
  *
  * For a valid implementation, the
@@ -98,58 +84,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      * ideal name in a {@link JobProperty}, {@link Action} or equivalent that is attached directly to the {@link Item}.
      */
     public static final String CHILD_NAME_FILE = "name-utf8.txt";
-
-    private static final Map<Trace,String> idealNames = new WeakHashMap<>();
-
-    /**
-     * Work-around helper method to "fix" {@link Item} constructors that have on-disk side-effects and therefore
-     * need {@link Item#getRootDir()} to work during the constructor.
-     * @param project the {@link AbstractFolder}.
-     * @param itemName the name that will be returned by {@link Item#getName()} when the item is constructed. This is
-     *                 the second parameter of {@link AbstractItem#AbstractItem(ItemGroup, String)}. This one would be
-     *                 the one with URL path segment escaping.
-     * @param idealName the original name before whatever URL path segment escaping you applied
-     * @return the {@link Trace} to keep track of when we can remove the memory of the creation process. Please
-     * {@link Trace#close()} the trace after the item is created.
-     */
-    @NonNull
-    public static Trace beforeCreateItem(@NonNull AbstractFolder<?> project,
-                                         @NonNull String itemName,
-                                         @NonNull String idealName) {
-        final Trace trace = new Trace(project, itemName);
-        synchronized (idealNames) {
-            idealNames.put(trace, idealName);
-        }
-        return trace;
-    }
-
-    /**
-     * Clean up for a creation {@link Trace}. Not strictly required, but nice implementations will do this via {@link Trace#close()}.
-     * @param trace the trace.
-     */
-    private static void afterItemCreated(@NonNull Trace trace) {
-        synchronized (idealNames) {
-            idealNames.remove(trace);
-        }
-    }
-
-    /**
-     * Looks up the {@link Item} to see if we stored the ideal name before invoking the constructor that is having
-     * on-disk side-effects before the object has escaped {@link #beforeCreateItem(AbstractFolder, String, String)}
-     * @param parent the parent within which the item is being created.
-     * @param item the partially created item.
-     * @return the ideal name of the item.
-     */
-    @CheckForNull
-    protected final String idealNameFromItem(@NonNull P parent, @NonNull I item) {
-        String itemName = item.getName();
-        if (itemName == null) {
-            return null;
-        }
-        synchronized (idealNames) {
-            return idealNames.get(new Trace(parent, itemName));
-        }
-    }
 
     /**
      * Infers the {@link Item#getName()} from the {@link Item} instance itself.
@@ -335,67 +269,5 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
             throw new UncheckedIOException("Failed to load " + name + " as could not write " + nameFile, e);
         }
         return name;
-    }
-
-    /**
-     * Traces the creation of a new {@link Item} in a folder. Use
-     * {@link ChildNameGenerator#beforeCreateItem(AbstractFolder, String, String)} to get the instance.
-     */
-    public static final class Trace implements Closeable {
-        /**
-         * The folder.
-         */
-        @NonNull
-        private final AbstractFolder<?> folder;
-        /**
-         * The {@link Item#getName()} that we expect to be created in the very near future.
-         */
-        @NonNull
-        private final String itemName;
-
-        /**
-         * Constructor.
-         * @param folder the folder.
-         * @param itemName the item name
-         */
-        private Trace(@NonNull AbstractFolder<?> folder, @NonNull String itemName) {
-            this.folder = folder;
-            this.itemName = itemName;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            Trace that = (Trace) o;
-
-            return folder == that.folder && itemName.equals(that.itemName);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public int hashCode() {
-            int result = folder.hashCode();
-            result = 31 * result + itemName.hashCode();
-            return result;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void close() {
-            afterItemCreated(this);
-        }
     }
 }
