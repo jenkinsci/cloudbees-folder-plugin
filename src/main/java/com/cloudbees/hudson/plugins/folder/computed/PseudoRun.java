@@ -71,7 +71,7 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
      */
     @NonNull
     public String getTimestampString2() {
-        return Util.XS_DATETIME_FORMATTER.format(computation.getTimestamp());
+        return Util.XS_DATETIME_FORMATTER2.format(computation.getTimestamp().toInstant());
     }
 
     @CheckForNull
