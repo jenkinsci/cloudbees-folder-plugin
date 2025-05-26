@@ -39,13 +39,14 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.Objects;
 import java.util.WeakHashMap;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.TransientActionFactory;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Provides a way for a {@link ComputedFolder} to break the association between the directory names on disk
@@ -293,7 +294,7 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
         File nameFile = new File(directory, CHILD_NAME_FILE);
         if (nameFile.isFile()) {
             try {
-                childName = StringUtils.defaultString(StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8)), directory.getName());
+                childName = Objects.toString(StringUtils.trimToNull(Files.readString(nameFile.toPath(), StandardCharsets.UTF_8)), directory.getName());
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, () -> "Could not read "+ nameFile + ", assuming child name is " + directory.getName());
             }
