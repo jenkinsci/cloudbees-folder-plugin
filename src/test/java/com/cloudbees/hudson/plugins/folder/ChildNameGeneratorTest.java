@@ -618,13 +618,13 @@ public class ChildNameGeneratorTest {
 
     static CharSequence asJavaString(String rawString) {
         StringBuilder b = new StringBuilder();
-        rawString.codePoints().forEach(c -> {
+        for (char c : rawString.toCharArray()) {
             if (c >= 32 && c < 128) {
-                b.append(Character.toString(c));
+                b.append(c);
             } else {
-                b.append(String.format("\\u%04x", c));
+                b.append(String.format("\\u%04x", (int) c));
             }
-        });
+        }
         return b;
     }
 
