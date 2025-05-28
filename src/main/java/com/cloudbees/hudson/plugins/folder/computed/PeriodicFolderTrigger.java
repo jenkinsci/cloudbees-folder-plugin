@@ -36,7 +36,6 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -107,19 +106,19 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         interval = interval.toLowerCase();
         if (interval.endsWith("h")) {
             units = TimeUnit.HOURS;
-            interval = StringUtils.removeEnd(interval, "h");
+            interval = interval.substring(0, interval.length() - 1);
         }
         if (interval.endsWith("m")) {
-            interval = StringUtils.removeEnd(interval, "m");
+            interval = interval.substring(0, interval.length() - 1);
         } else if (interval.endsWith("d")) {
             units = TimeUnit.DAYS;
-            interval = StringUtils.removeEnd(interval, "d");
+            interval = interval.substring(0, interval.length() - 1);
         } else if (interval.endsWith("ms")) {
             units = TimeUnit.SECONDS;
-            interval = StringUtils.removeEnd(interval, "ms");
+            interval = interval.substring(0, interval.length() - 1);
         } else if (interval.endsWith("s")) {
             units = TimeUnit.SECONDS;
-            interval = StringUtils.removeEnd(interval, "s");
+            interval = interval.substring(0, interval.length() - 1);
         }
         long value = 0;
         try {

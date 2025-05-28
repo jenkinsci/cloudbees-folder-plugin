@@ -54,7 +54,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsSessionRule;
@@ -619,13 +618,13 @@ public class ChildNameGeneratorTest {
 
     static CharSequence asJavaString(String rawString) {
         StringBuilder b = new StringBuilder();
-        for (char c : rawString.toCharArray()) {
+        rawString.codePoints().forEach(c -> {
             if (c >= 32 && c < 128) {
-                b.append(c);
+                b.append(Character.toString(c));
             } else {
-                b.append("\\u").append(StringUtils.leftPad(Integer.toHexString(c & 0xffff), 4, '0'));
+                b.append(String.format("\\u%04x", c));
             }
-        }
+        });
         return b;
     }
 
