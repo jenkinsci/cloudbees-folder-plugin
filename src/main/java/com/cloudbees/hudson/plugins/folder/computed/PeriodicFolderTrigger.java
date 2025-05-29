@@ -114,8 +114,8 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             units = TimeUnit.DAYS;
             interval = interval.substring(0, interval.length() - 1);
         } else if (interval.endsWith("ms")) {
-            units = TimeUnit.SECONDS;
-            interval = interval.substring(0, interval.length() - 1);
+            units = TimeUnit.MILLISECONDS;
+            interval = interval.substring(0, interval.length() - 2);
         } else if (interval.endsWith("s")) {
             units = TimeUnit.SECONDS;
             interval = interval.substring(0, interval.length() - 1);
