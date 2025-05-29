@@ -26,9 +26,7 @@ package com.cloudbees.hudson.plugins.folder;
 
 import hudson.DescriptorExtensionList;
 import hudson.ExtensionList;
-import hudson.Util;
 import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import java.util.ArrayList;
@@ -39,19 +37,6 @@ public abstract class FolderPropertyDescriptor extends AbstractFolderPropertyDes
 
     @Override
     public FolderProperty<?> newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
-        if (Util.isOverridden(FolderPropertyDescriptor.class, getClass(), "newInstance", StaplerRequest.class, JSONObject.class)) {
-            return newInstance(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, formData);
-        } else {
-            return (FolderProperty<?>) super.newInstance(req, formData);
-        }
-    }
-
-    /**
-     * @deprecated use {@link #newInstance(StaplerRequest2, JSONObject)}
-     */
-    @Deprecated
-    @Override
-    public FolderProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
         return (FolderProperty<?>) super.newInstance(req, formData);
     }
 
