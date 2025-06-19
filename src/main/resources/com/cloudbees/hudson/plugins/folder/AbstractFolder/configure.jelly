@@ -26,14 +26,14 @@ THE SOFTWARE.
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"  xmlns:p="/lib/hudson/project">
   <l:layout title="${it.displayName} Config" permission="${it.EXTENDED_READ}">
     <j:set var="readOnlyMode" value="${!it.hasPermission(it.CONFIGURE)}" />
-    <l:breadcrumb title="${%Configuration}" />
+    <l:breadcrumb title="${%Configure}" />
 
     <l:header>
       <script src="${resURL}/jsbundles/section-to-sidebar-items.js" type="text/javascript" defer="true" />
     </l:header>
 
     <l:side-panel sticky="true">
-      <l:app-bar title="${%Configuration}"/>
+      <l:app-bar title="${%Configure}"/>
       <div id="tasks" />
     </l:side-panel>
 
