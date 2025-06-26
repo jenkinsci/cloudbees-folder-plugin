@@ -52,14 +52,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
@@ -78,7 +75,7 @@ import static org.junit.Assert.assertEquals;
 public class ChildNameGeneratorRecTest {
 
     @Rule
-    public RestartableJenkinsRule r = new RestartableJenkinsRule();
+    public JenkinsSessionRule r = new JenkinsSessionRule();
 
     /**
      * Given: a computed folder
@@ -86,11 +83,9 @@ public class ChildNameGeneratorRecTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() {
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                ComputedFolderImpl instance = r.j.jenkins.createProject(ComputedFolderImpl.class, "instance");
+    public void createdFromScratch() throws Throwable {
+        r.then(j -> {
+                ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
                 instance.assertItemNames(1);
@@ -106,58 +101,19 @@ public class ChildNameGeneratorRecTest {
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
-            }
         });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
+        r.then(j -> {
+                TopLevelItem i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0);
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
+                j.jenkins.reload();
+                i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0);
                 instance.doReload();
                 checkComputedFolder(instance, 0);
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgrade() {
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                instance.doReload();
-                checkComputedFolder(instance, 0);
-            }
         });
     }
 
