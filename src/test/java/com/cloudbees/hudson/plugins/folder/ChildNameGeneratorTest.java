@@ -53,7 +53,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsSessionRule;
@@ -616,7 +615,7 @@ public class ChildNameGeneratorTest {
             if (c >= 32 && c < 128) {
                 b.append(c);
             } else {
-                b.append("\\u").append(StringUtils.leftPad(Integer.toHexString(c & 0xffff), 4, '0'));
+                b.append(String.format("\\u%04x", (int) c));
             }
         }
         return b;

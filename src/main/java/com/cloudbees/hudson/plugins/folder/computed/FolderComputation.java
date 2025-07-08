@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import java.util.zip.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -235,7 +234,6 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return new File(folder.getComputationDir(), "events.log");
     }
 
-    @WithBridgeMethods(TaskListener.class)
     @NonNull
     public synchronized StreamTaskListener createEventsListener() {
         File eventsFile = getEventsFile();
