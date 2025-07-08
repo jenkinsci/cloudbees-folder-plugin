@@ -397,10 +397,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return name;
     }
 
-    /**
-     * @deprecated inline this
-     */
-    @Deprecated
     protected final I itemsPut(String name, I item) {
         return items.put(name, item);
     }
@@ -435,7 +431,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         if (items.containsKey(name)) {
             throw new IllegalArgumentException("already an item '" + name + "'");
         }
-        items.put(item.getName(), item);
+        itemsPut(item.getName(), item);
     }
 
     /**
@@ -1014,7 +1010,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Override
     public void onRenamed(I item, String oldName, String newName) throws IOException {
         items.remove(oldName);
-        items.put(newName, item);
+        itemsPut(newName, item);
         // For compatibility with old views:
         for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, oldName, newName);

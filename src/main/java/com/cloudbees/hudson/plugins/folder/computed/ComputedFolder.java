@@ -870,7 +870,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             } catch (IOException x) {
                 LOGGER.log(Level.WARNING, "Failed to save " + child, x);
             }
-            items.put(name, child);
+            itemsPut(name, child);
             Jenkins j = Jenkins.getInstanceOrNull();
             if (j != null) {
                 j.rebuildDependencyGraphAsync();
@@ -991,7 +991,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             } catch (IOException x) {
                 LOGGER.log(Level.WARNING, "Failed to save " + child, x);
             }
-            items.put(name, child);
+            itemsPut(name, child);
             Jenkins j = Jenkins.getInstanceOrNull();
             if (j != null) {
                 j.rebuildDependencyGraphAsync();
