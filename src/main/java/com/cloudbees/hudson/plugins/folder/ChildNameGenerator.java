@@ -33,7 +33,6 @@ import hudson.model.ItemGroup;
 import hudson.model.JobProperty;
 import hudson.model.TopLevelItem;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -183,29 +182,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
             name = dirNameFromLegacy(parent, item.getName());
         }
         return name;
-    }
-
-    /**
-     * Ensures that the item is stored in the correct directory, and moves it if necessary.
-     *
-     * @param parent the parent of the given item.
-     * @param item the item to determine directory for.
-     * @param legacyDir The directory name that we are loading an item from.
-     * @return a reference to the (new) directory storing the item, and whether the item needs to be saved.
-     * @throws IOException In case something went wrong while setting up the expected result directory.
-     */
-    @NonNull
-    final File ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
-        String legacyName = legacyDir.getName();
-        String dirName = dirNameFromItem(parent, item);
-        if (dirName == null) {
-            dirName = dirNameFromLegacy(parent, legacyName);
-        }
-        File newSubdir = parent.getRootDirFor(dirName);
-        if (!legacyName.equals(dirName)) {
-            throw new IllegalStateException("Actual directory name '" + legacyName + "' does not match expected name '" + dirName + "'");
-        }
-        return newSubdir;
     }
 
     /**
