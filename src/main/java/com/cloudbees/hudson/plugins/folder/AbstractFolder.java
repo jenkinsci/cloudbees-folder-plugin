@@ -359,7 +359,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             }
         }
         for (File subdir : subdirs) {
-            File effectiveSubdir = subdir;
             // Try to retain the identity of an existing child object if we can.
             V item = byDirName.get(subdir.getName());
             try {
@@ -367,7 +366,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     XmlFile xmlFile = Items.getConfigFile(subdir);
                     if (xmlFile.exists()) {
                         item = (V) xmlFile.read();
-                        effectiveSubdir = childNameGenerator.ensureItemDirectory(parent, item, subdir);
                     } else {
                         throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
                     }
@@ -379,8 +377,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 item.onLoad(parent, name);
                 configurations.put(key.apply(item), item);
             } catch (Exception e) {
-                File finalEffectiveSubdir = effectiveSubdir;
-                LOGGER.warning(() -> "could not load " + finalEffectiveSubdir + " due to " + e);
+                LOGGER.warning(() -> "could not load " + subdir + " due to " + e);
                 LOGGER.log(Level.FINE, null, e);
             }
         }

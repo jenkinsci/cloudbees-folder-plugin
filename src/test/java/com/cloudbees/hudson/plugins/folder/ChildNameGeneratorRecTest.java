@@ -488,11 +488,6 @@ public class ChildNameGeneratorRecTest {
                                         @NonNull String legacyDirName) {
             return mangle(rawDecode(legacyDirName));
         }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(rawDecode(legacyDirName)));
-        }
     }
 
     /**

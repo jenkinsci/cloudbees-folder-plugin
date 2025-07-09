@@ -602,11 +602,6 @@ public class ChildNameGeneratorTest {
                                         @NonNull String legacyDirName) {
             return mangle(legacyDirName);
         }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(legacyDirName));
-        }
     }
 
     static CharSequence asJavaString(String rawString) {

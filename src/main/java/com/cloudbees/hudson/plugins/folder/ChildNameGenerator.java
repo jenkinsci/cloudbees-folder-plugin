@@ -33,7 +33,6 @@ import hudson.model.ItemGroup;
 import hudson.model.JobProperty;
 import hudson.model.TopLevelItem;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -186,29 +185,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     }
 
     /**
-     * Ensures that the item is stored in the correct directory, and moves it if necessary.
-     *
-     * @param parent the parent of the given item.
-     * @param item the item to determine directory for.
-     * @param legacyDir The directory name that we are loading an item from.
-     * @return a reference to the (new) directory storing the item, and whether the item needs to be saved.
-     * @throws IOException In case something went wrong while setting up the expected result directory.
-     */
-    @NonNull
-    final File ensureItemDirectory(@NonNull P parent, @NonNull I item, @NonNull File legacyDir) throws IOException {
-        String legacyName = legacyDir.getName();
-        String dirName = dirNameFromItem(parent, item);
-        if (dirName == null) {
-            dirName = dirNameFromLegacy(parent, legacyName);
-        }
-        File newSubdir = parent.getRootDirFor(dirName);
-        if (!legacyName.equals(dirName)) {
-            throw new IllegalStateException("Actual directory name '" + legacyName + "' does not match expected name '" + dirName + "'");
-        }
-        return newSubdir;
-    }
-
-    /**
      * {@link #itemNameFromItem(AbstractFolder, TopLevelItem)} could not help, we are loading the item for the first
      * time since the {@link ChildNameGenerator} was enabled for the parent folder type, this method's mission is
      * to pretend the {@code legacyDirName} is the "mostly correct" name and turn this into the actual name.
@@ -253,18 +229,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
      */
     @NonNull
     public abstract String dirNameFromLegacy(@NonNull P parent, @NonNull String legacyDirName);
-
-    /**
-     * Record the ideal name inferred in the item when it was missing and has been inferred from the legacy directory
-     * name.
-     *
-     * @param parent the parent.
-     * @param item the item.
-     * @param legacyDirName the name of the directory that the item was loaded from.
-     * @throws IOException if the ideal name could not be attached to the item.
-     * @deprecated removed without replacement
-     */
-    public abstract void recordLegacyName(P parent, I item, String legacyDirName) throws IOException;
 
     /**
      * Traces the creation of a new {@link Item} in a folder. Use

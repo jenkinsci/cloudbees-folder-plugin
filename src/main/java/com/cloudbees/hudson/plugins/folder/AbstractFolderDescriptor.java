@@ -237,10 +237,5 @@ public abstract class AbstractFolderDescriptor extends TopLevelItemDescriptor im
         public String dirNameFromLegacy(@NonNull AbstractFolder<I> parent, @NonNull String legacyDirName) {
             return legacyDirName;
         }
-
-        @Override
-        public void recordLegacyName(AbstractFolder<I> parent, I item, String legacyDirName) {
-            // no-op
-        }
     }
 }
