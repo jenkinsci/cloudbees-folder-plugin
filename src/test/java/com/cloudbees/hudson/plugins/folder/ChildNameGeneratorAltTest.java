@@ -587,11 +587,6 @@ public class ChildNameGeneratorAltTest {
                                         @NonNull String legacyDirName) {
             return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
         }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD)));
-        }
     }
 
 

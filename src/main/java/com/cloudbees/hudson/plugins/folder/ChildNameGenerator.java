@@ -255,18 +255,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     public abstract String dirNameFromLegacy(@NonNull P parent, @NonNull String legacyDirName);
 
     /**
-     * Record the ideal name inferred in the item when it was missing and has been inferred from the legacy directory
-     * name.
-     *
-     * @param parent the parent.
-     * @param item the item.
-     * @param legacyDirName the name of the directory that the item was loaded from.
-     * @throws IOException if the ideal name could not be attached to the item.
-     * @deprecated removed without replacement
-     */
-    public abstract void recordLegacyName(P parent, I item, String legacyDirName) throws IOException;
-
-    /**
      * Traces the creation of a new {@link Item} in a folder. Use
      * {@link ChildNameGenerator#beforeCreateItem(AbstractFolder, String, String)} to get the instance.
      */
