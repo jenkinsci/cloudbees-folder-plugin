@@ -43,7 +43,6 @@ import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
-import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
 import hudson.model.queue.QueueTaskDispatcher;
@@ -72,6 +71,7 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import jenkins.model.FullyNameableModelObject;
 import jenkins.security.stapler.StaplerNotDispatchable;
 import hudson.diagnosis.OldDataMonitor;
 import net.jcip.annotations.GuardedBy;
@@ -92,7 +92,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * A particular “run” of {@link ComputedFolder}.
  * @since 4.11-beta-1
  */
-public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable, Loadable {
+public class FolderComputation<I extends TopLevelItem> extends Actionable implements FullyNameableModelObject, Queue.Executable, Saveable, Loadable {
 
     /**
      * Our logger.
@@ -301,6 +301,11 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      */
     public String getFullName() {
         return folder.getFullName();
+    }
+
+    @Override
+    public String getFullDisplayName() {
+        return folder.getFullDisplayName() + " (" + getDisplayName() + ")";
     }
 
     /**
