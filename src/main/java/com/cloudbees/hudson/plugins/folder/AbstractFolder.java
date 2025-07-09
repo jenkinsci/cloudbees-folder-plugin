@@ -360,13 +360,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         for (File subdir : subdirs) {
             File effectiveSubdir = subdir;
-            String childName = childNameGenerator.readItemName(subdir);
             // Try to retain the identity of an existing child object if we can.
-            V itemFromDir;
-            V item;
-            String name;
-            var legacyName = subdir.getName();
-            item = itemFromDir = byDirName.get(legacyName);
+            V item = byDirName.get(subdir.getName());
             try {
                 if (item == null) {
                     XmlFile xmlFile = Items.getConfigFile(subdir);
@@ -377,21 +372,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                         throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
                     }
                 }
-                name = childNameGenerator.writeItemName(parent, item, effectiveSubdir, childName);
-                String computedName = childNameGenerator.itemNameFromItem(parent, item);
-                if (computedName == null) {
-                    computedName = subdir.getName();
-                }
-                if (!computedName.equals(name)) {
-                    throw new IllegalStateException("Computed name '" + computedName + "' does not match name written to file '" + name + "'");
-                }
-                if (item instanceof AbstractItem) {
-                    var abstractItem = (AbstractItem) item;
-                    if (itemFromDir != null && !legacyName.equals(name) && abstractItem.getDisplayNameOrNull() == null) {
-                        try (BulkChange ignored = new BulkChange(item)) {
-                            abstractItem.setDisplayName(childName);
-                        }
-                    }
+                String name = childNameGenerator.itemNameFromItem(parent, item);
+                if (name == null) {
+                    name = subdir.getName();
                 }
                 item.onLoad(parent, name);
                 configurations.put(key.apply(item), item);
@@ -407,19 +390,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     @Override
     public String getItemName(File dir, I item) {
-        String name = childNameGenerator().readItemName(dir);
-        String computedName = childNameGenerator().itemNameFromItem(this, item);
-        if (computedName == null) {
-            computedName = dir.getName();
-        }
-        if (!computedName.equals(name)) {
-            throw new IllegalStateException("Computed name '" + computedName + "' does not match name read from file '" + name + "'");
+        String name = childNameGenerator().itemNameFromItem(this, item);
+        if (name == null) {
+            name = dir.getName();
         }
         return name;
     }
 
     protected final I itemsPut(String name, I item) {
-        childNameGenerator().writeItemName(this, item, getRootDirFor(item), name);
         return items.put(name, item);
     }
 
