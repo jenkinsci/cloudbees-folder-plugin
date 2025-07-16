@@ -71,7 +71,7 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import jenkins.model.FullyNameableModelObject;
+import jenkins.model.FullyNamedModelObject;
 import jenkins.security.stapler.StaplerNotDispatchable;
 import hudson.diagnosis.OldDataMonitor;
 import net.jcip.annotations.GuardedBy;
@@ -92,7 +92,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * A particular “run” of {@link ComputedFolder}.
  * @since 4.11-beta-1
  */
-public class FolderComputation<I extends TopLevelItem> extends Actionable implements FullyNameableModelObject, Queue.Executable, Saveable, Loadable {
+public class FolderComputation<I extends TopLevelItem> extends Actionable implements FullyNamedModelObject, Queue.Executable, Saveable, Loadable {
 
     /**
      * Our logger.

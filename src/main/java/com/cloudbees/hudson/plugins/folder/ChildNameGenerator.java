@@ -127,9 +127,6 @@ public abstract class ChildNameGenerator<P extends AbstractFolder<I>, I extends 
     @CheckForNull
     protected final String idealNameFromItem(@NonNull P parent, @NonNull I item) {
         String itemName = item.getName();
-        if (itemName == null) {
-            return null;
-        }
         synchronized (idealNames) {
             return idealNames.get(new Trace(parent, itemName));
         }
