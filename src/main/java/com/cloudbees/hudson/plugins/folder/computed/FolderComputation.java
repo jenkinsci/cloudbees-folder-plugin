@@ -197,10 +197,12 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable
             listener.finished(_result);
             listener.closeQuietly();
             result = _result;
-            try {
-                save();
-            } catch (IOException x) {
-                LOGGER.log(Level.WARNING, null, x);
+            if (result == Result.SUCCESS) {
+                try {
+                    save();
+                } catch (IOException x) {
+                    LOGGER.log(Level.WARNING, null, x);
+                }
             }
         }
     }
