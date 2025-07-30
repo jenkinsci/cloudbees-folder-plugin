@@ -27,7 +27,6 @@ package com.cloudbees.hudson.plugins.folder.health;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.AncestorInPath;
@@ -115,8 +114,9 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
                 @AncestorInPath ItemGroup<Item> container) {
             AutoCompletionCandidates candidates = new AutoCompletionCandidates();
             for (Item item : container.getItems()) {
-                if (StringUtils.startsWith(item.getName(), value)) {
-                    candidates.add(item.getName());
+                String name = item.getName();
+                if (name != null && name.startsWith(value)) {
+                    candidates.add(name);
                 }
             }
             return candidates;
