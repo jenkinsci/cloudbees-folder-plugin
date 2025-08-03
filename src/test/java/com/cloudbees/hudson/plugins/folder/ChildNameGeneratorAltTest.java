@@ -40,11 +40,9 @@ import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -238,12 +236,6 @@ public class ChildNameGeneratorAltTest {
         assertThat("We have an item for name " + idealName, item, notNullValue());
         assertThat("The root directory if the item for name " + idealName + " is mangled",
                 item.getRootDir().getName(), is(mangle(idealName)));
-        File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
-        assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
-                nameFile.isFile(), is(true));
-        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
-        assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
-                + " contains the encoded name", name, is(encodedName));
     }
 
     public static String encode(String s) {
@@ -594,11 +586,6 @@ public class ChildNameGeneratorAltTest {
         public String dirNameFromLegacy(@NonNull F parent,
                                         @NonNull String legacyDirName) {
             return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
-        }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD)));
         }
     }
 
