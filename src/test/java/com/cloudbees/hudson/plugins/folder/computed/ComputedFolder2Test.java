@@ -37,29 +37,29 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-public class ComputedFolder2Test {
+class ComputedFolder2Test {
 
-    @Rule
-    public JenkinsSessionRule rr = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
 
     @Issue("JENKINS-42593")
     @Test
-    public void eventAfterRestart() throws Throwable {
-        rr.then(j -> {
+    void eventAfterRestart() throws Throwable {
+        extension.then(j -> {
                 EventableFolder d = j.createProject(EventableFolder.class, "d");
                 d.add("one");
                 String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
                 assertThat(log, d.getItems(), hasSize(equalTo(1)));
         });
-        rr.then(j -> {
+        extension.then(j -> {
                 EventableFolder d = j.jenkins.getItemByFullName("d", EventableFolder.class);
                 assertNotNull(d);
                 assertThat(d.getItems(), hasSize(equalTo(1)));
@@ -69,7 +69,6 @@ public class ComputedFolder2Test {
         });
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static final class EventableFolder extends ComputedFolder<FreeStyleProject> {
 
         private final List<String> kids = new ArrayList<>();
@@ -115,6 +114,7 @@ public class ComputedFolder2Test {
             }
         }
 
+        @SuppressWarnings("unused")
         @TestExtension("eventAfterRestart")
         public static final class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -122,9 +122,6 @@ public class ComputedFolder2Test {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new EventableFolder(parent, name);
             }
-
         }
-
     }
-
 }
