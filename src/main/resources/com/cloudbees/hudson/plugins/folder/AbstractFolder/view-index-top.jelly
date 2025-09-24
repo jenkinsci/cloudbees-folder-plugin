@@ -61,12 +61,19 @@ THE SOFTWARE.
   </div>
   <this:description />
   <j:choose>
-      <j:when test="${!it.supportsMakeDisabled()}">
-          <!-- for now, quietly omit the option -->
-      </j:when>
-      <j:when test="${it.disabled}">
-          <div id="disabled-message" class="warning">${%disabled(it.pronoun)}</div>
-      </j:when>
+    <j:when test="${!it.supportsMakeDisabled()}">
+      <!-- for now, quietly omit the option -->
+    </j:when>
+    <j:when test="${it.disabled}">
+      <div class="warning" id="disabled-message">
+        <form method="post" id='enable-project' action="${rootURL}/${it.url}enable">
+          ${%disabled(it.pronoun)}<st:nbsp/>
+          <l:hasPermission permission="${it.CONFIGURE}">
+            <f:submit value="${%Enable}"/>
+          </l:hasPermission>
+        </form>
+      </div>
+    </j:when>
   </j:choose>
   <!-- give actions a chance to contribute summary item -->
   <j:forEach var="a" items="${it.allActions}">
