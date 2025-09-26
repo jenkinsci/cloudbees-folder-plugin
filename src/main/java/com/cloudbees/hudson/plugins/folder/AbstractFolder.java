@@ -34,9 +34,9 @@ import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import hudson.BulkChange;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.Util;
 import static hudson.Util.fixEmpty;
-import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -73,13 +73,11 @@ import io.jenkins.servlet.ServletExceptionWrapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -340,49 +338,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
                                                              Function<? super V, ? extends K> key) {
-        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<>();
-        if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
-            LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
-                    new Object[]{modulesDir, parent.getFullName()});
-            return configurations;
-        }
-
-        File[] subdirs = modulesDir.listFiles(File::isDirectory);
-        if (subdirs == null) {
-            return configurations;
-        }
-        final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
-        Map<String,V> byDirName = new HashMap<>();
-        if (parent.items != null) {
-            for (V item : parent.items.values()) {
-                byDirName.put(childNameGenerator.dirName(parent, item), item);
-            }
-        }
-        for (File subdir : subdirs) {
-            // Try to retain the identity of an existing child object if we can.
-            V item = byDirName.get(subdir.getName());
-            try {
-                if (item == null) {
-                    XmlFile xmlFile = Items.getConfigFile(subdir);
-                    if (xmlFile.exists()) {
-                        item = (V) xmlFile.read();
-                    } else {
-                        throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
-                    }
-                }
-                String name = childNameGenerator.itemNameFromItem(parent, item);
-                if (name == null) {
-                    name = subdir.getName();
-                }
-                item.onLoad(parent, name);
-                configurations.put(key.apply(item), item);
-            } catch (Exception e) {
-                LOGGER.warning(() -> "could not load " + subdir + " due to " + e);
-                LOGGER.log(Level.FINE, null, e);
-            }
-        }
-
-        return configurations;
+        return ExtensionList.lookupFirst(ChildLoader.class).loadChildren(parent, modulesDir, key);
     }
 
     @Override
@@ -478,7 +434,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    private ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+    ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
         return getDescriptor().childNameGenerator();
     }
 
