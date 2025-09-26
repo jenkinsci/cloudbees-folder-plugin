@@ -53,10 +53,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorTest.asJavaStrings;
@@ -65,18 +65,18 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 
 /**
  * Tests {@link ChildNameGenerator} using a generator that leaves the {@link Item#getName()} unmodified but mangles
  * the directory.
  */
-public class ChildNameGeneratorAltTest {
+class ChildNameGeneratorAltTest {
 
-    @Rule
-    public JenkinsSessionRule r = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
 
     /**
      * Given: a computed folder
@@ -84,8 +84,8 @@ public class ChildNameGeneratorAltTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() throws Throwable {
-        r.then(j -> {
+    void createdFromScratch() throws Throwable {
+        extension.then(j -> {
                 ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
@@ -103,7 +103,7 @@ public class ChildNameGeneratorAltTest {
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
         });
-        r.then(j -> {
+        extension.then(j -> {
                 TopLevelItem i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
@@ -120,12 +120,12 @@ public class ChildNameGeneratorAltTest {
                 // Check child items identity is preserved
                 assertThat("Items are the same", items, is(newItems));
                 for (int k = 0; k < items.size(); k++) {
-                    assertSame("Individual items must be the same", items.get(k), newItems.get(k));
+                    assertSame(items.get(k), newItems.get(k), "Individual items must be the same");
                 }
         });
     }
 
-    private void checkComputedFolder(ComputedFolderImpl instance, int round) throws IOException {
+    private void checkComputedFolder(ComputedFolderImpl instance, int round) {
         boolean windows = false;
         for (FreeStyleProject p : instance.getItems()) {
             if ("leanbh cu\u0301ig".equals(p.getName())) {
@@ -230,7 +230,7 @@ public class ChildNameGeneratorAltTest {
         }
     }
 
-    private void checkChild(ComputedFolderImpl instance, String idealName) throws IOException {
+    private void checkChild(ComputedFolderImpl instance, String idealName) {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
@@ -238,12 +238,12 @@ public class ChildNameGeneratorAltTest {
                 item.getRootDir().getName(), is(mangle(idealName)));
     }
 
-    public static String encode(String s) {
+    private static String encode(String s) {
         // We force every name to NFD to ensure that the test works irrespective of what the filesystem does
         return Normalizer.normalize(s, Normalizer.Form.NFD);
     }
 
-    public static String mangle(String s) {
+    private static String mangle(String s) {
         // We force every name to NFD to ensure that the test works irrespective of what the filesystem does
         s = Normalizer.normalize(s, Normalizer.Form.NFD);
         String hash = Util.getDigestOf(s);
@@ -440,7 +440,7 @@ public class ChildNameGeneratorAltTest {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
-            assertEquals(log, result, computation.getResult());
+            assertEquals(result, computation.getResult(), log);
             return log;
         }
 
@@ -474,6 +474,7 @@ public class ChildNameGeneratorAltTest {
             assertThat(actual, is(new TreeSet<>(Arrays.asList(names))));
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -484,6 +485,7 @@ public class ChildNameGeneratorAltTest {
                 return new ComputedFolderImpl(parent, name);
             }
 
+            @NonNull
             @Override
             public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator() {
                 return (ChildNameGenerator<AbstractFolder<I>, I>) GENERATOR;
@@ -533,6 +535,7 @@ public class ChildNameGeneratorAltTest {
             return this;
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends JobPropertyDescriptor {
             @Override
@@ -586,6 +589,4 @@ public class ChildNameGeneratorAltTest {
             return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
         }
     }
-
-
 }
