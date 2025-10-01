@@ -34,11 +34,13 @@ THE SOFTWARE.
 
     <l:side-panel sticky="true">
       <l:app-bar title="${%Configuration}"/>
-      <div id="tasks" />
+      <div id="tasks">
+        <l:skeleton type="side-panel" />
+      </div>
     </l:side-panel>
 
     <l:main-panel>
-      <div class="behavior-loading">${%LOADING}</div>
+      <l:skeleton />
       <f:form method="post" class="jenkins-form" action="configSubmit" name="config" tableClass="config-table">
         <j:set var="descriptor" value="${it.descriptor}" />
         <j:set var="instance" value="${it}" />
