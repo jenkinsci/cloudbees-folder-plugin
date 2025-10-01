@@ -36,36 +36,35 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
-public class EventOutputStreamsTest {
+class EventOutputStreamsTest {
 
-    @Rule
-    public TemporaryFolder work = new TemporaryFolder();
+    @TempDir
+    private File work;
 
     @Test
-    public void given_everyoneFlushing_when_twoThreads_then_outputCorrect() throws Exception {
+    void given_everyoneFlushing_when_twoThreads_then_outputCorrect() throws Exception {
         test(true, true);
     }
 
     @Test
-    public void given_nobodyFlushing_when_twoThreads_then_outputCorrect() throws Exception {
+    void given_nobodyFlushing_when_twoThreads_then_outputCorrect() throws Exception {
         test(false, false);
     }
 
     @Test
-    public void given_oneFlushing_when_twoThreads_then_outputCorrect() throws Exception {
+    void given_oneFlushing_when_twoThreads_then_outputCorrect() throws Exception {
         test(true, false);
     }
 
-    public void test(final boolean aFlush, final boolean bFlush) throws Exception {
-        final File file = work.newFile();
+    private void test(final boolean aFlush, final boolean bFlush) throws Exception {
+        final File file = File.createTempFile("junit", null, work);
         final EventOutputStreams instance = new EventOutputStreams(new EventOutputStreams.OutputFile() {
             @NonNull
             @Override

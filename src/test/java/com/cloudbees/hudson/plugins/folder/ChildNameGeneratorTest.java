@@ -53,10 +53,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
@@ -65,7 +65,7 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests {@link ChildNameGenerator} using a generator that modifies both the {@link Item#getName()} and the directory.
@@ -89,14 +89,14 @@ import static org.junit.Assert.assertEquals;
  *     <li><code>niño ocho</code> (Spanish, supposed to be "child eight" round-tripped through Google translate gives
  *     "eight boy") demonstrates a name that has a NFC chacacter with a different NFD encoding</li>
  * </nl>
- *
+ * <p>
  * Aside: <a href="https://www.youtube.com/watch?v=LMkJuDVJdTw">Here's what happens when you round-trip through Google
  * Translate</a> "Cold, apricot, relaxing satisfaction!"
  */
-public class ChildNameGeneratorTest {
+class ChildNameGeneratorTest {
 
-    @Rule
-    public JenkinsSessionRule r = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
 
     /**
      * Given: a computed folder
@@ -104,8 +104,8 @@ public class ChildNameGeneratorTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() throws Throwable {
-        r.then(j -> {
+    void createdFromScratch() throws Throwable {
+        extension.then(j -> {
                 ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
@@ -123,7 +123,7 @@ public class ChildNameGeneratorTest {
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2, Normalizer.Form.NFC);
         });
-        r.then(j -> {
+        extension.then(j -> {
                 TopLevelItem i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
@@ -261,7 +261,7 @@ public class ChildNameGeneratorTest {
         }
     }
 
-    private void checkChild(ComputedFolderImpl instance, String idealName) throws IOException {
+    private void checkChild(ComputedFolderImpl instance, String idealName) {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
@@ -278,12 +278,12 @@ public class ChildNameGeneratorTest {
         }
     }
 
-    public static String encode(String s) {
+    private static String encode(String s) {
         // we want to test that the name can be different from the on-disk name
         return "$$"+Normalizer.normalize(s, Normalizer.Form.NFD);
     }
 
-    public static String mangle(String s) {
+    private static String mangle(String s) {
         String hash = Util.getDigestOf(s);
         String base = Normalizer.normalize(s, Normalizer.Form.NFD).toLowerCase(Locale.ENGLISH);
         StringBuilder buf = new StringBuilder(32);
@@ -479,7 +479,7 @@ public class ChildNameGeneratorTest {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
-            assertEquals(log, result, computation.getResult());
+            assertEquals(result, computation.getResult(), log);
             return log;
         }
 
@@ -513,6 +513,7 @@ public class ChildNameGeneratorTest {
             assertThat(actual, is(new TreeSet<>(Arrays.asList(names))));
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -523,13 +524,12 @@ public class ChildNameGeneratorTest {
                 return new ComputedFolderImpl(parent, name);
             }
 
+            @NonNull
             @Override
             public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator() {
                 return (ChildNameGenerator<AbstractFolder<I>, I>) GENERATOR;
             }
-
         }
-
     }
 
     public static class NameProperty extends JobProperty<FreeStyleProject> {
@@ -548,6 +548,7 @@ public class ChildNameGeneratorTest {
             return this;
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends JobPropertyDescriptor {
             @Override

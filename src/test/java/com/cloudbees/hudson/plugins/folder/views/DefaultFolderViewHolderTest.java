@@ -28,27 +28,34 @@ import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.diagnosis.OldDataMonitor;
 import hudson.model.AdministrativeMonitor;
 import hudson.model.AllView;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class DefaultFolderViewHolderTest {
+@WithJenkins
+class DefaultFolderViewHolderTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-47416")
     @LocalData
     @Test
-    public void oldData() throws Exception {
+    void oldData() {
         Folder d = r.jenkins.getItemByFullName("d", Folder.class);
         assertEquals(AllView.DEFAULT_VIEW_NAME, d.getPrimaryView().getViewName());
         for (OldDataMonitor.VersionRange problem : AdministrativeMonitor.all().get(OldDataMonitor.class).getData().values()) {
             fail(problem.extra);
         }
     }
-
 }
