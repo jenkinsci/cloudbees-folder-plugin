@@ -23,6 +23,7 @@
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.528</jenkins.baseline>
+    <!-- TODO switch to LTS version when available -->
     <jenkins.version>2.528</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
