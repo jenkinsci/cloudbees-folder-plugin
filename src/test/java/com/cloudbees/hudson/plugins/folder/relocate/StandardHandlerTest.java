@@ -32,17 +32,27 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.util.Arrays;
 import jenkins.model.Jenkins;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class StandardHandlerTest {
+@WithJenkins
+class StandardHandlerTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
 
-    @Test public void getDestinations() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
+    @Test
+    void getDestinations() throws Exception {
         Folder d1 = r.jenkins.createProject(Folder.class, "d1"); // where we start
         FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
         final Folder d2 = r.jenkins.createProject(Folder.class, "d2"); // where we could go
@@ -60,7 +70,8 @@ public class StandardHandlerTest {
         }
     }
 
-    @Test public void getDestinationsUsingSubfolders() throws Exception {
+    @Test
+    void getDestinationsUsingSubfolders() throws Exception {
         Folder d1 = r.jenkins.createProject(Folder.class, "d1");
         Folder d11 = d1.createProject(Folder.class, "d11");
         FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
@@ -74,7 +85,8 @@ public class StandardHandlerTest {
         assertNotEquals(d11, new StandardHandler().validDestinations(d11));
     }
 
-    @Test public void getDestinationsUsingItemsWithSameName() throws Exception {
+    @Test
+    void getDestinationsUsingItemsWithSameName() throws Exception {
         Folder d1 = r.jenkins.createProject(Folder.class, "d1");
         Folder d11 = d1.createProject(Folder.class, "d11");
         FreeStyleProject j = d1.createProject(FreeStyleProject.class, "j");
@@ -90,7 +102,8 @@ public class StandardHandlerTest {
         assertNotEquals(Arrays.asList(d11, d3), new StandardHandler().validDestinations(d11));
     }
 
-    @Test public void getDestinationsUsingItemsWithSameNameOnRootContext() throws Exception {
+    @Test
+    void getDestinationsUsingItemsWithSameNameOnRootContext() throws Exception {
         FreeStyleProject j = r.jenkins.createProject(FreeStyleProject.class, "j");
         Folder d1 = r.jenkins.createProject(Folder.class, "d1");
         Folder d11 = d1.createProject(Folder.class, "d11");
@@ -106,7 +119,8 @@ public class StandardHandlerTest {
         assertNotEquals(d3, new StandardHandler().validDestinations(d11));
     }
 
-    @Test public void getDestinationsMovingAParentFolderInToTheTree() throws Exception {
+    @Test
+    void getDestinationsMovingAParentFolderInToTheTree() throws Exception {
         Folder d1 = r.jenkins.createProject(Folder.class, "d1");
         Folder d11 = d1.createProject(Folder.class, "d2");
         Folder d12 = d11.createProject(Folder.class, "d3");
@@ -115,5 +129,4 @@ public class StandardHandlerTest {
         assertEquals(Arrays.asList(r.jenkins, d4), new StandardHandler().validDestinations(d1));
         assertNotEquals(Arrays.asList(d11, d12), new StandardHandler().validDestinations(d1));
     }
-
 }

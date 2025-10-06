@@ -51,10 +51,10 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 import net.sf.json.JSONObject;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
@@ -63,17 +63,17 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests {@link ChildNameGenerator} using a generator where the previous implementation of the computed folder used a
  * name encoding algorithm and the new one has switched to {@link ChildNameGenerator}. We want to ensure that the
  * name gets decoded from the legacy name and fixed to the correct name while the directory name gets mangled.
  */
-public class ChildNameGeneratorRecTest {
+class ChildNameGeneratorRecTest {
 
-    @Rule
-    public JenkinsSessionRule r = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
 
     /**
      * Given: a computed folder
@@ -81,8 +81,8 @@ public class ChildNameGeneratorRecTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() throws Throwable {
-        r.then(j -> {
+    void createdFromScratch() throws Throwable {
+        extension.then(j -> {
                 ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
@@ -100,7 +100,7 @@ public class ChildNameGeneratorRecTest {
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
         });
-        r.then(j -> {
+        extension.then(j -> {
                 TopLevelItem i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
@@ -115,7 +115,7 @@ public class ChildNameGeneratorRecTest {
         });
     }
 
-    private void checkComputedFolder(ComputedFolderImpl instance, int round) throws IOException {
+    private void checkComputedFolder(ComputedFolderImpl instance, int round) {
         // because these were previously encoded with rawEncode we can recover exactly
         instance.assertItemNames(round,
                 "child-one",
@@ -161,7 +161,7 @@ public class ChildNameGeneratorRecTest {
         }
     }
 
-    private void checkChild(ComputedFolderImpl instance, String idealName) throws IOException {
+    private void checkChild(ComputedFolderImpl instance, String idealName) {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
@@ -169,11 +169,11 @@ public class ChildNameGeneratorRecTest {
                 item.getRootDir().getName(), is(mangle(idealName)));
     }
 
-    public static String encode(String s) {
+    private static String encode(String s) {
         return s;
     }
 
-    public static String mangle(String s) {
+    private static String mangle(String s) {
         String hash = Util.getDigestOf(s);
         String base = Normalizer.normalize(s, Normalizer.Form.NFD).toLowerCase(Locale.ENGLISH);
         StringBuilder buf = new StringBuilder(32);
@@ -368,7 +368,7 @@ public class ChildNameGeneratorRecTest {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
-            assertEquals(log, result, computation.getResult());
+            assertEquals(result, computation.getResult(), log);
             return log;
         }
 
@@ -409,6 +409,7 @@ public class ChildNameGeneratorRecTest {
                 return new ComputedFolderImpl(parent, name);
             }
 
+            @NonNull
             @Override
             public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator() {
                 return (ChildNameGenerator<AbstractFolder<I>, I>) GENERATOR;
@@ -434,6 +435,7 @@ public class ChildNameGeneratorRecTest {
             return this;
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends JobPropertyDescriptor {
             @Override
