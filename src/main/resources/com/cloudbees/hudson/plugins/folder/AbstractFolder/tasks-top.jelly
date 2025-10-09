@@ -28,10 +28,10 @@ THE SOFTWARE.
   <l:task icon="symbol-reader-outline plugin-ionicons-api"  href="${url}/" title="${%Status}" contextMenu="false" />
   <j:choose>
     <j:when test="${h.hasPermission(it,it.CONFIGURE)}">
-      <l:task icon="icon-gear icon-md" href="${url}/configure" title="${%Configure}" />
+      <l:task icon="symbol-settings icon-md" href="${url}/configure" title="${%Configure}" />
     </j:when>
     <j:when test="${h.hasPermission(it,it.EXTENDED_READ)}">
-      <l:task icon="icon-gear icon-md" href="${url}/configure" title="${%View Configuration}" />
+      <l:task icon="symbol-settings icon-md" href="${url}/configure" title="${%View Configuration}" />
     </j:when>
   </j:choose>
   <st:include page="tasks-top-extra" optional="true"/>

@@ -41,7 +41,7 @@ public class StockFolderIcon extends FolderIcon {
 
     @Override
     public String getIconClassName() {
-        return "icon-folder";
+        return "symbol-folder";
     }
 
     public String getImageOf(String size) {

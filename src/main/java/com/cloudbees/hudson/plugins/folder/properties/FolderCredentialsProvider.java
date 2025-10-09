@@ -236,7 +236,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @Override
     public String getIconClassName() {
-        return "icon-folder-store";
+        return "symbol-folder-store";
     }
 
     /**
@@ -581,7 +581,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @Override
             public String getIconClassName() {
                 return isVisible()
-                        ? "icon-folder-store"
+                        ? "symbol-folder-store"
                         : null;
             }
 

@@ -35,7 +35,7 @@ xmlns:fo="/lib/folder">
                 </j:if>
             </t:buildCaption>
             <fo:blockWrapper>
-                <t:summary icon="icon-notepad">
+                <t:summary icon="symbol-edit">
                     <j:choose>
                         <j:when test="${it.result==null}">
                             ${%Not run}

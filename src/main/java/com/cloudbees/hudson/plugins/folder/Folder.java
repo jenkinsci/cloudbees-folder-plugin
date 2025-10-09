@@ -380,19 +380,19 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
 
         static {
-            // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and not in core
-            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_XLARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_XLARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-sm", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-md", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-lg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_XLARGE_STYLE));
+            // fix the IconSet defaults because some of them are .gif files and symbol-folder should really be here and not in core
+            IconSet.icons.addIcon(new Icon("symbol-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder icon-lg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-disabled icon-sm", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-disabled icon-md", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-disabled icon-lg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-store icon-sm", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-store icon-md", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-store icon-lg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon("symbol-folder-store icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_XLARGE_STYLE));
         }
     }
 
