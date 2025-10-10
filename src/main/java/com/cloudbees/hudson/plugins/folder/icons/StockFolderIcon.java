@@ -41,14 +41,14 @@ public class StockFolderIcon extends FolderIcon {
 
     @Override
     public String getIconClassName() {
-        return "symbol-folder";
+        return "symbol-folder-outline plugin-ionicons-api";
     }
 
     public String getImageOf(String size) {
         String image = iconClassNameImageOf(size);
         return image != null
                 ? image
-                : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
+                : (Stapler.getCurrentRequest2().getContextPath() + Hudson.RESOURCE_PATH
                 + "/plugin/cloudbees-folder/images/svgs/folder.svg");
     }
 

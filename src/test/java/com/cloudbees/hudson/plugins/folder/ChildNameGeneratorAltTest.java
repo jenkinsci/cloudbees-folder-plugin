@@ -40,11 +40,9 @@ import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,11 +55,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.LocalData;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorTest.asJavaStrings;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -70,6 +66,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 
 /**
@@ -79,7 +76,7 @@ import static org.junit.Assert.assertEquals;
 public class ChildNameGeneratorAltTest {
 
     @Rule
-    public RestartableJenkinsRule r = new RestartableJenkinsRule();
+    public JenkinsSessionRule r = new JenkinsSessionRule();
 
     /**
      * Given: a computed folder
@@ -87,11 +84,9 @@ public class ChildNameGeneratorAltTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() {
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                ComputedFolderImpl instance = r.j.jenkins.createProject(ComputedFolderImpl.class, "instance");
+    public void createdFromScratch() throws Throwable {
+        r.then(j -> {
+                ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
                 instance.assertItemNames(1);
@@ -107,58 +102,26 @@ public class ChildNameGeneratorAltTest {
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2);
-            }
         });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
+        r.then(j -> {
+                TopLevelItem i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0);
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
+                j.jenkins.reload();
+                i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0);
+                var items = new ArrayList<>(instance.getItems());
                 instance.doReload();
                 checkComputedFolder(instance, 0);
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgrade() throws Exception {
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                instance.doReload();
-                checkComputedFolder(instance, 0);
-            }
+                var newItems = new ArrayList<>(instance.getItems());
+                // Check child items identity is preserved
+                assertThat("Items are the same", items, is(newItems));
+                for (int k = 0; k < items.size(); k++) {
+                    assertSame("Individual items must be the same", items.get(k), newItems.get(k));
+                }
         });
     }
 
@@ -273,12 +236,6 @@ public class ChildNameGeneratorAltTest {
         assertThat("We have an item for name " + idealName, item, notNullValue());
         assertThat("The root directory if the item for name " + idealName + " is mangled",
                 item.getRootDir().getName(), is(mangle(idealName)));
-        File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
-        assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
-                nameFile.isFile(), is(true));
-        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
-        assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
-                + " contains the encoded name", name, is(encodedName));
     }
 
     public static String encode(String s) {
@@ -441,9 +398,7 @@ public class ChildNameGeneratorAltTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
-                                p = new FreeStyleProject(this, encodedKid);
-                            }
+                            p = new FreeStyleProject(this, encodedKid);
                             BulkChange bc = new BulkChange(p);
                             try {
                                 p.addProperty(new NameProperty(kid));
@@ -574,7 +529,7 @@ public class ChildNameGeneratorAltTest {
         }
 
         @Override
-        public JobProperty<?> reconfigure(StaplerRequest req, JSONObject form) {
+        public JobProperty<?> reconfigure(StaplerRequest2 req, JSONObject form) {
             return this;
         }
 
@@ -602,7 +557,7 @@ public class ChildNameGeneratorAltTest {
             if (property != null) {
                 return encode(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : encode(name);
         }
 
@@ -613,7 +568,7 @@ public class ChildNameGeneratorAltTest {
             if (property != null) {
                 return mangle(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : mangle(name);
         }
 
@@ -629,11 +584,6 @@ public class ChildNameGeneratorAltTest {
         public String dirNameFromLegacy(@NonNull F parent,
                                         @NonNull String legacyDirName) {
             return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
-        }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD)));
         }
     }
 

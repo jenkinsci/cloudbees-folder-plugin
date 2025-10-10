@@ -24,7 +24,6 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import java.util.zip.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -44,7 +43,6 @@ import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Saveable;
 import hudson.model.StreamBuildListener;
-import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.listeners.SaveableListener;
 import hudson.model.queue.QueueTaskDispatcher;
@@ -53,6 +51,7 @@ import hudson.util.AlternativeUiTextProvider.Message;
 import hudson.util.HttpResponses;
 import hudson.util.StreamTaskListener;
 import hudson.util.io.RewindableRotatingFileOutputStream;
+import jakarta.servlet.ServletException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -72,7 +71,9 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import javax.servlet.ServletException;
+import jenkins.model.FullyNamedModelObject;
+import jenkins.security.stapler.StaplerNotDispatchable;
+import hudson.diagnosis.OldDataMonitor;
 import net.jcip.annotations.GuardedBy;
 import java.nio.charset.StandardCharsets;
 import jenkins.model.Loadable;
@@ -81,7 +82,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -89,7 +92,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * A particular “run” of {@link ComputedFolder}.
  * @since 4.11-beta-1
  */
-public class FolderComputation<I extends TopLevelItem> extends Actionable implements Queue.Executable, Saveable, Loadable {
+public class FolderComputation<I extends TopLevelItem> extends Actionable implements FullyNamedModelObject, Queue.Executable, Saveable, Loadable {
 
     /**
      * Our logger.
@@ -231,7 +234,6 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         return new File(folder.getComputationDir(), "events.log");
     }
 
-    @WithBridgeMethods(TaskListener.class)
     @NonNull
     public synchronized StreamTaskListener createEventsListener() {
         File eventsFile = getEventsFile();
@@ -291,6 +293,19 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     @Override
     public String getDisplayName() {
         return AlternativeUiTextProvider.get(DISPLAY_NAME, this, Messages.FolderComputation_DisplayName());
+    }
+
+    /**
+     * May be used by {@link OldDataMonitor} in its {@code manage} view.
+     * @return {@link ComputedFolder#getFullName}
+     */
+    public String getFullName() {
+        return folder.getFullName();
+    }
+
+    @Override
+    public String getFullDisplayName() {
+        return folder.getFullDisplayName() + " (" + getDisplayName() + ")";
     }
 
     /**
@@ -377,9 +392,26 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      * @param rsp the response.
      * @throws IOException if things go wrong.
      */
+    public void doConsoleText(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
+        if (Util.isOverridden(FolderComputation.class, getClass(), "doConsoleText", StaplerRequest.class, StaplerResponse.class)) {
+            doConsoleText(StaplerRequest.fromStaplerRequest2(req), StaplerResponse.fromStaplerResponse2(rsp));
+        } else {
+            doConsoleTextImpl(req, rsp);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doConsoleText(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @StaplerNotDispatchable
     public void doConsoleText(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        doConsoleTextImpl(StaplerRequest.toStaplerRequest2(req), StaplerResponse.toStaplerResponse2(rsp));
+    }
+
+    private void doConsoleTextImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
         rsp.setContentType("text/plain;charset=UTF-8");
-        try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getCompressedOutputStream(req));
+        try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getOutputStream());
              InputStream input = getLogInputStream()) {
                     IOUtils.copy(input, out);
                     out.flush();

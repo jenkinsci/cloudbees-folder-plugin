@@ -43,7 +43,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,14 +53,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.LocalData;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -100,7 +96,7 @@ import static org.junit.Assert.assertEquals;
 public class ChildNameGeneratorTest {
 
     @Rule
-    public RestartableJenkinsRule r = new RestartableJenkinsRule();
+    public JenkinsSessionRule r = new JenkinsSessionRule();
 
     /**
      * Given: a computed folder
@@ -108,11 +104,9 @@ public class ChildNameGeneratorTest {
      * Then: mangling gets applied
      */
     @Test
-    public void createdFromScratch() {
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                ComputedFolderImpl instance = r.j.jenkins.createProject(ComputedFolderImpl.class, "instance");
+    public void createdFromScratch() throws Throwable {
+        r.then(j -> {
+                ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
                 instance.assertItemNames(0);
                 instance.recompute(Result.SUCCESS);
                 instance.assertItemNames(1);
@@ -128,99 +122,19 @@ public class ChildNameGeneratorTest {
                 );
                 instance.recompute(Result.SUCCESS);
                 checkComputedFolder(instance, 2, Normalizer.Form.NFC);
-            }
         });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
+        r.then(j -> {
+                TopLevelItem i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 ComputedFolderImpl instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0, Normalizer.Form.NFC);
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
+                j.jenkins.reload();
+                i = j.jenkins.getItem("instance");
                 assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
                 instance = (ComputedFolderImpl) i;
                 checkComputedFolder(instance, 0, Normalizer.Form.NFC);
                 instance.doReload();
                 checkComputedFolder(instance, 0, Normalizer.Form.NFC);
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgrade() {
-        // The test data was generated using NFC filename encodings... but when unzipping the name can be changed
-        // to NFD by the filesystem, so we need to check the expected outcome based on the inferred canonical form
-        // used by the filesystem.
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                instance.doReload();
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
-        });
-    }
-
-    /**
-     * Given: a computed folder
-     * When: upgrading from a version that does not have name mangling to a version that does
-     * Then: mangling gets applied
-     */
-    @Test
-    @LocalData // to enable running on e.g. windows, keep the resource path short, so the test name must be short too
-    public void upgradeNFD() {
-        // The test data was generated using NFD filename encodings... but when unzipping the name can be changed
-        // to NFC by the filesystem, so we need to check the expected outcome based on the inferred canonical form
-        // used by the filesystem.
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
-        });
-        r.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                TopLevelItem i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                r.j.jenkins.reload();
-                i = r.j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-                instance.doReload();
-                checkComputedFolder(instance, 0, ChildNameGeneratorTest.this.inferNormalizerForm());
-            }
         });
     }
 
@@ -347,35 +261,6 @@ public class ChildNameGeneratorTest {
         }
     }
 
-    private Normalizer.Form inferNormalizerForm() {
-        Normalizer.Form form = null;
-        File[] contents = r.j.jenkins.getRootDir().listFiles();
-        if (contents != null) {
-            for (File f: contents) {
-                if ("leanbh-c\u00faig.probe".equals(f.getName())) {
-                    form = Normalizer.Form.NFC;
-                    System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is NFC\n\n");
-                    break;
-                } else if ("leanbh-c\u00c3\u00baig.probe".equals(f.getName())) {
-                    // Windows-1252
-                    form = Normalizer.Form.NFC;
-                    System.out.println("\n\nUsing NFC normalization dataset as underlying filesystem is Windows-1252 NFC\n\n");
-                    break;
-                } else if ("leanbh-cu\u0301ig.probe".equals(f.getName())) {
-                    form = Normalizer.Form.NFD;
-                    System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is NFD\n\n");
-                    break;
-                } else if ("leanbh-cu\u00cc\ufffdig.probe".equals(f.getName())) {
-                    // Windows-1252
-                    form = Normalizer.Form.NFD;
-                    System.out.println("\n\nUsing NFD normalization dataset as underlying filesystem is Windows-1252 NFD\n\n");
-                    break;
-                }
-            }
-        }
-        return form;
-    }
-
     private void checkChild(ComputedFolderImpl instance, String idealName) throws IOException {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
@@ -391,12 +276,6 @@ public class ChildNameGeneratorTest {
             assertThat("Alternative normalized form: " + altRootDir + " does not exist",
                     altRootDir.isDirectory(), is(false));
         }
-        File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
-        assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
-                nameFile.isFile(), is(true));
-        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
-        assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
-                + " contains the encoded name", name, is(encodedName));
     }
 
     public static String encode(String s) {
@@ -558,9 +437,7 @@ public class ChildNameGeneratorTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
-                                p = new FreeStyleProject(this, encodedKid);
-                            }
+                            p = new FreeStyleProject(this, encodedKid);
                             BulkChange bc = new BulkChange(p);
                             try {
                                 p.addProperty(new NameProperty(kid));
@@ -667,7 +544,7 @@ public class ChildNameGeneratorTest {
         }
 
         @Override
-        public JobProperty<?> reconfigure(StaplerRequest req, JSONObject form) {
+        public JobProperty<?> reconfigure(StaplerRequest2 req, JSONObject form) {
             return this;
         }
 
@@ -695,7 +572,7 @@ public class ChildNameGeneratorTest {
             if (property != null) {
                 return encode(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : encode(name);
         }
 
@@ -706,7 +583,7 @@ public class ChildNameGeneratorTest {
             if (property != null) {
                 return mangle(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : mangle(name);
         }
 
@@ -723,11 +600,6 @@ public class ChildNameGeneratorTest {
                                         @NonNull String legacyDirName) {
             return mangle(legacyDirName);
         }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(legacyDirName));
-        }
     }
 
     static CharSequence asJavaString(String rawString) {
@@ -736,7 +608,7 @@ public class ChildNameGeneratorTest {
             if (c >= 32 && c < 128) {
                 b.append(c);
             } else {
-                b.append("\\u").append(StringUtils.leftPad(Integer.toHexString(c & 0xffff), 4, '0'));
+                b.append(String.format("\\u%04x", (int) c));
             }
         }
         return b;

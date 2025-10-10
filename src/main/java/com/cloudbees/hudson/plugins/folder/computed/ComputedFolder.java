@@ -51,6 +51,9 @@ import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
+import io.jenkins.servlet.ServletExceptionWrapper;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -68,7 +71,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.triggers.TriggeredItem;
@@ -83,10 +85,11 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerResponse2;
+import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
-import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 
 /**
  * A folder-like item whose children are computed.
@@ -157,11 +160,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     private transient boolean currentObservationsLockDisabled;
 
     /**
-     * Tracks recalculation requirements in {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}.
+     * Tracks recalculation requirements in {@link #doConfigSubmit(StaplerRequest2, StaplerResponse2)}.
      *
      * @see #recalculateAfterSubmitted(boolean)
-     * @see #submit(StaplerRequest, StaplerResponse)
-     * @see #doConfigSubmit(StaplerRequest, StaplerResponse)
+     * @see #submit(StaplerRequest2, StaplerResponse2)
+     * @see #doConfigSubmit(StaplerRequest2, StaplerResponse2)
      */
     private transient Recalculation recalculate;
 
@@ -385,7 +388,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @RequirePOST
     @Override
-    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
         try {
             recalculate = Recalculation.UNKNOWN;
             super.doConfigSubmit(req, rsp);
@@ -399,13 +402,13 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
 
     /**
      * Method for child classes to use if they want to suppress/confirm the automatic recalculation provided in
-     * {@link #doConfigSubmit(StaplerRequest, StaplerResponse)}. This method should only be called from
-     * {@link #submit(StaplerRequest, StaplerResponse)}. If called multiple times from
-     * {@link #submit(StaplerRequest, StaplerResponse)} then all calls must be with the {@code false} parameter
+     * {@link #doConfigSubmit(StaplerRequest2, StaplerResponse2)}. This method should only be called from
+     * {@link #submit(StaplerRequest2, StaplerResponse2)}. If called multiple times from
+     * {@link #submit(StaplerRequest2, StaplerResponse2)} then all calls must be with the {@code false} parameter
      * to suppress recalculation.
      *
      * @param recalculate {@code true} to require recalculation, {@code false} to suppress recalculation.
-     * @see #submit(StaplerRequest, StaplerResponse)
+     * @see #submit(StaplerRequest2, StaplerResponse2)
      */
     /*
      * Note: it would have been much nicer to have submit(req,rsp) return a boolean... but that would have required
@@ -428,7 +431,48 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @see #recalculateAfterSubmitted(boolean)
      */
     @Override
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
+        if (Util.isOverridden(ComputedFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                submit(StaplerRequest.fromStaplerRequest2(req), StaplerResponse.fromStaplerResponse2(rsp));
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        } else {
+            String oisDigest = null;
+            try {
+                oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
+            } catch (XStreamException e) {
+                // ignore
+            }
+            super.submit(req, rsp);
+            JSONObject json = req.getSubmittedForm();
+            orphanedItemStrategy = req.bindJSON(OrphanedItemStrategy.class, json.getJSONObject("orphanedItemStrategy"));
+            for (Trigger t : triggers) {
+                t.stop();
+            }
+            triggers.rebuild(req, json, Trigger.for_(this));
+            for (Trigger t : triggers) {
+                t.start(this, true);
+            }
+            try {
+                if (oisDigest == null || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
+                    // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find orphans
+                    recalculateAfterSubmitted(true);
+                }
+            } catch (XStreamException e) {
+                // force a recalculation anyway in this case
+                recalculateAfterSubmitted(true);
+            }
+        }
+    }
+
+    /**
+     * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @Override
+    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {
         String oisDigest = null;
         try {
             oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
@@ -528,6 +572,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      *
      * @return {@code true} if this folder can currently be recomputed.
      */
+    @Exported
     public boolean isBuildable() {
         if (isDisabled()) {
             return false;
@@ -546,7 +591,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     public HttpResponse doBuild(@QueryParameter TimeDuration delay) {
         checkPermission(BUILD);
         if (!isBuildable()) {
-            throw HttpResponses.error(SC_INTERNAL_SERVER_ERROR, new IOException(getFullName() + " cannot be recomputed"));
+            throw HttpResponses.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, new IOException(getFullName() + " cannot be recomputed"));
         }
         scheduleBuild2(delay == null ? 0 : delay.getTimeInSeconds(), new CauseAction(new Cause.UserIdCause()));
         return HttpResponses.forwardToPreviousPage();
@@ -991,7 +1036,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     /**
-     * Records the recalculation requirements of a call to {@link #submit(StaplerRequest, StaplerResponse)}.
+     * Records the recalculation requirements of a call to {@link #submit(StaplerRequest2, StaplerResponse2)}.
      */
     private enum Recalculation {
         /**

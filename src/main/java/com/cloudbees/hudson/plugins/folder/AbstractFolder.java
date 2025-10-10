@@ -32,12 +32,11 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.Util;
 import static hudson.Util.fixEmpty;
-import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -70,14 +69,15 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
+import io.jenkins.servlet.ServletExceptionWrapper;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -94,13 +94,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
+import jenkins.security.stapler.StaplerNotDispatchable;
 import net.sf.json.JSONObject;
+import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.Beta;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -110,7 +111,9 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerFallback;
 import org.kohsuke.stapler.StaplerOverridable;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
@@ -133,8 +136,7 @@ import org.springframework.security.access.AccessDeniedException;
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
-@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
-public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable {
+public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable, IconSpec {
 
     /**
      * Our logger.
@@ -305,6 +307,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return new DefaultFolderViewHolder(views, null, newDefaultViewsTabBar());
     }
 
+    @Override
+    public String getIconClassName() {
+        // avoid https://issues.jenkins.io/browse/JENKINS-74990
+        if (icon.getClass().getName().equals("jenkins.branch.MetadataActionFolderIcon")) {
+            return getDescriptor().getIconClassName();
+        }
+        return icon.getIconClassName();
+    }
+
     protected FolderIcon newDefaultFolderIcon() {
         return new StockFolderIcon();
     }
@@ -327,87 +338,19 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
                                                              Function<? super V, ? extends K> key) {
-        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<>();
-        if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
-            LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
-                    new Object[]{modulesDir, parent.getFullName()});
-            return configurations;
-        }
-
-        File[] subdirs = modulesDir.listFiles(File::isDirectory);
-        if (subdirs == null) {
-            return configurations;
-        }
-        final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
-        Map<String,V> byDirName = new HashMap<>();
-        if (parent.items != null) {
-            for (V item : parent.items.values()) {
-                byDirName.put(childNameGenerator.dirName(parent, item), item);
-            }
-        }
-        for (File subdir : subdirs) {
-            File effectiveSubdir = subdir;
-            String childName = childNameGenerator.readItemName(subdir);
-            // Try to retain the identity of an existing child object if we can.
-            V itemFromDir;
-            V item;
-            boolean itemNeedsSave = false;
-            String name;
-            item = itemFromDir = byDirName.get(childName);
-            var legacyName = subdir.getName();
-            try {
-                if (item == null) {
-                    XmlFile xmlFile = Items.getConfigFile(subdir);
-                    if (xmlFile.exists()) {
-                        item = (V) xmlFile.read();
-                        var dirNameResult = childNameGenerator.ensureItemDirectory(parent, item, subdir);
-                        itemNeedsSave |= dirNameResult.isItemNeedsSave();
-                        effectiveSubdir = dirNameResult.getWrapped();
-                    } else {
-                        throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
-                    }
-                }
-                var writeResult = childNameGenerator.writeItemName(parent, item, effectiveSubdir, childName);
-                name = writeResult.getWrapped();
-                itemNeedsSave |= writeResult.isItemNeedsSave();
-                if (item instanceof AbstractItem) {
-                    var abstractItem = (AbstractItem) item;
-                    if (itemFromDir != null && !legacyName.equals(name) && abstractItem.getDisplayNameOrNull() == null) {
-                        try (BulkChange ignored = new BulkChange(item)) {
-                            abstractItem.setDisplayName(childName);
-                        }
-                    }
-                }
-                item.onLoad(parent, name);
-                saveIfNeeded(item, itemNeedsSave);
-                configurations.put(key.apply(item), item);
-            } catch (Exception e) {
-                File finalEffectiveSubdir = effectiveSubdir;
-                LOGGER.log(Level.WARNING, e, () -> "could not load " + finalEffectiveSubdir);
-            }
-        }
-
-        return configurations;
-    }
-
-    private static <V extends TopLevelItem> void saveIfNeeded(V item, boolean itemNeedsSave) {
-        if (itemNeedsSave) {
-            try {
-                item.save();
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Could not update {0} after applying folder naming rules",
-                        item.getFullName());
-            }
-        }
+        return ExtensionList.lookupFirst(ChildLoader.class).loadChildren(parent, modulesDir, key);
     }
 
     @Override
     public String getItemName(File dir, I item) {
-        return childNameGenerator().readItemName(dir);
+        String name = childNameGenerator().itemNameFromItem(this, item);
+        if (name == null) {
+            name = dir.getName();
+        }
+        return name;
     }
 
     protected final I itemsPut(String name, I item) {
-        childNameGenerator().writeItemName(this, item, getRootDirFor(item), name);
         return items.put(name, item);
     }
 
@@ -491,7 +434,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    private ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+    ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
         return getDescriptor().childNameGenerator();
     }
 
@@ -723,7 +666,25 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * {@inheritDoc}
      */
     @Override
+    public ContextMenu doChildrenContextMenu(StaplerRequest2 request, StaplerResponse2 response) {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doChildrenContextMenu", StaplerRequest.class, StaplerResponse.class)) {
+            return doChildrenContextMenu(request != null ? StaplerRequest.fromStaplerRequest2(request) : null, response != null ? StaplerResponse.fromStaplerResponse2(response) : null);
+        } else {
+            return doChildrenContextMenuImpl(request, response);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doChildrenContextMenu(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @Override
+    @StaplerNotDispatchable
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
+        return doChildrenContextMenuImpl(request != null ? StaplerRequest.toStaplerRequest2(request) : null, response != null ? StaplerResponse.toStaplerResponse2(response) : null);
+    }
+
+    private ContextMenu doChildrenContextMenuImpl(StaplerRequest2 request, StaplerResponse2 response) {
         ContextMenu menu = new ContextMenu();
         for (View view : getViews()) {
             menu.add(view.getAbsoluteUrl(),view.getDisplayName());
@@ -732,7 +693,34 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     @POST
+    public synchronized void doCreateView(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, ParseException, Descriptor.FormException {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doCreateView", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                doCreateView(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        } else {
+            doCreateViewImpl(req, rsp);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doCreateView(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @StaplerNotDispatchable
     public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException, ParseException, Descriptor.FormException {
+        try {
+            doCreateViewImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+        } catch (ServletException e) {
+            throw ServletExceptionWrapper.fromJakartaServletException(e);
+        }
+    }
+
+    private void doCreateViewImpl(StaplerRequest2 req, StaplerResponse2 rsp)
             throws IOException, ServletException, ParseException, Descriptor.FormException {
         checkPermission(View.CREATE);
         addView(View.create(req, rsp, this));
@@ -794,61 +782,19 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3L / 4L)
                 + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
         reports = new ArrayList<>();
-        List<FolderHealthMetric.Reporter> reporters = new ArrayList<>(healthMetrics.size());
-        boolean recursive = false;
-        boolean topLevelOnly = true;
+
         for (FolderHealthMetric metric : healthMetrics) {
-            recursive = recursive || metric.getType().isRecursive();
-            topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
-            reporters.add(metric.reporter());
+            FolderHealthMetric.Reporter reporter = metric.reporter();
+            observeMetric(metric.getType(), reporter);
+            reports.addAll(reporter.report());
+
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
-                recursive = recursive || metric.getType().isRecursive();
-                topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
-                reporters.add(metric.reporter());
+                FolderHealthMetric.Reporter reporter = metric.reporter();
+                observeMetric(metric.getType(), reporter);
+                reports.addAll(p.getHealthReports());
             }
-        }
-        if (recursive) {
-            Stack<Iterable<? extends Item>> stack = new Stack<>();
-            stack.push(getItems());
-            if (topLevelOnly) {
-                while (!stack.isEmpty()) {
-                    for (Item item : stack.pop()) {
-                        if (item instanceof TopLevelItem) {
-                            for (FolderHealthMetric.Reporter reporter : reporters) {
-                                reporter.observe(item);
-                            }
-                            if (item instanceof Folder) {
-                                stack.push(((Folder) item).getItems());
-                            }
-                        }
-                    }
-                }
-            } else {
-                while (!stack.isEmpty()) {
-                    for (Item item : stack.pop()) {
-                        for (FolderHealthMetric.Reporter reporter : reporters) {
-                            reporter.observe(item);
-                        }
-                        if (item instanceof Folder) {
-                            stack.push(((Folder) item).getItems());
-                        }
-                    }
-                }
-            }
-        } else {
-            for (Item item: getItems()) {
-                for (FolderHealthMetric.Reporter reporter : reporters) {
-                    reporter.observe(item);
-                }
-            }
-        }
-        for (FolderHealthMetric.Reporter reporter : reporters) {
-            reports.addAll(reporter.report());
-        }
-        for (AbstractFolderProperty<?> p : getProperties()) {
-            reports.addAll(p.getHealthReports());
         }
 
         Collections.sort(reports);
@@ -856,11 +802,64 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return reports;
     }
 
+    private void observeMetric(FolderHealthMetric.Type type, FolderHealthMetric.Reporter reporter) {
+        if (type.isWithChildren()) {
+            if (type.isRecursive()) {
+                Stack<Iterable<? extends Item>> stack = new Stack<>();
+                stack.push(getItems());
+                if (type.isTopLevelItems()) {
+                    while (!stack.isEmpty()) {
+                        for (Item item : stack.pop()) {
+                            if (item instanceof TopLevelItem) {
+                                reporter.observe(item);
+                                if (item instanceof Folder) {
+                                    stack.push(((Folder) item).getItems());
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    while (!stack.isEmpty()) {
+                        for (Item item : stack.pop()) {
+                            reporter.observe(item);
+                            if (item instanceof Folder) {
+                                stack.push(((Folder) item).getItems());
+                            }
+                        }
+                    }
+                }
+            } else {
+                for (Item item : getItems()) {
+                    reporter.observe(item);
+                }
+            }
+        } else {
+            reporter.observe(this);
+        }
+    }
+
     public DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> getHealthMetrics() {
         return healthMetrics;
     }
 
+    public HttpResponse doLastBuild(StaplerRequest2 req) {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doLastBuild", StaplerRequest.class)) {
+            return doLastBuild(req != null ? StaplerRequest.fromStaplerRequest2(req) : null);
+        } else {
+            return doLastBuildImpl(req);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doLastBuild(StaplerRequest2)}
+     */
+    @Deprecated
+    @StaplerNotDispatchable
     public HttpResponse doLastBuild(StaplerRequest req) {
+        return doLastBuildImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null);
+    }
+
+    private HttpResponse doLastBuildImpl(StaplerRequest2 req) {
         return HttpResponses.redirectToDot();
     }
 
@@ -963,7 +962,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, oldName, newName);
         }
-        save();
     }
 
     /**
@@ -978,7 +976,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         for (View v : folderViews.getViews()) {
             v.onJobRenamed(item, item.getName(), null);
         }
-        save();
     }
 
     /**
@@ -1094,13 +1091,39 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * {@inheritDoc}
      */
     @Override
-    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public synchronized void doSubmitDescription(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "doSubmitDescription", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                doSubmitDescription(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        } else {
+            doSubmitDescriptionImpl(req, rsp);
+        }
+    }
+
+    /**
+     * @deprecated use {@link #doSubmitDescription(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    @Override
+    @StaplerNotDispatchable
+    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException {
+        try {
+            doSubmitDescriptionImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+        } catch (ServletException e) {
+            throw ServletExceptionWrapper.fromJakartaServletException(e);
+        }
+    }
+
+    private void doSubmitDescriptionImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
     @Restricted(NoExternalUse.class)
     @RequirePOST
-    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
         checkPermission(CONFIGURE);
 
         req.setCharacterEncoding("UTF-8");
@@ -1149,7 +1172,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      *
      * @return A string that represents the redirect location URL.
      *
-     * @see javax.servlet.http.HttpServletResponse#sendRedirect(String)
+     * @see HttpServletResponse#sendRedirect(String)
      */
     @Restricted(NoExternalUse.class)
     @NonNull
@@ -1157,7 +1180,21 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return ".";
     }
 
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {}
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
+        if (Util.isOverridden(AbstractFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
+            try {
+                submit(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+            } catch (javax.servlet.ServletException e) {
+                throw ServletExceptionWrapper.toJakartaServletException(e);
+            }
+        }
+    }
+
+    /**
+     * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
+     */
+    @Deprecated
+    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {}
 
     /**
      * {@inheritDoc}

@@ -23,8 +23,7 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"
-         xmlns:fo="/lib/folder" xmlns:p="/lib/hudson/project">
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt"  xmlns:p="/lib/hudson/project">
   <l:layout title="${it.displayName} Config" permission="${it.EXTENDED_READ}">
     <j:set var="readOnlyMode" value="${!it.hasPermission(it.CONFIGURE)}" />
     <l:breadcrumb title="${%Configuration}" />
@@ -33,7 +32,7 @@ THE SOFTWARE.
       <script src="${resURL}/jsbundles/section-to-sidebar-items.js" type="text/javascript" defer="true" />
     </l:header>
 
-    <l:side-panel>
+    <l:side-panel sticky="true">
       <l:app-bar title="${%Configuration}"/>
       <div id="tasks" />
     </l:side-panel>
@@ -78,18 +77,20 @@ THE SOFTWARE.
               <j:set var="views" value="${it.views}"/>
               <j:if test="${it.folderViews.primaryModifiable and views.size()>1}">
                 <f:entry title="${%Default View}" field="defaultView">
-                  <select class="setting-input" name="primaryView">
-                    <j:forEach var="v" items="${views}">
-                      <j:choose>
-                        <j:when test="${it.primaryView==v}">
-                          <option value="${v.viewName}" selected="selected">${v.viewName}</option>
-                        </j:when>
-                        <j:otherwise>
-                          <option value="${v.viewName}">${v.viewName}</option>
-                        </j:otherwise>
-                      </j:choose>
-                    </j:forEach>
-                  </select>
+                  <div class="jenkins-select">
+                    <select class="jenkins-select__input" name="primaryView">
+                      <j:forEach var="v" items="${views}">
+                        <j:choose>
+                          <j:when test="${it.primaryView==v}">
+                            <option value="${v.viewName}" selected="selected">${v.viewName}</option>
+                          </j:when>
+                          <j:otherwise>
+                            <option value="${v.viewName}">${v.viewName}</option>
+                          </j:otherwise>
+                        </j:choose>
+                      </j:forEach>
+                    </select>
+                  </div>
                 </f:entry>
               </j:if>
 
@@ -100,9 +101,7 @@ THE SOFTWARE.
                   </j:when>
                   <j:otherwise>
                     <f:invisibleEntry>
-                      <fo:blockWrapper>
                         <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
-                      </fo:blockWrapper>
                     </f:invisibleEntry>
                   </j:otherwise>
                 </j:choose>
@@ -114,9 +113,7 @@ THE SOFTWARE.
                 </j:when>
                 <j:otherwise>
                   <f:invisibleEntry>
-                    <fo:blockWrapper>
                       <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
-                    </fo:blockWrapper>
                   </f:invisibleEntry>
                 </j:otherwise>
               </j:choose>
@@ -125,9 +122,7 @@ THE SOFTWARE.
           </j:when>
           <j:otherwise>
             <f:invisibleEntry>
-              <fo:blockWrapper>
                 <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
-              </fo:blockWrapper>
             </f:invisibleEntry>
           </j:otherwise>
         </j:choose>
