@@ -29,6 +29,7 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
+import com.cloudbees.hudson.plugins.folder.SaveAllJobsAction;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.WebRequest;
 import org.htmlunit.html.*;
@@ -398,6 +399,19 @@ public class FolderTest {
         f.addAction(a);
         assertNotNull(f.getAction(WhoAmI.class));
     }
+
+    @Test public void testSaveAllJobsActionAppears() throws Exception {
+        Folder f = createFolder();
+        SaveAllJobsAction action = new SaveAllJobsAction(f);
+
+        // Check action is not null
+        assertNotNull(action);
+
+        // Check URL mapping and display name
+        assertEquals("save-all-jobs", action.getUrlName());
+        assertEquals("Save All Jobs", action.getDisplayName());
+    }
+
     
     @Issue("JENKINS-32487")
     @Test public void shouldAssignPropertyOwnerOnCreationAndReload() throws Exception {
