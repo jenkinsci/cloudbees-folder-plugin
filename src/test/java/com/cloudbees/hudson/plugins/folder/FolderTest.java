@@ -73,23 +73,17 @@ import java.util.TreeSet;
 import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.access.AccessDeniedException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -97,15 +91,25 @@ import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class FolderTest {
+@WithJenkins
+class FolderTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @ClassRule public static BuildWatcher bw = new BuildWatcher();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     /**
      * Tests rename operation.
      */
-    @Test public void rename() throws Exception {
+    @Test
+    void rename() throws Exception {
         Folder f = createFolder();
         f.setDescription("Some view");
 
@@ -126,7 +130,8 @@ public class FolderTest {
         assertSame(r.jenkins.getItem("newName"),f);
     }
 
-    @Test public void renameProgrammatically() throws Exception {
+    @Test
+    void renameProgrammatically() throws Exception {
         Folder f = createFolder();
         var folderFullName = f.getFullName();
         FreeStyleProject fsProject = new FreeStyleProject(f, "p1");
@@ -142,7 +147,8 @@ public class FolderTest {
         assertEquals("newName/newP1", itemAfterRename.getFullName());
     }
 
-    @Test public void configRoundtrip() throws Exception {
+    @Test
+    void configRoundtrip() throws Exception {
         Folder f = createFolder();
         r.configRoundtrip(f);
     }
@@ -150,7 +156,8 @@ public class FolderTest {
     /**
      * Makes sure the child can be deleted.
      */
-    @Test public void deleteChild() throws Exception {
+    @Test
+    void deleteChild() throws Exception {
         Folder f = createFolder();
         FreeStyleProject child = f.createProject(FreeStyleProject.class, "foo");
         assertEquals(1,f.getItems().size());
@@ -162,7 +169,8 @@ public class FolderTest {
     /**
      * Tests the path resolution of "foo" (relative) vs "/foo" (absolute)
      */
-    @Test public void copyJob() throws Exception {
+    @Test
+    void copyJob() throws Exception {
         /*
             - foo
             - folder
@@ -184,7 +192,6 @@ public class FolderTest {
         // "/foo" should copy "top"
         copyViaHttp(f, wc, "/foo", "uvw");
         assertEquals("top",((Job)f.getItem("uvw")).getDescription());
-
     }
 
     private void copyViaHttp(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
@@ -192,15 +199,16 @@ public class FolderTest {
         r.jenkins.setCrumbIssuer(null);
 
         URL apiURL = new URL(
-                r.jenkins.getRootUrl().toString() + "/" + f.getUrl().toString() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, StandardCharsets.UTF_8) + "&name=" + URLEncoder.encode(toName, StandardCharsets.UTF_8));
+                r.jenkins.getRootUrl() + "/" + f.getUrl() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, StandardCharsets.UTF_8) + "&name=" + URLEncoder.encode(toName, StandardCharsets.UTF_8));
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
-        assertEquals("Copy Job request has failed", 200, r.createWebClient()
-                .getPage(request).getWebResponse().getStatusCode());
+        assertEquals(200, r.createWebClient()
+                .getPage(request).getWebResponse().getStatusCode(), "Copy Job request has failed");
     }
 
-    @Test public void itemName() throws IOException {
+    @Test
+    void itemName() throws IOException {
         Folder f = createFolder();
         var foo = f.createProject(FreeStyleProject.class, "foo");
         assertEquals("foo", f.getItemName(foo.getRootDir(), foo));
@@ -209,32 +217,38 @@ public class FolderTest {
     /**
      * When copying a folder, its contents need to be recursively copied.
      */
-    @Test public void copy() throws Exception {
+    @Test
+    void copy() throws Exception {
         Folder f = createFolder();
         FreeStyleProject c1 = f.createProject(FreeStyleProject.class, "child1");
         Folder c2 = f.createProject(Folder.class, "nested");
         FreeStyleProject c21 = c2.createProject(FreeStyleProject.class,"child2");
 
         Folder f2 = r.jenkins.copy(f, "fcopy");
-        assertTrue(f2.getItem("child1") instanceof FreeStyleProject);
+        assertInstanceOf(FreeStyleProject.class, f2.getItem("child1"));
         Folder n = (Folder)f2.getItem("nested");
-        assertTrue(n.getItem("child2") instanceof FreeStyleProject);
+        assertInstanceOf(FreeStyleProject.class, n.getItem("child2"));
     }
 
     @Issue("JENKINS-34939")
-    @Test public void delete() throws Exception {
+    @Test
+    void delete() throws Exception {
         Folder d1 = r.jenkins.createProject(Folder.class, "d1");
         d1.createProject(FreeStyleProject.class, "p1");
         d1.createProject(FreeStyleProject.class, "p2");
         d1.createProject(Folder.class, "d2").createProject(FreeStyleProject.class, "p4");
         d1.delete();
-        assertEquals("AbstractFolder.items is sorted by name so we can predict deletion order",
-            "{d1=[d1], d1/d2=[d1, d1/d2, d1/p1, d1/p2], d1/d2/p4=[d1, d1/d2, d1/d2/p4, d1/p1, d1/p2], d1/p1=[d1, d1/p1, d1/p2], d1/p2=[d1, d1/p2]}",
-            DeleteListener.whatRemainedWhenDeleted.toString());
+        assertEquals("{d1=[d1], d1/d2=[d1, d1/d2, d1/p1, d1/p2], d1/d2/p4=[d1, d1/d2, d1/d2/p4, d1/p1, d1/p2], d1/p1=[d1, d1/p1, d1/p2], d1/p2=[d1, d1/p2]}",
+            DeleteListener.whatRemainedWhenDeleted.toString(),
+            "AbstractFolder.items is sorted by name so we can predict deletion order");
     }
-    @TestExtension("delete") public static class DeleteListener extends ItemListener {
+
+    @TestExtension("delete")
+    public static class DeleteListener extends ItemListener {
         static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<>();
-        @Override public void onDeleted(Item item) {
+
+        @Override
+        public void onDeleted(Item item) {
             try {
                 // Access metadata from another thread.
                 whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(() -> {
@@ -255,7 +269,7 @@ public class FolderTest {
 
     @Issue("JENKINS-35160")
     @Test
-    public void interruptOnDelete() throws Exception {
+    void interruptOnDelete() throws Exception {
         // adapted from JobTest in core
         r.jenkins.setNumExecutors(2);
         Queue.getInstance().maintain();
@@ -277,14 +291,15 @@ public class FolderTest {
     /**
      * This is more of a test of the core, but make sure the triggers resolve between ourselves.
      */
-    @Test public void trigger() throws Exception {
+    @Test
+    void trigger() throws Exception {
         Folder f = createFolder();
         FreeStyleProject a = f.createProject(FreeStyleProject.class, "a");
         FreeStyleProject b = f.createProject(FreeStyleProject.class, "b");
         a.getPublishersList().add(new BuildTrigger("b",false));
 
         FreeStyleBuild a1 = r.assertBuildStatusSuccess(a.scheduleBuild2(0));
-        for (int i=0; i<10 && b.getLastBuild()==null; i++) {
+        for (int i = 0; i < 10 && b.getLastBuild() == null; i++) {
             Thread.sleep(100);
         }
         // make sue that a build of B happens
@@ -293,7 +308,8 @@ public class FolderTest {
     /**
      * Makes sure that there's no JavaScript error in the new view page.
      */
-    @Test public void newViewPage() throws Exception {
+    @Test
+    void newViewPage() throws Exception {
         Folder f = createFolder();
         HtmlPage p = r.createWebClient().getPage(f, "newView");
         HtmlForm fm = p.getFormByName("createItem");
@@ -311,7 +327,8 @@ public class FolderTest {
      * correctly comes back.
      */
     @LocalData
-    @Test public void dataCompatibility() throws Exception {
+    @Test
+    void dataCompatibility() {
         Folder f = (Folder) r.jenkins.getItem("foo");
         ListView pv = (ListView)f.getPrimaryView();
         assertEquals(2,pv.getColumns().size());
@@ -322,7 +339,8 @@ public class FolderTest {
         assertTrue(2<new ListView("test").getColumns().size());
     }
 
-    @Test public void search() throws Exception {
+    @Test
+    void search() throws Exception {
         FreeStyleProject topJob = r.jenkins.createProject(FreeStyleProject.class, "top job");
         Folder f1 = r.jenkins.createProject(Folder.class, "f1");
         FreeStyleProject middleJob = f1.createProject(FreeStyleProject.class, "middle job");
@@ -333,7 +351,8 @@ public class FolderTest {
         assertEquals(new HashSet<SearchItem>(Arrays.asList(middleJob, bottomJob)), new HashSet<>(items));
     }
 
-    @Test public void reloadJenkinsAndFindBuildInProgress() throws Exception {
+    @Test
+    void reloadJenkinsAndFindBuildInProgress() throws Exception {
         Folder f1 = r.jenkins.createProject(Folder.class, "f");
         FreeStyleProject p1 = f1.createProject(FreeStyleProject.class, "test1");
 
@@ -365,7 +384,8 @@ public class FolderTest {
         p1b2.getExecutor().interrupt(); // kill the executor
     }
 
-    @Test public void discoverPermission() throws Exception {
+    @Test
+    void discoverPermission() throws Exception {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         final Folder d = r.jenkins.createProject(Folder.class, "d");
         final FreeStyleProject p1 = d.createProject(FreeStyleProject.class, "p1");
@@ -383,24 +403,21 @@ public class FolderTest {
         try (var context = ACL.as2(User.getById("alice", true).impersonate2())) {
                 assertEquals(Collections.singletonList(p1), d.getItems());
                 assertEquals(p1, d.getItem("p1"));
-                try {
-                    d.getItem("p2");
-                    fail("should have been told p2 exists");
-                } catch (AccessDeniedException x) {
-                    // correct
-                }
+                assertThrows(AccessDeniedException.class, () -> d.getItem("p2"), "should have been told p2 exists");
         }
     }
 
-    @Test public void addAction() throws Exception {
+    @Test
+    void addAction() throws Exception {
         Folder f = createFolder();
         WhoAmI a = new WhoAmI();
         f.addAction(a);
         assertNotNull(f.getAction(WhoAmI.class));
     }
-    
+
     @Issue("JENKINS-32487")
-    @Test public void shouldAssignPropertyOwnerOnCreationAndReload() throws Exception {
+    @Test
+    void shouldAssignPropertyOwnerOnCreationAndReload() throws Exception {
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         ProjectMatrixAuthorizationStrategy as = new ProjectMatrixAuthorizationStrategy();
         // Need to do this to avoid JENKINS-9774
@@ -417,9 +434,10 @@ public class FolderTest {
         Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
         assertPropertyOwner("After reload", reloadedFolder, FolderCredentialsProvider.FolderCredentialsProperty.class);
     }
-    
+
     @Issue("JENKINS-32359")
-    @Test public void shouldProperlyPersistFolderPropertiesOnMultipleReloads() throws Exception {
+    @Test
+    void shouldProperlyPersistFolderPropertiesOnMultipleReloads() throws Exception {
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
 
         // We add a stub property to generate the persisted list
@@ -453,7 +471,8 @@ public class FolderTest {
     }
 
     @Issue("JENKINS-52164")
-    @Test public void renameLinksShouldBeValid() throws Exception {
+    @Test
+    void renameLinksShouldBeValid() throws Exception {
         FreeStyleProject project1 = r.createFreeStyleProject();
         Folder folder1 = createFolder();
         FreeStyleProject project2 = folder1.createProject(FreeStyleProject.class, "project2");
@@ -469,7 +488,8 @@ public class FolderTest {
     }
 
     @Issue("JENKINS-63836")
-    @Test public void shouldNotHaveHealthMetricConfiguredGloballyOnCreation() throws Exception {
+    @Test
+    void shouldNotHaveHealthMetricConfiguredGloballyOnCreation() throws Exception {
         assertThat("by default, global configuration should not have any health metrics",
                 AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
         
@@ -485,7 +505,8 @@ public class FolderTest {
                 healthMetrics, hasSize(0));
     }
 
-    @Test public void visibleItems() throws IOException, InterruptedException {
+    @Test
+    void visibleItems() throws IOException, InterruptedException {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
                 grant(Jenkins.READ).everywhere().toEveryone().
@@ -505,7 +526,8 @@ public class FolderTest {
         assertFalse(f.hasVisibleItems());
     }
 
-    @Test public void getItemsPredicate() throws IOException {
+    @Test
+    void getItemsPredicate() throws IOException {
         final Folder d = r.jenkins.createProject(Folder.class, "d");
         final FreeStyleProject p1 = d.createProject(FreeStyleProject.class, "p1");
         final FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
@@ -542,7 +564,8 @@ public class FolderTest {
     }
 
     @Issue("SECURITY-3105")
-    @Test public void doCreateView() throws Exception {
+    @Test
+    void doCreateView() throws Exception {
         Folder f = createFolder();
         String folderURL = f.getUrl() + "createView?mode=copy&name=NewView&from=All";
         // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch the status code instead of the test crashing
@@ -553,7 +576,8 @@ public class FolderTest {
     }
 
     @Issue("SECURITY-3106")
-    @Test public void doCreateItem() throws Exception {
+    @Test
+    void doCreateItem() throws Exception {
         Folder f = createFolder();
         String folderURL = f.getUrl() + "createItem?mode=copy&name=NewFolder&from=" + f.getName();
         // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch the status code instead of the test crashing
@@ -562,5 +586,4 @@ public class FolderTest {
         // The request sent is using a GET instead of POST request which is not allowed
         assertEquals(405, webClient.goTo(folderURL).getWebResponse().getStatusCode());
     }
-
 }
