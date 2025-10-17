@@ -40,11 +40,9 @@ import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -238,12 +236,6 @@ public class ChildNameGeneratorAltTest {
         assertThat("We have an item for name " + idealName, item, notNullValue());
         assertThat("The root directory if the item for name " + idealName + " is mangled",
                 item.getRootDir().getName(), is(mangle(idealName)));
-        File nameFile = new File(item.getRootDir(), ChildNameGenerator.CHILD_NAME_FILE);
-        assertThat("We have the " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName,
-                nameFile.isFile(), is(true));
-        String name = Files.readString(nameFile.toPath(), StandardCharsets.UTF_8);
-        assertThat("The " + ChildNameGenerator.CHILD_NAME_FILE + " for the item for name " + idealName
-                + " contains the encoded name", name, is(encodedName));
     }
 
     public static String encode(String s) {
@@ -406,9 +398,7 @@ public class ChildNameGeneratorAltTest {
                     if (p == null) {
                         if (observer.mayCreate(encodedKid)) {
                             listener.getLogger().println("creating a child");
-                            try (ChildNameGenerator.Trace trace = ChildNameGenerator.beforeCreateItem(this, encodedKid, kid)) {
-                                p = new FreeStyleProject(this, encodedKid);
-                            }
+                            p = new FreeStyleProject(this, encodedKid);
                             BulkChange bc = new BulkChange(p);
                             try {
                                 p.addProperty(new NameProperty(kid));
@@ -567,7 +557,7 @@ public class ChildNameGeneratorAltTest {
             if (property != null) {
                 return encode(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : encode(name);
         }
 
@@ -578,7 +568,7 @@ public class ChildNameGeneratorAltTest {
             if (property != null) {
                 return mangle(property.getName());
             }
-            String name = idealNameFromItem(parent, item);
+            String name = item.getName();
             return name == null ? null : mangle(name);
         }
 
@@ -594,11 +584,6 @@ public class ChildNameGeneratorAltTest {
         public String dirNameFromLegacy(@NonNull F parent,
                                         @NonNull String legacyDirName) {
             return mangle(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD));
-        }
-
-        @Override
-        public void recordLegacyName(F parent, J item, String legacyDirName) throws IOException {
-            item.addProperty(new NameProperty(Normalizer.normalize(legacyDirName, Normalizer.Form.NFD)));
         }
     }
 

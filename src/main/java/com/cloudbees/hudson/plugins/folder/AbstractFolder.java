@@ -34,9 +34,9 @@ import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
 import hudson.BulkChange;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.Util;
 import static hudson.Util.fixEmpty;
-import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -73,13 +73,11 @@ import io.jenkins.servlet.ServletExceptionWrapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -340,86 +338,19 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
                                                              Function<? super V, ? extends K> key) {
-        CopyOnWriteMap.Tree<K, V> configurations = new CopyOnWriteMap.Tree<>();
-        if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
-            LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
-                    new Object[]{modulesDir, parent.getFullName()});
-            return configurations;
-        }
-
-        File[] subdirs = modulesDir.listFiles(File::isDirectory);
-        if (subdirs == null) {
-            return configurations;
-        }
-        final ChildNameGenerator<AbstractFolder<V>,V> childNameGenerator = parent.childNameGenerator();
-        Map<String,V> byDirName = new HashMap<>();
-        if (parent.items != null) {
-            for (V item : parent.items.values()) {
-                byDirName.put(childNameGenerator.dirName(parent, item), item);
-            }
-        }
-        for (File subdir : subdirs) {
-            File effectiveSubdir = subdir;
-            String childName = childNameGenerator.readItemName(subdir);
-            // Try to retain the identity of an existing child object if we can.
-            V itemFromDir;
-            V item;
-            String name;
-            var legacyName = subdir.getName();
-            item = itemFromDir = byDirName.get(legacyName);
-            try {
-                if (item == null) {
-                    XmlFile xmlFile = Items.getConfigFile(subdir);
-                    if (xmlFile.exists()) {
-                        item = (V) xmlFile.read();
-                        effectiveSubdir = childNameGenerator.ensureItemDirectory(parent, item, subdir);
-                    } else {
-                        throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
-                    }
-                }
-                name = childNameGenerator.writeItemName(parent, item, effectiveSubdir, childName);
-                String computedName = childNameGenerator.itemNameFromItem(parent, item);
-                if (computedName == null) {
-                    computedName = subdir.getName();
-                }
-                if (!computedName.equals(name)) {
-                    throw new IllegalStateException("Computed name '" + computedName + "' does not match name written to file '" + name + "'");
-                }
-                if (item instanceof AbstractItem) {
-                    var abstractItem = (AbstractItem) item;
-                    if (itemFromDir != null && !legacyName.equals(name) && abstractItem.getDisplayNameOrNull() == null) {
-                        try (BulkChange ignored = new BulkChange(item)) {
-                            abstractItem.setDisplayName(childName);
-                        }
-                    }
-                }
-                item.onLoad(parent, name);
-                configurations.put(key.apply(item), item);
-            } catch (Exception e) {
-                File finalEffectiveSubdir = effectiveSubdir;
-                LOGGER.warning(() -> "could not load " + finalEffectiveSubdir + " due to " + e);
-                LOGGER.log(Level.FINE, null, e);
-            }
-        }
-
-        return configurations;
+        return ExtensionList.lookupFirst(ChildLoader.class).loadChildren(parent, modulesDir, key);
     }
 
     @Override
     public String getItemName(File dir, I item) {
-        String name = childNameGenerator().readItemName(dir);
-        String computedName = childNameGenerator().itemNameFromItem(this, item);
-        if (computedName == null) {
-            computedName = dir.getName();
-        }
-        if (!computedName.equals(name)) {
-            throw new IllegalStateException("Computed name '" + computedName + "' does not match name read from file '" + name + "'");
+        String name = childNameGenerator().itemNameFromItem(this, item);
+        if (name == null) {
+            name = dir.getName();
         }
         return name;
     }
 
     protected final I itemsPut(String name, I item) {
-        childNameGenerator().writeItemName(this, item, getRootDirFor(item), name);
         return items.put(name, item);
     }
 
@@ -503,7 +434,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
     }
 
-    private ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+    ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
         return getDescriptor().childNameGenerator();
     }
 
@@ -851,31 +782,46 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3L / 4L)
                 + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
         reports = new ArrayList<>();
-        List<FolderHealthMetric.Reporter> reporters = new ArrayList<>(healthMetrics.size());
-        boolean recursive = false;
-        boolean topLevelOnly = true;
+
         for (FolderHealthMetric metric : healthMetrics) {
-            recursive = recursive || metric.getType().isRecursive();
-            topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
-            reporters.add(metric.reporter());
+            FolderHealthMetric.Reporter reporter = metric.reporter();
+            observeMetric(metric.getType(), reporter);
+            reports.addAll(reporter.report());
+
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
-                recursive = recursive || metric.getType().isRecursive();
-                topLevelOnly = topLevelOnly && metric.getType().isTopLevelItems();
-                reporters.add(metric.reporter());
+                FolderHealthMetric.Reporter reporter = metric.reporter();
+                observeMetric(metric.getType(), reporter);
+                reports.addAll(p.getHealthReports());
             }
         }
-        if (recursive) {
-            Stack<Iterable<? extends Item>> stack = new Stack<>();
-            stack.push(getItems());
-            if (topLevelOnly) {
-                while (!stack.isEmpty()) {
-                    for (Item item : stack.pop()) {
-                        if (item instanceof TopLevelItem) {
-                            for (FolderHealthMetric.Reporter reporter : reporters) {
+
+        Collections.sort(reports);
+        healthReports = reports; // idempotent write
+        return reports;
+    }
+
+    private void observeMetric(FolderHealthMetric.Type type, FolderHealthMetric.Reporter reporter) {
+        if (type.isWithChildren()) {
+            if (type.isRecursive()) {
+                Stack<Iterable<? extends Item>> stack = new Stack<>();
+                stack.push(getItems());
+                if (type.isTopLevelItems()) {
+                    while (!stack.isEmpty()) {
+                        for (Item item : stack.pop()) {
+                            if (item instanceof TopLevelItem) {
                                 reporter.observe(item);
+                                if (item instanceof Folder) {
+                                    stack.push(((Folder) item).getItems());
+                                }
                             }
+                        }
+                    }
+                } else {
+                    while (!stack.isEmpty()) {
+                        for (Item item : stack.pop()) {
+                            reporter.observe(item);
                             if (item instanceof Folder) {
                                 stack.push(((Folder) item).getItems());
                             }
@@ -883,34 +829,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                     }
                 }
             } else {
-                while (!stack.isEmpty()) {
-                    for (Item item : stack.pop()) {
-                        for (FolderHealthMetric.Reporter reporter : reporters) {
-                            reporter.observe(item);
-                        }
-                        if (item instanceof Folder) {
-                            stack.push(((Folder) item).getItems());
-                        }
-                    }
-                }
-            }
-        } else {
-            for (Item item: getItems()) {
-                for (FolderHealthMetric.Reporter reporter : reporters) {
+                for (Item item : getItems()) {
                     reporter.observe(item);
                 }
             }
+        } else {
+            reporter.observe(this);
         }
-        for (FolderHealthMetric.Reporter reporter : reporters) {
-            reports.addAll(reporter.report());
-        }
-        for (AbstractFolderProperty<?> p : getProperties()) {
-            reports.addAll(p.getHealthReports());
-        }
-
-        Collections.sort(reports);
-        healthReports = reports; // idempotent write
-        return reports;
     }
 
     public DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> getHealthMetrics() {

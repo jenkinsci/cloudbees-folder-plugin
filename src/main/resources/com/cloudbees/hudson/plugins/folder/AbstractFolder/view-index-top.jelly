@@ -24,23 +24,34 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:this="this">
-  <j:set var="iconClass" value="${it.iconColor.getIconClassName()}"/>
-  <j:if test="${iconClass != null}">
-      <j:set var="iconClass" value="${iconClass} icon-xlg"/>
-  </j:if>
-  <h1>
+  <div class="jenkins-app-bar">
+    <div class="jenkins-app-bar__content jenkins-build-caption">
+      <j:set var="iconClass" value="${it.iconColor.getIconClassName()}"/>
+      <j:if test="${iconClass != null}">
+        <j:set var="iconClass" value="${iconClass} icon-lg"/>
+      </j:if>
+      <j:choose>
+        <j:when test="${iconClass != null}">
+          <l:icon class="${iconClass}" alt="${it.iconColor.description}" tooltip="${it.iconColor.description}" />
+        </j:when>
+        <j:otherwise>
+          <l:icon src="${it.iconColor.getImageOf('32x32')}" alt="${it.iconColor.description}" tooltip="${it.iconColor.description}" />
+        </j:otherwise>
+      </j:choose>
+      <h1 class="job-index-headline page-headline">
+        <l:breakable value="${it.displayName}"/>
+      </h1>
+    </div>
+  </div>
+  <j:if test="${(it.fullName!=it.fullDisplayName)}">
     <j:choose>
-      <j:when test="${iconClass != null}">
-        <l:icon class="${iconClass}" tooltip="${it.iconColor.description}" />
+      <j:when test="${it.parent!=app}">
+        ${%Full folder name}: ${it.fullName}
       </j:when>
       <j:otherwise>
-        <l:icon src="${it.iconColor.getImageOf('48x48')}" height="48" width="48" alt="${it.iconColor.description}" tooltip="${it.iconColor.description}" />
+        ${%Folder name}: ${it.fullName}
       </j:otherwise>
     </j:choose>
-    ${it.displayName}
-  </h1>
-  <j:if test="${it.name != it.displayName}">
-    ${%Folder name}: ${it.fullName}
   </j:if>
   <div id="view-message">
       <div id="systemmessage">
@@ -54,7 +65,14 @@ THE SOFTWARE.
       <!-- for now, quietly omit the option -->
     </j:when>
     <j:when test="${it.disabled}">
-      <div id="disabled-message" class="warning">${%disabled(it.pronoun)}</div>
+      <div class="warning" id="disabled-message">
+        <form method="post" id='enable-project' action="${rootURL}/${it.url}enable">
+          ${%disabled(it.pronoun)}<st:nbsp/>
+          <l:hasPermission permission="${it.CONFIGURE}">
+            <f:submit value="${%Enable}"/>
+          </l:hasPermission>
+        </form>
+      </div>
     </j:when>
   </j:choose>
   <!-- give actions a chance to contribute summary item -->
