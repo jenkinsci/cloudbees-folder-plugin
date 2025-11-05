@@ -91,8 +91,12 @@ public abstract class ChildLoader implements ExtensionPoint {
             item.onLoad(parent, name);
             return item;
         } catch (Exception e) {
-            LOGGER.warning(() -> "could not load " + subdir + " due to " + e);
-            LOGGER.log(Level.FINE, null, e);
+            if (e instanceof FileNotFoundException && !LOGGER.isLoggable(Level.FINE)) {
+                // commonplace error from missing config.xml, avoid log spam unless FINE is enabled anyway
+                LOGGER.warning(() -> "could not load " + subdir + " due to " + e);
+            } else {
+                LOGGER.log(Level.WARNING, "could not load " + subdir, e);
+            }
             return null;
         }
     }
