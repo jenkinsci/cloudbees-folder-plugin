@@ -91,8 +91,7 @@ public abstract class ChildLoader implements ExtensionPoint {
             item.onLoad(parent, name);
             return item;
         } catch (Exception e) {
-            LOGGER.warning(() -> "could not load " + subdir + " due to " + e);
-            LOGGER.log(Level.FINE, null, e);
+            LOGGER.log(Level.WARNING, "could not load " + subdir, e);
             return null;
         }
     }
