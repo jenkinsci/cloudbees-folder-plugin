@@ -17,31 +17,39 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.ClassRule;
-import org.junit.Test;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ThrottleComputationQueueTaskDispatcherTest {
+@WithJenkins
+class ThrottleComputationQueueTaskDispatcherTest {
+
     private static final Logger LOGGER = Logger.getLogger(ThrottleComputationQueueTaskDispatcherTest.class.getName());
 
-    @ClassRule
-    public static JenkinsRule r = new JenkinsRule();
+    private static JenkinsRule r;
+
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void acceptOne() throws Exception {
+    void acceptOne() throws Exception {
         SlowComputedFolder d = r.jenkins.createProject(SlowComputedFolder.class, "acceptOne");
         d.recompute(Result.SUCCESS);
     }
 
     @Test
-    public void acceptLimit() throws Exception {
+    void acceptLimit() throws Exception {
         SlowComputedFolder[] d = new SlowComputedFolder[ThrottleComputationQueueTaskDispatcher.LIMIT];
         Queue.Item[] q = new Queue.Item[ThrottleComputationQueueTaskDispatcher.LIMIT];
         QueueTaskFuture[] f = new QueueTaskFuture[ThrottleComputationQueueTaskDispatcher.LIMIT];
@@ -91,12 +99,12 @@ public class ThrottleComputationQueueTaskDispatcherTest {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
-            assertEquals(log, Result.SUCCESS, computation.getResult());
+            assertEquals(Result.SUCCESS, computation.getResult(), log);
         }
     }
 
     @Test
-    public void blockOneAboveLimit() throws Exception {
+    void blockOneAboveLimit() throws Exception {
         SlowComputedFolder[] d = new SlowComputedFolder[ThrottleComputationQueueTaskDispatcher.LIMIT + 1];
         Queue.Item[] q = new Queue.Item[ThrottleComputationQueueTaskDispatcher.LIMIT + 1];
         QueueTaskFuture[] f = new QueueTaskFuture[ThrottleComputationQueueTaskDispatcher.LIMIT + 1];
@@ -149,12 +157,12 @@ public class ThrottleComputationQueueTaskDispatcherTest {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
-            assertEquals(log, Result.SUCCESS, computation.getResult());
+            assertEquals(Result.SUCCESS, computation.getResult(), log);
         }
     }
 
     @Test
-    public void blockManyAboveLimit() throws Exception {
+    void blockManyAboveLimit() throws Exception {
         // The queue could pick them up in any random order, so we need to leave at least one slot free in the
         // second set in order to ensure that the first set can complete (even eventually) once we release
         // it's finished latch, hence 2*LIMIT-1 and not 2*LIMIT. If we used 2*LIMIT then every so
@@ -253,13 +261,13 @@ public class ThrottleComputationQueueTaskDispatcherTest {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
-            assertEquals(log, Result.SUCCESS, computation.getResult());
+            assertEquals(Result.SUCCESS, computation.getResult(), log);
         }
     }
 
-    static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
+    private static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
         if (d.isDisabled()) {
-            assertEquals("Folder " + d.getFullName() + " is disabled", result, Result.NOT_BUILT);
+            assertEquals(Result.NOT_BUILT, result, "Folder " + d.getFullName() + " is disabled");
             return "DISABLED";
         }
         d.scheduleBuild2(0).getFuture().get();
@@ -267,7 +275,7 @@ public class ThrottleComputationQueueTaskDispatcherTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         computation.writeWholeLogTo(baos);
         String log = baos.toString();
-        assertEquals(log, result, computation.getResult());
+        assertEquals(result, computation.getResult(), log);
         return log;
     }
 
@@ -304,6 +312,7 @@ public class ThrottleComputationQueueTaskDispatcherTest {
             return doRecompute(this, result);
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -311,7 +320,6 @@ public class ThrottleComputationQueueTaskDispatcherTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SlowComputedFolder(parent, name);
             }
-
         }
     }
 }
