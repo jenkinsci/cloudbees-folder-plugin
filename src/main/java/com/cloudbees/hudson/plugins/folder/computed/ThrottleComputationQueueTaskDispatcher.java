@@ -56,8 +56,8 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
      */
     static int LIMIT = Math.max(1,
             Math.min(
-                    Integer.getInteger(ThrottleComputationQueueTaskDispatcher.class.getName() + ".LIMIT", 5),
-                    Runtime.getRuntime().availableProcessors() * 4
+                    Integer.getInteger(ThrottleComputationQueueTaskDispatcher.class.getName() + ".LIMIT", 16),
+                    Runtime.getRuntime().availableProcessors() * 2
             )
     );
     /**
