@@ -30,12 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
@@ -94,24 +89,29 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 
-public class ComputedFolderTest {
+@WithJenkins
+class ComputedFolderTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
+    
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-32179")
     @Test
-    public void duplicateEntries() throws Exception {
+    void duplicateEntries() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.recompute(Result.SUCCESS);
         d.assertItemNames(1);
@@ -121,11 +121,9 @@ public class ComputedFolderTest {
         assertEquals("[A, B, C]", d.created.toString());
 
         // ComputedFolder page opens correctly
-        try {
+        assertDoesNotThrow(() -> {
             r.createWebClient().getPage(d);
-        } catch (Exception ex) {
-            Assert.fail("ComputedFolder<FreeStyleProject> cannot be opened: " + ex.getMessage());
-        }
+        }, "ComputedFolder<FreeStyleProject> cannot be opened: ");
 
         d.recompute(Result.SUCCESS);
         d.assertItemNames(3, "A", "B", "C");
@@ -148,7 +146,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void disableOrphans() throws Exception {
+    void disableOrphans() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, "-1", "1"));
         d.recompute(Result.SUCCESS);
@@ -170,7 +168,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void disableFolder() throws Exception {
+    void disableFolder() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.recompute(Result.SUCCESS);
         d.assertItemNames(1);
@@ -193,7 +191,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void roundTrip() throws Exception {
+    void roundTrip() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.makeDisabled(true);
         d = r.configRoundtrip(d);
@@ -202,30 +200,26 @@ public class ComputedFolderTest {
 
     @Issue("JENKINS-42680")
     @Test
-    public void foldersAsChildren() throws Exception {
+    void foldersAsChildren() throws Exception {
         final SampleComputedFolderWithFoldersAsChildren d = r.jenkins.createProject(SampleComputedFolderWithFoldersAsChildren.class, "d");
         d.recompute(Result.SUCCESS);
         d.kids.add("A");
         d.recompute(Result.SUCCESS);
 
         // Folder page opens correctly
-        try {
+        assertDoesNotThrow(() -> {
             Folder a = d.getItems().iterator().next();
             r.createWebClient().getPage(a);
-        } catch (Exception ex) {
-            Assert.fail("Folder inside ComputedFolder cannot be opened: " + ex.getMessage());
-        }
+        }, "Folder inside ComputedFolder cannot be opened: ");
 
         // ComputerFolder page does no open
-        try {
+        assertDoesNotThrow(() -> {
             r.createWebClient().getPage(d);
-        } catch (Exception ex) {
-            Assert.fail("ComputedFolder<Folder> cannot be opened: " + ex.getMessage());
-        }
+        }, "ComputedFolder<Folder> cannot be opened: ");
     }
 
     @Test
-    public void abortException() throws Exception {
+    void abortException() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.setDisplayName("My Folder");
         d.kids.addAll(Arrays.asList("A", "B"));
@@ -236,13 +230,13 @@ public class ComputedFolderTest {
         // Despite its name, AbortException is intended to be FAILURE, not ABORTED which would be InterruptedException.
         String log = d.recompute(Result.FAILURE);
         d.assertItemNames(2, "A", "B");
-        assertTrue(log, log.contains("not adding Z"));
-        assertFalse(log, log.contains(SampleComputedFolder.class.getName()));
+        assertTrue(log.contains("not adding Z"), log);
+        assertFalse(log.contains(SampleComputedFolder.class.getName()), log);
     }
 
     @Issue("JENKINS-25240")
     @Test
-    public void runningBuild() throws Exception {
+    void runningBuild() throws Exception {
         SampleComputedFolder d = r.jenkins.createProject(SampleComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
         d.recompute(Result.SUCCESS);
@@ -274,7 +268,7 @@ public class ComputedFolderTest {
 
     @Issue("JENKINS-60677")
     @Test
-    public void runningBuildWithAbortBuildsOption() throws Exception {
+    void runningBuildWithAbortBuildsOption() throws Exception {
         SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
         DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
         strategy.setAbortBuilds(true);
@@ -294,7 +288,7 @@ public class ComputedFolderTest {
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(bBuild));
             InterruptedBuildAction interruptedBuildAction = bBuild.getAction(InterruptedBuildAction.class);
             CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
-            assertTrue(causeOfInterruption instanceof OrphanedParent);
+            assertInstanceOf(OrphanedParent.class, causeOfInterruption);
         }
         folder.recompute(Result.SUCCESS);
         folder.assertItemNames(3, "A");
@@ -311,7 +305,7 @@ public class ComputedFolderTest {
 
     @Issue("JENKINS-60677")
     @Test
-    public void runningWorkflowJobBuildWithAbortBuildsOption() throws Exception {
+    void runningWorkflowJobBuildWithAbortBuildsOption() throws Exception {
         SampleComputedFolderWithWorkflowJobAsChildren folder = r.jenkins.createProject(SampleComputedFolderWithWorkflowJobAsChildren.class, "d");
         DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
         strategy.setAbortBuilds(true);
@@ -332,13 +326,13 @@ public class ComputedFolderTest {
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(build));
             InterruptedBuildAction interruptedBuildAction = build.getAction(InterruptedBuildAction.class);
             CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
-            assertTrue(causeOfInterruption instanceof OrphanedParent);
+            assertInstanceOf(OrphanedParent.class, causeOfInterruption);
         }
     }
 
     @Issue("JENKINS-60677")
     @Test
-    public void pendingBuildWithAbortBuildsOption() throws Exception {
+    void pendingBuildWithAbortBuildsOption() throws Exception {
         SampleComputedFolder folder = r.jenkins.createProject(SampleComputedFolder.class, "d");
         DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
         strategy.setAbortBuilds(true);
@@ -358,29 +352,24 @@ public class ComputedFolderTest {
         folder.recompute(Result.SUCCESS);
         folder.assertItemNames(2);
 
-        try {
-            pendingBuild.getFuture().get();
-            fail("Cancellation exception was expected");
-        } catch (CancellationException e) {
-            // As expected
-        }
+        assertThrows(CancellationException.class, () -> pendingBuild.getFuture().get());
     }
 
     @Test
-    public void notAddChildren() throws Exception {
+    void notAddChildren() throws Exception {
         JenkinsRule.WebClient client = r.createWebClient();
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
 
-        assertEquals(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), 0);
+        assertEquals(0, client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size());
 
         s.kids.add("A");
         s.recompute(Result.SUCCESS);
 
-        assertEquals(client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size(), 0);
+        assertEquals(0, client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size());
     }
 
     @Test
-    public void runByTrigger() throws Exception {
+    void runByTrigger() throws Exception {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.assertItemNames(0);
 
@@ -396,7 +385,7 @@ public class ComputedFolderTest {
     /** Verify that running branch projects are not deleted even after an organization folder reindex. */
     @Issue("JENKINS-25240")
     @Test
-    public void runningBuildMeta() throws Exception {
+    void runningBuildMeta() throws Exception {
         SecondOrderComputedFolder org = r.jenkins.createProject(SecondOrderComputedFolder.class, "org");
         org.metakids.add(Arrays.asList("A", "B"));
         org.metakids.add(Arrays.asList("C", "D"));
@@ -413,7 +402,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void viewHolderRestrictions() throws Exception {
+    void viewHolderRestrictions() throws Exception {
         LockedDownSampleComputedFolder org = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "org");
         // initial setup is correct
         assertThat(org.getViews().size(), is(2));
@@ -451,7 +440,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void recomputationSuppression() throws Exception {
+    void recomputationSuppression() throws Exception {
         final VariableRecomputationComputedFolder org = r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
 
         // no recalculateAfterSubmitted calls means we recalculate
@@ -476,11 +465,10 @@ public class ComputedFolderTest {
         r.configRoundtrip(org);
         r.waitUntilNoActivity();
         assertThat(org.round, is(round));
-
     }
 
     @Test
-    public void recomputationSuppressionMulti() throws Exception {
+    void recomputationSuppressionMulti() throws Exception {
         final VariableRecomputationComputedFolder org =
                 r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
 
@@ -530,7 +518,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void triggersRoundtrip() throws Exception {
+    void triggersRoundtrip() throws Exception {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.addTrigger(new PeriodicFolderTrigger("30m"));
         SampleComputedFolder s2 = r.configRoundtrip(s);
@@ -538,11 +526,10 @@ public class ComputedFolderTest {
         assertThat(trigger, notNullValue());
         assertThat(trigger, instanceOf(PeriodicFolderTrigger.class));
         assertThat(((PeriodicFolderTrigger)trigger).getInterval(), is("30m"));
-
     }
 
     @Test
-    public void cleanTriggers() throws Exception {
+    void cleanTriggers() throws Exception {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.addTrigger(new PeriodicFolderTrigger("30m"));
         
@@ -555,7 +542,7 @@ public class ComputedFolderTest {
 
     @Test
     @Issue("JENKINS-42511")
-    public void concurrentEvents() throws Exception {
+    void concurrentEvents() throws Exception {
         CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
         QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
@@ -580,7 +567,7 @@ public class ComputedFolderTest {
 
     @Test
     @Issue("JENKINS-35112")
-    public void deleteWhileComputing() throws Exception {
+    void deleteWhileComputing() throws Exception {
         CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
         QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
@@ -593,17 +580,14 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void renameWhileComputing() throws Exception {
+    void renameWhileComputing() throws Exception {
         CoordinatedComputedFolder d = r.jenkins.createProject(CoordinatedComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
         QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
         future.waitForStart();
-        try {
-            d.checkRename("d2");
-            fail("Should be blocked while computation is in progress");
-        } catch (Failure f) {
-            assertThat(f.getMessage(), is(Messages.ComputedFolder_ComputationInProgress()));
-        }
+        Failure f = assertThrows(Failure.class, () -> d.checkRename("d2"), "Should be blocked while computation is in progress");
+        assertThat(f.getMessage(), is(Messages.ComputedFolder_ComputationInProgress()));
+
         d.onKid("B");
         future.get();
         waitUntilNoActivityIgnoringThreadDeathUpTo(10000);
@@ -611,7 +595,7 @@ public class ComputedFolderTest {
     }
 
     @Test
-    public void failAllDeletedOnes() throws Exception {
+    void failAllDeletedOnes() throws Exception {
         OneUndeletableChildComputedFolder d = r.jenkins.createProject(OneUndeletableChildComputedFolder.class, "d");
         d.kids.addAll(Arrays.asList("A", "B"));
         d.recompute(Result.SUCCESS);
@@ -627,9 +611,9 @@ public class ComputedFolderTest {
 
     @Issue("JENKINS-73930")
     @Test
-    public void disabledWarningFromUiViews() throws Exception {
+    void disabledWarningFromUiViews() throws Exception {
         LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
-        assertFalse("by default, a folder is disabled", folder.isDisabled());
+        assertFalse(folder.isDisabled(), "by default, a folder is disabled");
         for(View view : folder.getViews()){
             assertNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
         }
@@ -715,7 +699,6 @@ public class ComputedFolderTest {
         return false;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolder extends ComputedFolder<FreeStyleProject> {
 
         List<String> kids = new ArrayList<>();
@@ -756,7 +739,6 @@ public class ComputedFolderTest {
                     observer.completed(kid);
                 }
             }
-
         }
 
         @Override
@@ -783,6 +765,7 @@ public class ComputedFolderTest {
             assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -790,12 +773,9 @@ public class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SampleComputedFolder(parent, name);
             }
-
         }
-
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolderWithWorkflowJobAsChildren extends ComputedFolder<WorkflowJob> {
 
         List<String> kids = new ArrayList<>();
@@ -830,7 +810,6 @@ public class ComputedFolderTest {
                     observer.completed(kid);
                 }
             }
-
         }
 
         String recompute(Result result) throws Exception {
@@ -846,6 +825,7 @@ public class ComputedFolderTest {
             assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -853,11 +833,9 @@ public class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SampleComputedFolderWithWorkflowJobAsChildren(parent, name);
             }
-
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SampleComputedFolderWithFoldersAsChildren extends ComputedFolder<Folder> {
 
         List<String> kids = new ArrayList<>();
@@ -892,13 +870,13 @@ public class ComputedFolderTest {
                     observer.completed(kid);
                 }
             }
-
         }
 
         String recompute(Result result) throws Exception {
             return doRecompute(this, result);
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -906,9 +884,7 @@ public class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SampleComputedFolderWithFoldersAsChildren(parent, name);
             }
-
         }
-
     }
 
     public static class LockedDownSampleComputedFolder extends SampleComputedFolder {
@@ -922,6 +898,7 @@ public class ComputedFolderTest {
             return new FixedViewHolder(this);
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -1006,6 +983,7 @@ public class ComputedFolderTest {
             }
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -1013,13 +991,12 @@ public class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new VariableRecomputationComputedFolder(parent, name);
             }
-
         }
     }
 
     static String doRecompute(ComputedFolder<?> d, Result result) throws Exception {
         if (d.isDisabled()) {
-            assertEquals("Folder " + d.getFullName() + " is disabled", result, Result.NOT_BUILT);
+            assertEquals(Result.NOT_BUILT, result, "Folder " + d.getFullName() + " is disabled");
             return "DISABLED";
         }
         d.scheduleBuild2(0).getFuture().get();
@@ -1027,11 +1004,10 @@ public class ComputedFolderTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         computation.writeWholeLogTo(baos);
         String log = baos.toString();
-        assertEquals(log, result, computation.getResult());
+        assertEquals(result, computation.getResult(), log);
         return log;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static class SecondOrderComputedFolder extends ComputedFolder<SampleComputedFolder> {
 
         List<List<String>> metakids = new ArrayList<>();
@@ -1063,7 +1039,6 @@ public class ComputedFolderTest {
                     observer.completed(childName);
                 }
             }
-
         }
 
         String assertItemNames(String... names) throws Exception {
@@ -1078,6 +1053,7 @@ public class ComputedFolderTest {
             return log;
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -1085,9 +1061,7 @@ public class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new SecondOrderComputedFolder(parent, name);
             }
-
         }
-
     }
 
     public static class CoordinatedComputedFolder extends ComputedFolder<FreeStyleProject> {
@@ -1199,6 +1173,7 @@ public class ComputedFolderTest {
             assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -1257,7 +1232,6 @@ public class ComputedFolderTest {
                     observer.completed(kid);
                 }
             }
-
         }
 
         String recompute(Result result) throws Exception {
@@ -1273,6 +1247,7 @@ public class ComputedFolderTest {
             assertEquals(new TreeSet<>(Arrays.asList(names)).toString(), actual.toString());
         }
 
+        @SuppressWarnings("unused")
         @TestExtension
         public static class DescriptorImpl extends AbstractFolderDescriptor {
 
@@ -1280,9 +1255,6 @@ public class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new OneUndeletableChildComputedFolder(parent, name);
             }
-
         }
-
     }
-
 }
