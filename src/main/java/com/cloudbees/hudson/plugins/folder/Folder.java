@@ -68,6 +68,9 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.verb.POST;
 
+import com.cloudbees.hudson.plugins.folder.SaveAllJobsAction;
+
+
 /**
  * A mutable folder.
  */
@@ -414,7 +417,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
         items.remove(item.getName());
     }
-
+    
     @Extension
     public static class DescriptorImpl extends AbstractFolderDescriptor {
 
