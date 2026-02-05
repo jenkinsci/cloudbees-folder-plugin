@@ -34,7 +34,7 @@ THE SOFTWARE.
                 </j:if>
             </t:buildCaption>
             <table style="margin-top: 1em; margin-left:1em;">
-                <t:summary icon="icon-notepad">
+                <t:summary icon="symbol-edit">
                     <j:choose>
                         <j:when test="${it.result==null}">
                             ${%Not run}
