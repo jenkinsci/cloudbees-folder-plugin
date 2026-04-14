@@ -7,12 +7,16 @@ import hudson.model.Item;
 import hudson.model.Items;
 import hudson.model.TopLevelItem;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.util.SystemProperties;
 
 public abstract class ChildLoader implements ExtensionPoint {
 
@@ -64,6 +68,8 @@ public abstract class ChildLoader implements ExtensionPoint {
         return byDirName;
     }
 
+    static final String GRACE_PERIOD_PROP = ChildLoader.class.getName() + ".missingConfigXmlGracePeriod";
+
     /**
      * Load a {@link TopLevelItem} from a given directory. The method attempts to read the item configuration, assign an
      * appropriate name to the item, and initialize it within the provided parent folder.
@@ -81,7 +87,23 @@ public abstract class ChildLoader implements ExtensionPoint {
                 if (xmlFile.exists()) {
                     item = (V) xmlFile.read();
                 } else {
-                    throw new FileNotFoundException("Could not find configuration file " + xmlFile.getFile());
+                    var subdirP = subdir.toPath();
+                    try {
+                    if (Files.getLastModifiedTime(subdirP).toInstant().isBefore(Instant.now().minus(SystemProperties.getDuration(GRACE_PERIOD_PROP, Duration.ofDays(1))))) {
+                        var brokenChildrenDir = parent.getRootDir().toPath().resolve("broken-children");
+                        var brokenChildDir = brokenChildrenDir.resolve(subdirP.getFileName());
+                        if (!Files.exists(brokenChildDir)) {
+                            Files.createDirectories(brokenChildrenDir);
+                            Files.move(subdirP, brokenChildDir);
+                            LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdirP + " to " + brokenChildDir + " for analysis");
+                            return null;
+                        }
+                    }
+                    } catch (IOException x) {
+                        LOGGER.log(Level.WARNING, null, x);
+                    }
+                    LOGGER.warning(() -> xmlFile + " did not exist");
+                    return null;
                 }
             }
             String name = parent.childNameGenerator().itemNameFromItem(parent, item);
@@ -91,12 +113,8 @@ public abstract class ChildLoader implements ExtensionPoint {
             item.onLoad(parent, name);
             return item;
         } catch (Exception e) {
-            if (e instanceof FileNotFoundException && !LOGGER.isLoggable(Level.FINE)) {
-                // commonplace error from missing config.xml, avoid log spam unless FINE is enabled anyway
-                LOGGER.warning(() -> "could not load " + subdir + " due to " + e);
-            } else {
-                LOGGER.log(Level.WARNING, "could not load " + subdir, e);
-            }
+            LOGGER.log(Level.WARNING, "could not load " + subdir, e);
+            // Do not try to move to broken-children, because we do not know whether the error is transient.
             return null;
         }
     }
