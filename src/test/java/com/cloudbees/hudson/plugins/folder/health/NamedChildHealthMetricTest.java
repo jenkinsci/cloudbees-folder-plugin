@@ -29,22 +29,28 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
 import java.util.List;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 
 import hudson.model.HealthReport;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class NamedChildHealthMetricTest {
+@WithJenkins
+class NamedChildHealthMetricTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void childExists() throws Exception {
-        Folder folder = j.jenkins.createProject(Folder.class, "myFolder");
+    void childExists() throws Exception {
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         folder.createProject(Folder.class, "mySubFolder");
         folder.getHealthMetrics().add(new NamedChildHealthMetric("mySubFolder"));
 
@@ -53,8 +59,8 @@ public class NamedChildHealthMetricTest {
     }
 
     @Test
-    public void childDoesNotExist() throws Exception {
-        Folder folder = j.jenkins.createProject(Folder.class, "myFolder");
+    void childDoesNotExist() throws Exception {
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         folder.createProject(Folder.class, "mySubFolder");
         folder.getHealthMetrics().add(new NamedChildHealthMetric("doesnotexist"));
 
@@ -63,8 +69,8 @@ public class NamedChildHealthMetricTest {
     }
 
     @Test
-    public void nestedChild() throws Exception {
-        Folder folder = j.jenkins.createProject(Folder.class, "myFolder");
+    void nestedChild() throws Exception {
+        Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         Folder subFolder = folder.createProject(Folder.class, "mySubFolder");
         subFolder.createProject(Folder.class, "nestedFolder");
         folder.getHealthMetrics().add(new NamedChildHealthMetric("mySubFolder/nestedFolder"));
@@ -72,5 +78,4 @@ public class NamedChildHealthMetricTest {
         List<HealthReport> reports = folder.getBuildHealthReports();
         assertThat("report should not contain report for nested child", reports, hasSize(0));
     }
-
 }
