@@ -100,7 +100,7 @@ public abstract class ChildLoader implements ExtensionPoint {
                             }
                         }
                     } catch (IOException x) {
-                        LOGGER.log(Level.WARNING, null, x);
+                        LOGGER.log(Level.WARNING, x, () -> xmlFile + " did not exist; failed to move " + subdirP + " aside for analysis");
                     }
                     LOGGER.warning(() -> xmlFile + " did not exist");
                     return null;
