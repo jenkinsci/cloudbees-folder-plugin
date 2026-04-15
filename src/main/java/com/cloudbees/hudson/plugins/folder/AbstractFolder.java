@@ -335,7 +335,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @param <V>        the child type.
      * @return a map of the children keyed by the generated keys.
      */
-    // TODO replace with ItemGroupMixIn.loadChildren once baseline core has JENKINS-41222 merged
     public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
                                                              Function<? super V, ? extends K> key) {
         return ExtensionList.lookupFirst(ChildLoader.class).loadChildren(parent, modulesDir, key);
