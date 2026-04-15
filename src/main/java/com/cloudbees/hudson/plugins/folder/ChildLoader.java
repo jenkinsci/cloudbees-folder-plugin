@@ -2,6 +2,7 @@ package com.cloudbees.hudson.plugins.folder;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.ExtensionPoint;
+import hudson.Util;
 import hudson.XmlFile;
 import hudson.model.Item;
 import hudson.model.Items;
@@ -88,21 +89,22 @@ public abstract class ChildLoader implements ExtensionPoint {
                     item = (V) xmlFile.read();
                 } else {
                     var subdirP = subdir.toPath();
+                    var gracePeriod = SystemProperties.getDuration(GRACE_PERIOD_PROP, Duration.ofDays(1));
                     try {
-                        if (Files.getLastModifiedTime(subdirP).toInstant().isBefore(Instant.now().minus(SystemProperties.getDuration(GRACE_PERIOD_PROP, Duration.ofDays(1))))) {
+                        if (Files.getLastModifiedTime(subdirP).toInstant().isBefore(Instant.now().minus(gracePeriod))) {
                             var brokenChildrenDir = parent.getRootDir().toPath().resolve("broken-children");
                             var brokenChildDir = brokenChildrenDir.resolve(subdirP.getFileName());
                             if (!Files.exists(brokenChildDir)) {
                                 Files.createDirectories(brokenChildrenDir);
                                 Files.move(subdirP, brokenChildDir);
-                                LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdirP + " to " + brokenChildDir + " for analysis");
+                                LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdir + " to " + brokenChildDir + " for analysis");
                                 return null;
                             }
                         }
                     } catch (IOException x) {
-                        LOGGER.log(Level.WARNING, x, () -> xmlFile + " did not exist; failed to move " + subdirP + " aside for analysis");
+                        LOGGER.log(Level.WARNING, x, () -> xmlFile + " did not exist; failed to move " + subdir + " aside for analysis");
                     }
-                    LOGGER.warning(() -> xmlFile + " did not exist");
+                    LOGGER.warning(() -> xmlFile + " did not exist; " + Util.getTimeSpanString(gracePeriod.toMillis()) + " after last modification time " + subdir + " will be moved aside");
                     return null;
                 }
             }
