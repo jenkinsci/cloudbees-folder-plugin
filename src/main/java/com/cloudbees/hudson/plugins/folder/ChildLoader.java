@@ -89,16 +89,16 @@ public abstract class ChildLoader implements ExtensionPoint {
                 } else {
                     var subdirP = subdir.toPath();
                     try {
-                    if (Files.getLastModifiedTime(subdirP).toInstant().isBefore(Instant.now().minus(SystemProperties.getDuration(GRACE_PERIOD_PROP, Duration.ofDays(1))))) {
-                        var brokenChildrenDir = parent.getRootDir().toPath().resolve("broken-children");
-                        var brokenChildDir = brokenChildrenDir.resolve(subdirP.getFileName());
-                        if (!Files.exists(brokenChildDir)) {
-                            Files.createDirectories(brokenChildrenDir);
-                            Files.move(subdirP, brokenChildDir);
-                            LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdirP + " to " + brokenChildDir + " for analysis");
-                            return null;
+                        if (Files.getLastModifiedTime(subdirP).toInstant().isBefore(Instant.now().minus(SystemProperties.getDuration(GRACE_PERIOD_PROP, Duration.ofDays(1))))) {
+                            var brokenChildrenDir = parent.getRootDir().toPath().resolve("broken-children");
+                            var brokenChildDir = brokenChildrenDir.resolve(subdirP.getFileName());
+                            if (!Files.exists(brokenChildDir)) {
+                                Files.createDirectories(brokenChildrenDir);
+                                Files.move(subdirP, brokenChildDir);
+                                LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdirP + " to " + brokenChildDir + " for analysis");
+                                return null;
+                            }
                         }
-                    }
                     } catch (IOException x) {
                         LOGGER.log(Level.WARNING, null, x);
                     }
