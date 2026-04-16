@@ -278,7 +278,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 }
                 Collection<I> forRemoval = orphanedItems(orphaned.values(), listener);
 
-                List<IOException> deletingExceptions = new LinkedList<>();
                 for (I existing : orphaned.values()) {
                     if (forRemoval.contains(existing)) {
                         if (LOGGER.isLoggable(Level.FINE)) {
@@ -288,15 +287,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                             existing.delete();
                             // super.onDeleted handles removal from items
                         } catch (IOException x) { // InterruptedException is still propagated
-                            deletingExceptions.add(x);
+                            LOGGER.log(Level.WARNING, "Failed to delete " + existing, x);
                         }
                     } else {
                         applyDisabled(existing, true);
                     }
-                }
-
-                if (!deletingExceptions.isEmpty()) {
-                    throw new DeletingChildrenException(deletingExceptions);
                 }
             }
         }

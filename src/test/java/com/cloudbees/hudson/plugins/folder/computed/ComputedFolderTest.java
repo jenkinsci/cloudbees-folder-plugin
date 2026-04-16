@@ -601,9 +601,9 @@ class ComputedFolderTest {
         d.recompute(Result.SUCCESS);
         d.assertItemNames(1, "A", "B");
 
-        // Computation fails because A cannot be deleted
+        // Computation succeeds even though A could not be deleted
         d.kids.clear();
-        d.recompute(Result.FAILURE);
+        d.recompute(Result.SUCCESS);
 
         // But B has been deleted
         d.assertItemNames(2, "A");
