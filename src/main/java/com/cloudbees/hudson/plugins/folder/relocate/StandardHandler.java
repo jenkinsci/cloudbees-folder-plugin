@@ -76,8 +76,8 @@ public final class StandardHandler extends RelocationHandler {
         }
         Item result = doMove(item, (DirectlyModifiableTopLevelItemGroup) destination);
         newItem.set(result);
-        // AbstractItem.getUrl does weird magic here which winds up making it redirect to the old location, so inline
-        // the correct part of this method.
+        // AbstractItem.getUrl does weird magic here which winds up making it redirect to the old location,
+        // so inline the correct part of this method.
         return HttpResponses.redirectViaContextPath(result.getParent().getUrl() + result.getShortUrl());
     }
 

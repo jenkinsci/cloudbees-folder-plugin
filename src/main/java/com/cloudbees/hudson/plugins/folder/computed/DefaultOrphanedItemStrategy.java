@@ -86,8 +86,8 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     public DefaultOrphanedItemStrategy(
             boolean pruneDeadBranches, @CheckForNull String daysToKeepStr, @CheckForNull String numToKeepStr) {
         this.pruneDeadBranches = pruneDeadBranches;
-        // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep <
-        // PeriodicFolderTrigger.interval
+        // TODO in lieu of DeadBranchCleanupThread, introduce a form warning
+        // if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
         this.numToKeep = pruneDeadBranches ? fromString(numToKeepStr) : -1;
     }

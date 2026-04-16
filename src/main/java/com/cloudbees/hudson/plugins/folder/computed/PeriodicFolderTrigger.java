@@ -184,8 +184,8 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             // so we trigger slightly early
             // Also take into account that we are delaying computation by 5s
             // and it may take ~3s for computation to go an executor and timestamp to be recorded,
-            // so in the case of a 1m trigger we need some grace period or it will actually only be run every 2m
-            // typically.
+            // so in the case of a 1m trigger we need some grace period
+            // or it will actually only be run every 2m typically.
             long almostInterval = interval - interval / 20 - TimeUnit.SECONDS.toMillis(15);
             long remaining = last + almostInterval - System.currentTimeMillis();
             if (remaining > 0) {

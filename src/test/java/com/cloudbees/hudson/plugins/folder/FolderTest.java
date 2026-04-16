@@ -198,7 +198,7 @@ class FolderTest {
     }
 
     private void copyViaHttp(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
-        // Taken from
+        // Taken from:
         // https://github.com/jenkinsci/jenkins/blob/80aa2c8e4093df270193402c3933f3f1f16271da/test/src/test/java/hudson/jobs/CreateItemTest.java#L68
         r.jenkins.setCrumbIssuer(null);
 
@@ -460,8 +460,8 @@ class FolderTest {
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
 
         // We add a stub property to generate the persisted list
-        // After that we save and reload the config in order to drop PersistedListOwner according to the JENKINS-32359
-        // scenario
+        // After that we save and reload the config in order to drop PersistedListOwner
+        // according to the JENKINS-32359 scenario
         folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
         r.jenkins.reload();
 
@@ -611,8 +611,8 @@ class FolderTest {
     void doCreateView() throws Exception {
         Folder f = createFolder();
         String folderURL = f.getUrl() + "createView?mode=copy&name=NewView&from=All";
-        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch
-        // the status code instead of the test crashing
+        // Create a web client with the option to not throw exceptions on failing status codes
+        // - this allows us to catch the status code instead of the test crashing
         JenkinsRule.WebClient webClient = r.createWebClient().withThrowExceptionOnFailingStatusCode(false);
         // The expected response status code is 404, this means that the requested page is not available
         // The request sent is using a GET instead of POST
@@ -624,8 +624,8 @@ class FolderTest {
     void doCreateItem() throws Exception {
         Folder f = createFolder();
         String folderURL = f.getUrl() + "createItem?mode=copy&name=NewFolder&from=" + f.getName();
-        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch
-        // the status code instead of the test crashing
+        // Create a web client with the option to not throw exceptions on failing status codes
+        // - this allows us to catch the status code instead of the test crashing
         JenkinsRule.WebClient webClient = r.createWebClient().withThrowExceptionOnFailingStatusCode(false);
         // The expected response status code of the folder URL is 405, this means that the method is not allowed
         // The request sent is using a GET instead of POST request which is not allowed

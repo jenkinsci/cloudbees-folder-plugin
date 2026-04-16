@@ -456,8 +456,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             try {
                 if (oisDigest == null
                         || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
-                    // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find
-                    // orphans
+                    // force a recalculation if orphanedItemStrategy has changed
+                    // as recalculation is when we find orphans
                     recalculateAfterSubmitted(true);
                 }
             } catch (XStreamException e) {
