@@ -1,5 +1,11 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
@@ -17,18 +23,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @WithJenkins
 class ThrottleComputationQueueTaskDispatcherTest {
@@ -171,7 +170,7 @@ class ThrottleComputationQueueTaskDispatcherTest {
         SlowComputedFolder[] d = new SlowComputedFolder[ThrottleComputationQueueTaskDispatcher.LIMIT * 2 - 1];
         Queue.Item[] q = new Queue.Item[ThrottleComputationQueueTaskDispatcher.LIMIT * 2 - 1];
         QueueTaskFuture[] f = new QueueTaskFuture[ThrottleComputationQueueTaskDispatcher.LIMIT * 2 - 1];
-        CountDownLatch[] finished = new CountDownLatch[]{new CountDownLatch(1), new CountDownLatch(1)};
+        CountDownLatch[] finished = new CountDownLatch[] {new CountDownLatch(1), new CountDownLatch(1)};
         CountDownLatch[] started = new CountDownLatch[ThrottleComputationQueueTaskDispatcher.LIMIT * 2 - 1];
         for (int i = 0; i < d.length; i++) {
             d[i] = r.jenkins.createProject(SlowComputedFolder.class, "blockManyAboveLimit-" + i);

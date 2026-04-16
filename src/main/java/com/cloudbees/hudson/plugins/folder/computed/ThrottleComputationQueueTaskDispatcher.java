@@ -54,12 +54,11 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
     /**
      * How many concurrent computations to permit.
      */
-    static int LIMIT = Math.max(1,
+    static int LIMIT = Math.max(
+            1,
             Math.min(
                     Integer.getInteger(ThrottleComputationQueueTaskDispatcher.class.getName() + ".LIMIT", 5),
-                    Runtime.getRuntime().availableProcessors() * 4
-            )
-    );
+                    Runtime.getRuntime().availableProcessors() * 4));
     /**
      * A list of recently permitted computations. This list should never grow above {@link #LIMIT} entries.
      */
@@ -96,7 +95,8 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
                 }
             }
             if (!found && computationCount() + approvedCount >= LIMIT) {
-                return CauseOfBlockage.fromMessage(Messages._ThrottleComputationQueueTaskDispatcher_MaxConcurrentIndexing());
+                return CauseOfBlockage.fromMessage(
+                        Messages._ThrottleComputationQueueTaskDispatcher_MaxConcurrentIndexing());
             }
             if (!found) {
                 synchronized (recent) {
@@ -154,8 +154,7 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
      */
     public int computationCount(@CheckForNull Node node) {
         int result = 0;
-        @CheckForNull
-        Computer computer = node == null ? null : node.toComputer();
+        @CheckForNull Computer computer = node == null ? null : node.toComputer();
         if (computer != null) {
             // not all nodes will have a computer
             for (Executor e : computer.getExecutors()) {
@@ -187,5 +186,4 @@ public class ThrottleComputationQueueTaskDispatcher extends QueueTaskDispatcher 
             this.when = when;
         }
     }
-
 }

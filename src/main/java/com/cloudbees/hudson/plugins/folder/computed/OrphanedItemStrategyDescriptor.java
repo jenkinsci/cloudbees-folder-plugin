@@ -40,5 +40,4 @@ public abstract class OrphanedItemStrategyDescriptor extends Descriptor<Orphaned
     public boolean isApplicable(Class<? extends ComputedFolder> folderType) {
         return true;
     }
-
 }

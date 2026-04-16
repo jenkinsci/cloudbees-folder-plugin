@@ -35,8 +35,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
-import org.htmlunit.html.DomElement;
-import org.htmlunit.html.HtmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
@@ -85,6 +83,8 @@ import java.util.concurrent.TimeUnit;
 import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
 import jenkins.model.Jenkins;
+import org.htmlunit.html.DomElement;
+import org.htmlunit.html.HtmlPage;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -103,7 +103,7 @@ import org.kohsuke.stapler.StaplerResponse2;
 class ComputedFolderTest {
 
     private JenkinsRule r;
-    
+
     @BeforeEach
     void beforeEach(JenkinsRule rule) {
         r = rule;
@@ -121,9 +121,11 @@ class ComputedFolderTest {
         assertEquals("[A, B, C]", d.created.toString());
 
         // ComputedFolder page opens correctly
-        assertDoesNotThrow(() -> {
-            r.createWebClient().getPage(d);
-        }, "ComputedFolder<FreeStyleProject> cannot be opened: ");
+        assertDoesNotThrow(
+                () -> {
+                    r.createWebClient().getPage(d);
+                },
+                "ComputedFolder<FreeStyleProject> cannot be opened: ");
 
         d.recompute(Result.SUCCESS);
         d.assertItemNames(3, "A", "B", "C");
@@ -138,11 +140,13 @@ class ComputedFolderTest {
         d.assertItemNames(5, "A", "B", "C", "D");
         assertEquals("[A, B, C, D, B]", d.created.toString());
         assertEquals("[B]", d.deleted.toString());
-        Map<String,String> descriptions = new TreeMap<>();
+        Map<String, String> descriptions = new TreeMap<>();
         for (FreeStyleProject p : d.getItems()) {
             descriptions.put(p.getName(), p.getDescription());
         }
-        assertEquals("{A=updated in round #5, B=created in round #5, C=updated in round #5, D=created in round #5}", descriptions.toString());
+        assertEquals(
+                "{A=updated in round #5, B=created in round #5, C=updated in round #5, D=created in round #5}",
+                descriptions.toString());
     }
 
     @Test
@@ -201,21 +205,26 @@ class ComputedFolderTest {
     @Issue("JENKINS-42680")
     @Test
     void foldersAsChildren() throws Exception {
-        final SampleComputedFolderWithFoldersAsChildren d = r.jenkins.createProject(SampleComputedFolderWithFoldersAsChildren.class, "d");
+        final SampleComputedFolderWithFoldersAsChildren d =
+                r.jenkins.createProject(SampleComputedFolderWithFoldersAsChildren.class, "d");
         d.recompute(Result.SUCCESS);
         d.kids.add("A");
         d.recompute(Result.SUCCESS);
 
         // Folder page opens correctly
-        assertDoesNotThrow(() -> {
-            Folder a = d.getItems().iterator().next();
-            r.createWebClient().getPage(a);
-        }, "Folder inside ComputedFolder cannot be opened: ");
+        assertDoesNotThrow(
+                () -> {
+                    Folder a = d.getItems().iterator().next();
+                    r.createWebClient().getPage(a);
+                },
+                "Folder inside ComputedFolder cannot be opened: ");
 
         // ComputerFolder page does no open
-        assertDoesNotThrow(() -> {
-            r.createWebClient().getPage(d);
-        }, "ComputedFolder<Folder> cannot be opened: ");
+        assertDoesNotThrow(
+                () -> {
+                    r.createWebClient().getPage(d);
+                },
+                "ComputedFolder<Folder> cannot be opened: ");
     }
 
     @Test
@@ -287,7 +296,8 @@ class ComputedFolderTest {
             assertFalse(bBuild.isBuilding());
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(bBuild));
             InterruptedBuildAction interruptedBuildAction = bBuild.getAction(InterruptedBuildAction.class);
-            CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
+            CauseOfInterruption causeOfInterruption =
+                    interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
             assertInstanceOf(OrphanedParent.class, causeOfInterruption);
         }
         folder.recompute(Result.SUCCESS);
@@ -306,7 +316,8 @@ class ComputedFolderTest {
     @Issue("JENKINS-60677")
     @Test
     void runningWorkflowJobBuildWithAbortBuildsOption() throws Exception {
-        SampleComputedFolderWithWorkflowJobAsChildren folder = r.jenkins.createProject(SampleComputedFolderWithWorkflowJobAsChildren.class, "d");
+        SampleComputedFolderWithWorkflowJobAsChildren folder =
+                r.jenkins.createProject(SampleComputedFolderWithWorkflowJobAsChildren.class, "d");
         DefaultOrphanedItemStrategy strategy = new DefaultOrphanedItemStrategy(true, -1, -1);
         strategy.setAbortBuilds(true);
         folder.setOrphanedItemStrategy(strategy);
@@ -325,7 +336,8 @@ class ComputedFolderTest {
             assertFalse(build.isBuilding());
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(build));
             InterruptedBuildAction interruptedBuildAction = build.getAction(InterruptedBuildAction.class);
-            CauseOfInterruption causeOfInterruption = interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
+            CauseOfInterruption causeOfInterruption =
+                    interruptedBuildAction.getCauses().stream().findFirst().orElseThrow(NoSuchElementException::new);
             assertInstanceOf(OrphanedParent.class, causeOfInterruption);
         }
     }
@@ -360,12 +372,20 @@ class ComputedFolderTest {
         JenkinsRule.WebClient client = r.createWebClient();
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
 
-        assertEquals(0, client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size());
+        assertEquals(
+                0,
+                client.getPage(s)
+                        .getByXPath("//a[contains(text(), \"New Item\")]")
+                        .size());
 
         s.kids.add("A");
         s.recompute(Result.SUCCESS);
 
-        assertEquals(0, client.getPage(s).getByXPath("//a[contains(text(), \"New Item\")]").size());
+        assertEquals(
+                0,
+                client.getPage(s)
+                        .getByXPath("//a[contains(text(), \"New Item\")]")
+                        .size());
     }
 
     @Test
@@ -441,7 +461,8 @@ class ComputedFolderTest {
 
     @Test
     void recomputationSuppression() throws Exception {
-        final VariableRecomputationComputedFolder org = r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
+        final VariableRecomputationComputedFolder org =
+                r.jenkins.createProject(VariableRecomputationComputedFolder.class, "org");
 
         // no recalculateAfterSubmitted calls means we recalculate
         r.waitUntilNoActivity();
@@ -474,8 +495,8 @@ class ComputedFolderTest {
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
         org.submit = () -> {
-                org.recalculateAfterSubmitted(true);
-                org.recalculateAfterSubmitted(true);
+            org.recalculateAfterSubmitted(true);
+            org.recalculateAfterSubmitted(true);
         };
 
         int round = org.round;
@@ -485,8 +506,8 @@ class ComputedFolderTest {
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
         org.submit = () -> {
-                org.recalculateAfterSubmitted(true);
-                org.recalculateAfterSubmitted(false);
+            org.recalculateAfterSubmitted(true);
+            org.recalculateAfterSubmitted(false);
         };
 
         round = org.round;
@@ -496,8 +517,8 @@ class ComputedFolderTest {
 
         // at least one recalculateAfterSubmitted(true) calls means we recalculate
         org.submit = () -> {
-                org.recalculateAfterSubmitted(false);
-                org.recalculateAfterSubmitted(true);
+            org.recalculateAfterSubmitted(false);
+            org.recalculateAfterSubmitted(true);
         };
 
         round = org.round;
@@ -507,8 +528,8 @@ class ComputedFolderTest {
 
         // all recalculateAfterSubmitted(false) calls means we suppress
         org.submit = () -> {
-                org.recalculateAfterSubmitted(false);
-                org.recalculateAfterSubmitted(false);
+            org.recalculateAfterSubmitted(false);
+            org.recalculateAfterSubmitted(false);
         };
 
         round = org.round;
@@ -522,17 +543,18 @@ class ComputedFolderTest {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.addTrigger(new PeriodicFolderTrigger("30m"));
         SampleComputedFolder s2 = r.configRoundtrip(s);
-        Trigger<?> trigger = s2.getTriggers().get(r.jenkins.getDescriptorByType(PeriodicFolderTrigger.DescriptorImpl.class));
+        Trigger<?> trigger =
+                s2.getTriggers().get(r.jenkins.getDescriptorByType(PeriodicFolderTrigger.DescriptorImpl.class));
         assertThat(trigger, notNullValue());
         assertThat(trigger, instanceOf(PeriodicFolderTrigger.class));
-        assertThat(((PeriodicFolderTrigger)trigger).getInterval(), is("30m"));
+        assertThat(((PeriodicFolderTrigger) trigger).getInterval(), is("30m"));
     }
 
     @Test
     void cleanTriggers() throws Exception {
         SampleComputedFolder s = r.jenkins.createProject(SampleComputedFolder.class, "s");
         s.addTrigger(new PeriodicFolderTrigger("30m"));
-        
+
         assertEquals(1, s.getTriggers().size());
 
         s.removeTrigger(new PeriodicFolderTrigger("30m"));
@@ -585,7 +607,8 @@ class ComputedFolderTest {
         d.kids.addAll(Arrays.asList("A", "B"));
         QueueTaskFuture<Queue.Executable> future = d.scheduleBuild2(0).getFuture();
         future.waitForStart();
-        Failure f = assertThrows(Failure.class, () -> d.checkRename("d2"), "Should be blocked while computation is in progress");
+        Failure f = assertThrows(
+                Failure.class, () -> d.checkRename("d2"), "Should be blocked while computation is in progress");
         assertThat(f.getMessage(), is(Messages.ComputedFolder_ComputationInProgress()));
 
         d.onKid("B");
@@ -614,12 +637,12 @@ class ComputedFolderTest {
     void disabledWarningFromUiViews() throws Exception {
         LockedDownSampleComputedFolder folder = r.jenkins.createProject(LockedDownSampleComputedFolder.class, "d");
         assertFalse(folder.isDisabled(), "by default, a folder is disabled");
-        for(View view : folder.getViews()){
+        for (View view : folder.getViews()) {
             assertNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
         }
         folder.setDisabled(true);
         folder.save();
-        for(View view : folder.getViews()){
+        for (View view : folder.getViews()) {
             assertNotNull(r.createWebClient().goTo(view.getViewUrl()).getElementById("disabled-message"));
         }
     }
@@ -634,13 +657,11 @@ class ComputedFolderTest {
 
         while (true) {
             Thread.sleep(10);
-            if (isSomethingHappeningIgnoringThreadDeath())
-                streak = 0;
-            else
-                streak++;
+            if (isSomethingHappeningIgnoringThreadDeath()) streak = 0;
+            else streak++;
 
-            if (streak > 5)   // the system is quiet for a while
-                return;
+            if (streak > 5) // the system is quiet for a while
+            return;
 
             if (System.currentTimeMillis() - startTime > timeout) {
                 List<Queue.Executable> building = new ArrayList<>();
@@ -670,9 +691,9 @@ class ComputedFolderTest {
                 for (ThreadInfo ti : threadInfos) {
                     System.err.println(Functions.dumpThreadInfo(ti, m));
                 }
-                throw new AssertionError(
-                        String.format("Jenkins is still doing something after %dms: queue=%s building=%s deaths=%s",
-                                timeout, Arrays.asList(r.jenkins.getQueue().getItems()), building, deaths));
+                throw new AssertionError(String.format(
+                        "Jenkins is still doing something after %dms: queue=%s building=%s deaths=%s",
+                        timeout, Arrays.asList(r.jenkins.getQueue().getItems()), building, deaths));
             }
         }
     }
@@ -711,7 +732,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             round++;
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {
@@ -742,7 +764,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected Collection<FreeStyleProject> orphanedItems(Collection<FreeStyleProject> orphaned, TaskListener listener) throws IOException, InterruptedException {
+        protected Collection<FreeStyleProject> orphanedItems(
+                Collection<FreeStyleProject> orphaned, TaskListener listener) throws IOException, InterruptedException {
             Collection<FreeStyleProject> deleting = super.orphanedItems(orphaned, listener);
             for (FreeStyleProject p : deleting) {
                 String kid = p.getName();
@@ -786,7 +809,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<WorkflowJob> observer, TaskListener listener) throws IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<WorkflowJob> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             round++;
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {
@@ -846,7 +870,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<Folder> observer, TaskListener listener) throws IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<Folder> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             round++;
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {
@@ -906,7 +931,6 @@ class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new LockedDownSampleComputedFolder(parent, name);
             }
-
         }
 
         private static class FixedViewHolder extends AbstractFolderViewHolder {
@@ -1017,7 +1041,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<SampleComputedFolder> observer, TaskListener listener) throws IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<SampleComputedFolder> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             for (List<String> kids : metakids) {
                 String childName = String.join("+", kids);
                 listener.getLogger().println("considering " + childName);
@@ -1119,7 +1144,7 @@ class ComputedFolderTest {
             compute.await();
             Thread.sleep(25);
             try (StreamTaskListener listener = getComputation().createEventsListener();
-                 ChildObserver<FreeStyleProject> observer = openEventsChildObserver()) {
+                    ChildObserver<FreeStyleProject> observer = openEventsChildObserver()) {
                 listener.getLogger().println("considering " + kid);
                 FreeStyleProject p = observer.shouldUpdate(kid);
                 try {
@@ -1148,9 +1173,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected Collection<FreeStyleProject> orphanedItems(Collection<FreeStyleProject> orphaned,
-                                                             TaskListener listener)
-                throws IOException, InterruptedException {
+        protected Collection<FreeStyleProject> orphanedItems(
+                Collection<FreeStyleProject> orphaned, TaskListener listener) throws IOException, InterruptedException {
             Collection<FreeStyleProject> deleting = super.orphanedItems(orphaned, listener);
             for (FreeStyleProject p : deleting) {
                 String kid = p.getName();
@@ -1181,9 +1205,7 @@ class ComputedFolderTest {
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new CoordinatedComputedFolder(parent, name);
             }
-
         }
-
     }
 
     public static class OneUndeletableChildComputedFolder extends ComputedFolder<FreeStyleProject> {
@@ -1196,7 +1218,8 @@ class ComputedFolderTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             round++;
             listener.getLogger().println("=== Round #" + round + " ===");
             for (String kid : kids) {

@@ -50,7 +50,8 @@ import org.kohsuke.stapler.HttpResponses;
  */
 @SuppressWarnings("rawtypes")
 @Restricted(NoExternalUse.class)
-@Extension(ordinal=-1000) public final class StandardHandler extends RelocationHandler {
+@Extension(ordinal = -1000)
+public final class StandardHandler extends RelocationHandler {
 
     @Override
     public HandlingMode applicability(Item item) {
@@ -64,18 +65,25 @@ import org.kohsuke.stapler.HttpResponses;
         }
     }
 
-    @Override public HttpResponse handle(Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<? extends RelocationHandler> chain) throws IOException, InterruptedException {
+    @Override
+    public HttpResponse handle(
+            Item item, ItemGroup<?> destination, AtomicReference<Item> newItem, List<? extends RelocationHandler> chain)
+            throws IOException, InterruptedException {
         if (!(destination instanceof DirectlyModifiableTopLevelItemGroup)) {
-            return chain.isEmpty() ? null : chain.get(0).handle(item, destination, newItem, chain.subList(1, chain.size()));
+            return chain.isEmpty()
+                    ? null
+                    : chain.get(0).handle(item, destination, newItem, chain.subList(1, chain.size()));
         }
         Item result = doMove(item, (DirectlyModifiableTopLevelItemGroup) destination);
         newItem.set(result);
-        // AbstractItem.getUrl does weird magic here which winds up making it redirect to the old location, so inline the correct part of this method.
+        // AbstractItem.getUrl does weird magic here which winds up making it redirect to the old location, so inline
+        // the correct part of this method.
         return HttpResponses.redirectViaContextPath(result.getParent().getUrl() + result.getShortUrl());
     }
 
     @SuppressWarnings("unchecked")
-    private static <I extends AbstractItem & TopLevelItem> I doMove(Item item, DirectlyModifiableTopLevelItemGroup destination) throws IOException {
+    private static <I extends AbstractItem & TopLevelItem> I doMove(
+            Item item, DirectlyModifiableTopLevelItemGroup destination) throws IOException {
         return Items.move((I) item, destination);
     }
 
@@ -85,10 +93,12 @@ import org.kohsuke.stapler.HttpResponses;
             // we can move to the root if there is none with the same name.
             return true;
         }
-        ITEM: for (Item g : Items.allItems2(ACL.SYSTEM2, instance, Item.class)) {
+        ITEM:
+        for (Item g : Items.allItems2(ACL.SYSTEM2, instance, Item.class)) {
             if (g instanceof DirectlyModifiableTopLevelItemGroup) {
                 DirectlyModifiableTopLevelItemGroup itemGroup = (DirectlyModifiableTopLevelItemGroup) g;
-                if (!permitted(item, itemGroup) || /* unlikely since we just checked CREATE, but just in case: */ !g.hasPermission(Item.READ)) {
+                if (!permitted(item, itemGroup)
+                        || /* unlikely since we just checked CREATE, but just in case: */ !g.hasPermission(Item.READ)) {
                     continue;
                 }
                 // Cannot move a folder into itself or a descendant
@@ -132,10 +142,12 @@ import org.kohsuke.stapler.HttpResponses;
         // ROOT context is only added in case there is not any item with the same name
         // But we add it in case the one is there is the item itself and not a different job with the same name
         // No-op by default
-        if (permitted(item, instance) && (instance.getItem(item.getName()) == null) || instance.getItem(item.getName()) == item) {
+        if (permitted(item, instance) && (instance.getItem(item.getName()) == null)
+                || instance.getItem(item.getName()) == item) {
             result.add(instance);
         }
-        ITEM: for (Item g : instance.getAllItems()) {
+        ITEM:
+        for (Item g : instance.getAllItems()) {
             if (g instanceof DirectlyModifiableTopLevelItemGroup) {
                 DirectlyModifiableTopLevelItemGroup itemGroup = (DirectlyModifiableTopLevelItemGroup) g;
                 if (!permitted(item, itemGroup)) {
@@ -180,7 +192,7 @@ import org.kohsuke.stapler.HttpResponses;
     }
 
     private boolean permitted(Item item, DirectlyModifiableTopLevelItemGroup itemGroup) {
-        return itemGroup == item.getParent() || itemGroup.canAdd((TopLevelItem) item) && ((AccessControlled) itemGroup).hasPermission(Job.CREATE);
+        return itemGroup == item.getParent()
+                || itemGroup.canAdd((TopLevelItem) item) && ((AccessControlled) itemGroup).hasPermission(Job.CREATE);
     }
-
 }

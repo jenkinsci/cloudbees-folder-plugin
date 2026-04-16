@@ -26,6 +26,8 @@ package com.cloudbees.hudson.plugins.folder.computed;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.thoughtworks.xstream.XStreamException;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.Util;
@@ -61,7 +63,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,8 +70,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.triggers.TriggeredItem;
@@ -99,7 +98,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // generics mistakes in various places
-public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I> implements BuildableItem, TriggeredItem, Queue.FlyweightTask {
+public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFolder<I>
+        implements BuildableItem, TriggeredItem, Queue.FlyweightTask {
 
     /**
      * Our logger.
@@ -114,7 +114,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     /**
      * Our {@link Trigger}s.
      */
-    private DescribableList<Trigger<?>,TriggerDescriptor> triggers;
+    private DescribableList<Trigger<?>, TriggerDescriptor> triggers;
 
     /**
      * Is this folder disabled.
@@ -240,7 +240,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @throws IOException if there was an {@link IOException} during the computation.
      * @throws InterruptedException if the computation was interrupted.
      */
-    protected abstract void computeChildren(ChildObserver<I> observer, TaskListener listener) throws IOException, InterruptedException;
+    protected abstract void computeChildren(ChildObserver<I> observer, TaskListener listener)
+            throws IOException, InterruptedException;
 
     /**
      * Hook called when some items are no longer in the list.
@@ -253,7 +254,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @throws IOException          if there was an I/O issue processing the items.
      * @throws InterruptedException if interrupted while processing the items.
      */
-    protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
+    protected Collection<I> orphanedItems(Collection<I> orphaned, TaskListener listener)
+            throws IOException, InterruptedException {
         return getOrphanedItemStrategy().orphanedItems(this, orphaned, listener);
     }
 
@@ -273,15 +275,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
             Map<String, I> orphaned = observer.orphaned();
             if (!orphaned.isEmpty()) {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "{0}: orphaned {1}",
-                            new Object[]{getFullName(), orphaned.keySet()});
+                    LOGGER.log(Level.FINE, "{0}: orphaned {1}", new Object[] {getFullName(), orphaned.keySet()});
                 }
                 Collection<I> forRemoval = orphanedItems(orphaned.values(), listener);
 
                 for (I existing : orphaned.values()) {
                     if (forRemoval.contains(existing)) {
                         if (LOGGER.isLoggable(Level.FINE)) {
-                            LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[]{getFullName(), existing});
+                            LOGGER.log(Level.FINE, "{0}: deleting {1}", new Object[] {getFullName(), existing});
                         }
                         try {
                             existing.delete();
@@ -308,8 +309,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 ((ParameterizedJobMixIn.ParameterizedJob) item).makeDisabled(disabled);
             }
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    "Could not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
+            LOGGER.log(Level.WARNING, "Could not " + (disabled ? "disable " : "enable ") + item.getFullName(), e);
         }
     }
 
@@ -324,9 +324,11 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Deprecated
     @Restricted(NoExternalUse.class) // cause a compilation error to force implementations to switch
     protected final ChildObserver<I> createEventsChildObserver() {
-        LOGGER.log(Level.WARNING, "The {0} implementation of ComputedFolder has not been updated to use "
-                + "openEventsChildObserver(), this may result in 'java.lang.IllegalStateException: JENKINS-23152 ... "
-                + "already existed; will not overwrite with ...' being thrown when processing events",
+        LOGGER.log(
+                Level.WARNING,
+                "The {0} implementation of ComputedFolder has not been updated to use "
+                        + "openEventsChildObserver(), this may result in 'java.lang.IllegalStateException: JENKINS-23152 ... "
+                        + "already existed; will not overwrite with ...' being thrown when processing events",
                 getClass().getName());
         currentObservationsLock.lock();
         try {
@@ -366,7 +368,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     protected void setDisabled(boolean disabled) {
         this.disabled = disabled;
-
     }
 
     /**
@@ -375,7 +376,6 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @Override
     public boolean supportsMakeDisabled() {
         return true;
-
     }
 
     /**
@@ -383,7 +383,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @RequirePOST
     @Override
-    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, Descriptor.FormException {
         try {
             recalculate = Recalculation.UNKNOWN;
             super.doConfigSubmit(req, rsp);
@@ -426,8 +427,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      * @see #recalculateAfterSubmitted(boolean)
      */
     @Override
-    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
-        if (Util.isOverridden(ComputedFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, Descriptor.FormException {
+        if (Util.isOverridden(
+                ComputedFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
             try {
                 submit(StaplerRequest.fromStaplerRequest2(req), StaplerResponse.fromStaplerResponse2(rsp));
             } catch (javax.servlet.ServletException e) {
@@ -451,8 +454,10 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 t.start(this, true);
             }
             try {
-                if (oisDigest == null || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
-                    // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find orphans
+                if (oisDigest == null
+                        || !oisDigest.equals(Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy)))) {
+                    // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find
+                    // orphans
                     recalculateAfterSubmitted(true);
                 }
             } catch (XStreamException e) {
@@ -467,7 +472,8 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
      */
     @Deprecated
     @Override
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {
+    protected void submit(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException, Descriptor.FormException {
         String oisDigest = null;
         try {
             oisDigest = Util.getDigestOf(Items.XSTREAM2.toXML(orphanedItemStrategy));
@@ -489,7 +495,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 // force a recalculation if orphanedItemStrategy has changed as recalculation is when we find orphans
                 recalculateAfterSubmitted(true);
             }
-        } catch(XStreamException e){
+        } catch (XStreamException e) {
             // force a recalculation anyway in this case
             recalculateAfterSubmitted(true);
         }
@@ -510,7 +516,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     }
 
     @Override
-    public Map<TriggerDescriptor,Trigger<?>> getTriggers() {
+    public Map<TriggerDescriptor, Trigger<?>> getTriggers() {
         return triggers.toMap();
     }
 
@@ -518,7 +524,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     public List<TriggerDescriptor> getTriggerDescriptors() {
         // TODO remove this once core has support for DescriptorVisibilityFilter on Trigger.for_(Item)
         List<TriggerDescriptor> result = new ArrayList<>();
-        for (TriggerDescriptor d: Trigger.for_(this)) {
+        for (TriggerDescriptor d : Trigger.for_(this)) {
             if (d instanceof TimerTrigger.DescriptorImpl) {
                 continue;
             }
@@ -586,7 +592,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     public HttpResponse doBuild(@QueryParameter TimeDuration delay) {
         checkPermission(BUILD);
         if (!isBuildable()) {
-            throw HttpResponses.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, new IOException(getFullName() + " cannot be recomputed"));
+            throw HttpResponses.error(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    new IOException(getFullName() + " cannot be recomputed"));
         }
         scheduleBuild2(delay == null ? 0 : delay.getTimeInSeconds(), new CauseAction(new Cause.UserIdCause()));
         return HttpResponses.forwardToPreviousPage();
@@ -605,7 +613,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         if (!isBuildable()) {
             return null;
         }
-        return Queue.getInstance().schedule2(this, quietPeriod, Arrays.asList(actions)).getItem();
+        return Queue.getInstance()
+                .schedule2(this, quietPeriod, Arrays.asList(actions))
+                .getItem();
     }
 
     /**
@@ -852,12 +862,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         @Override
         public void created(I child) {
             if (child.getParent() != ComputedFolder.this) {
-                throw new IllegalStateException("Tried to notify " + ComputedFolder.this + " of creation of " + child + " with a different parent");
+                throw new IllegalStateException("Tried to notify " + ComputedFolder.this + " of creation of " + child
+                        + " with a different parent");
             }
             LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
             String name = child.getName();
             if (!observed.contains(name)) {
-                throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name + " among " + observed);
+                throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child
+                        + " with name " + name + " among " + observed);
             }
             child.onCreatedFromScratch();
             try {
@@ -946,7 +958,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
                 observed.add(name);
                 applyDisabled(existing, false);
             }
-            LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[]{fullName, name, existing});
+            LOGGER.log(Level.FINE, "{0}: existing {1}: {2}", new Object[] {fullName, name, existing});
             return existing;
         }
 
@@ -956,7 +968,7 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         @Override
         public boolean mayCreate(String name) {
             boolean r = !items.containsKey(name) && observed.add(name);
-            LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[]{fullName, name, r});
+            LOGGER.log(Level.FINE, "{0}: may create {1}? {2}", new Object[] {fullName, name, r});
             if (!r) {
                 completed(name);
             }
@@ -969,16 +981,14 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
         @Override
         public void created(I child) {
             if (child.getParent() != ComputedFolder.this) {
-                throw new IllegalStateException(
-                        "Tried to notify " + ComputedFolder.this + " of creation of " + child
-                                + " with a different parent");
+                throw new IllegalStateException("Tried to notify " + ComputedFolder.this + " of creation of " + child
+                        + " with a different parent");
             }
-            LOGGER.log(Level.FINE, "{0}: created {1}", new Object[]{fullName, child});
+            LOGGER.log(Level.FINE, "{0}: created {1}", new Object[] {fullName, child});
             String name = child.getName();
             if (!observed.contains(name)) {
-                throw new IllegalStateException(
-                        "Did not call mayCreate, or used the wrong Item.name for " + child + " with name " + name
-                                + " among " + observed);
+                throw new IllegalStateException("Did not call mayCreate, or used the wrong Item.name for " + child
+                        + " with name " + name + " among " + observed);
             }
             child.onCreatedFromScratch();
             try {

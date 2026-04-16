@@ -77,7 +77,8 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      * @see #getNewPronoun
      * @since 4.0
      */
-    public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN = new AlternativeUiTextProvider.Message<>();
+    public static final AlternativeUiTextProvider.Message<Folder> NEW_PRONOUN =
+            new AlternativeUiTextProvider.Message<>();
 
     /**
      * @deprecated as of 1.7
@@ -130,8 +131,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         if (columns != null || filters != null) {
             // we're loading an ancient config
             if (columns == null) {
-                columns = new DescribableList<>(this,
-                        ListViewColumn.createDefaultInitialColumnList());
+                columns = new DescribableList<>(this, ListViewColumn.createDefaultInitialColumnList());
             }
             if (filters == null) {
                 filters = new DescribableList<>(this);
@@ -166,7 +166,6 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         public Collection<? extends Action> createFor(Folder target) {
             return target.transientActions;
         }
-
     }
 
     /**
@@ -184,7 +183,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         for (TransientFolderActionFactory tpaf : TransientFolderActionFactory.all()) {
             ta.addAll(Util.fixNull(tpaf.createFor(this))); // be defensive against null
         }
-        for (FolderProperty<?> p: getProperties().getAll(FolderProperty.class)) {
+        for (FolderProperty<?> p : getProperties().getAll(FolderProperty.class)) {
             ta.addAll(Util.fixNull(p.getFolderActions()));
         }
 
@@ -207,8 +206,7 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      */
     @Deprecated
     public DescribableList<ListViewColumn, Descriptor<ListViewColumn>> getColumns() {
-        return new DescribableList<>(this,
-                ListViewColumn.createDefaultInitialColumnList());
+        return new DescribableList<>(this, ListViewColumn.createDefaultInitialColumnList());
     }
 
     /**
@@ -241,7 +239,9 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     public TopLevelItem doCreateItem(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         if (Util.isOverridden(Folder.class, getClass(), "doCreateItem", StaplerRequest.class, StaplerResponse.class)) {
             try {
-                return doCreateItem(req != null ? StaplerRequest.fromStaplerRequest2(req) : null,  rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+                return doCreateItem(
+                        req != null ? StaplerRequest.fromStaplerRequest2(req) : null,
+                        rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
             } catch (javax.servlet.ServletException e) {
                 throw ServletExceptionWrapper.toJakartaServletException(e);
             }
@@ -255,15 +255,19 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      */
     @Deprecated
     @StaplerNotDispatchable
-    public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException {
+    public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException {
         try {
-            return doCreateItemImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+            return doCreateItemImpl(
+                    req != null ? StaplerRequest.toStaplerRequest2(req) : null,
+                    rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
         } catch (ServletException e) {
             throw ServletExceptionWrapper.fromJakartaServletException(e);
         }
     }
 
-    private TopLevelItem doCreateItemImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    private TopLevelItem doCreateItemImpl(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException {
         TopLevelItem nue = mixin.createTopLevelItem(req, rsp);
         if (!isAllowedChild(nue)) {
             // TODO would be better to intercept it before creation, if mode is set
@@ -309,7 +313,8 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     @Override
-    public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify) throws IOException {
+    public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify)
+            throws IOException {
         if (!isAllowedChildDescriptor(type)) {
             throw new IOException("forbidden child type");
         }
@@ -317,10 +322,13 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
     }
 
     @Override
-    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, FormException {
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, FormException {
         if (Util.isOverridden(Folder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
             try {
-                submit(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+                submit(
+                        req != null ? StaplerRequest.fromStaplerRequest2(req) : null,
+                        rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
             } catch (javax.servlet.ServletException e) {
                 throw ServletExceptionWrapper.toJakartaServletException(e);
             }
@@ -334,15 +342,19 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
      */
     @Deprecated
     @Override
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, FormException {
+    protected void submit(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException, FormException {
         try {
-            submitImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+            submitImpl(
+                    req != null ? StaplerRequest.toStaplerRequest2(req) : null,
+                    rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
         } catch (ServletException e) {
             throw ServletExceptionWrapper.fromJakartaServletException(e);
         }
     }
 
-    private void submitImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, FormException {
+    private void submitImpl(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, FormException {
         updateTransientActions();
     }
 
@@ -399,11 +411,13 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return (DescriptorImpl) super.getDescriptor();
     }
 
-    @Override public boolean canAdd(TopLevelItem item) {
+    @Override
+    public boolean canAdd(TopLevelItem item) {
         return isAllowedChild(item);
     }
 
-    @Override public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
+    @Override
+    public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
         if (!canAdd(item)) {
             throw new IllegalArgumentException();
         }
@@ -411,7 +425,8 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         return item;
     }
 
-    @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
+    @Override
+    public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
         items.remove(item.getName());
     }
 
@@ -434,19 +449,48 @@ public class Folder extends AbstractFolder<TopLevelItem> implements DirectlyModi
         }
 
         static {
-            // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and not in core
-            IconSet.icons.addIcon(new Icon("icon-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-lg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_XLARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-sm", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-md", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-lg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-disabled icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-disabled.svg", Icon.ICON_XLARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-sm", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-md", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-lg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon("icon-folder-store icon-xlg", "plugin/cloudbees-folder/images/svgs/folder-store.svg", Icon.ICON_XLARGE_STYLE));
+            // fix the IconSet defaults because some of them are .gif files and icon-folder should really be here and
+            // not in core
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder icon-sm", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder icon-md", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder icon-lg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder icon-xlg", "plugin/cloudbees-folder/images/svgs/folder.svg", Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-disabled icon-sm",
+                    "plugin/cloudbees-folder/images/svgs/folder-disabled.svg",
+                    Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-disabled icon-md",
+                    "plugin/cloudbees-folder/images/svgs/folder-disabled.svg",
+                    Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-disabled icon-lg",
+                    "plugin/cloudbees-folder/images/svgs/folder-disabled.svg",
+                    Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-disabled icon-xlg",
+                    "plugin/cloudbees-folder/images/svgs/folder-disabled.svg",
+                    Icon.ICON_XLARGE_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-store icon-sm",
+                    "plugin/cloudbees-folder/images/svgs/folder-store.svg",
+                    Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-store icon-md",
+                    "plugin/cloudbees-folder/images/svgs/folder-store.svg",
+                    Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-store icon-lg",
+                    "plugin/cloudbees-folder/images/svgs/folder-store.svg",
+                    Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(new Icon(
+                    "icon-folder-store icon-xlg",
+                    "plugin/cloudbees-folder/images/svgs/folder-store.svg",
+                    Icon.ICON_XLARGE_STYLE));
         }
     }
 

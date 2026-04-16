@@ -24,14 +24,15 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
-import org.htmlunit.HttpMethod;
-import org.htmlunit.WebRequest;
-import org.htmlunit.html.*;
 import hudson.model.AbstractItem;
 import hudson.model.Actionable;
 import hudson.model.FreeStyleBuild;
@@ -49,9 +50,9 @@ import hudson.model.queue.QueueTaskFuture;
 import hudson.search.SearchItem;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
-import hudson.security.WhoAmI;
 import hudson.security.Permission;
 import hudson.security.ProjectMatrixAuthorizationStrategy;
+import hudson.security.WhoAmI;
 import hudson.tasks.BuildTrigger;
 import hudson.util.DescribableList;
 import hudson.views.BuildButtonColumn;
@@ -73,23 +74,21 @@ import java.util.TreeSet;
 import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.WebRequest;
+import org.htmlunit.html.*;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
-import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-import org.springframework.security.access.AccessDeniedException;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.springframework.security.access.AccessDeniedException;
 
 @WithJenkins
 class FolderTest {
@@ -124,10 +123,10 @@ class FolderTest {
             }
         }
 
-        assertEquals("newName",f.getName());
-        assertEquals("Some view",f.getDescription());
+        assertEquals("newName", f.getName());
+        assertEquals("Some view", f.getDescription());
         assertNull(r.jenkins.getItem(oldName));
-        assertSame(r.jenkins.getItem("newName"),f);
+        assertSame(r.jenkins.getItem("newName"), f);
     }
 
     @Test
@@ -141,7 +140,11 @@ class FolderTest {
         var itemAfterFolderRename = Jenkins.get().getItemByFullName("newName/p1", FreeStyleProject.class);
         assertNotNull(itemAfterFolderRename);
         itemAfterFolderRename.renameTo("newP1");
-        assertEquals("newP1", itemAfterFolderRename.getParent().getItemName(itemAfterFolderRename.getRootDir(), itemAfterFolderRename));
+        assertEquals(
+                "newP1",
+                itemAfterFolderRename
+                        .getParent()
+                        .getItemName(itemAfterFolderRename.getRootDir(), itemAfterFolderRename));
         var itemAfterRename = Jenkins.get().getItemByFullName("newName/newP1", FreeStyleProject.class);
         assertNotNull(itemAfterRename);
         assertEquals("newName/newP1", itemAfterRename.getFullName());
@@ -160,10 +163,10 @@ class FolderTest {
     void deleteChild() throws Exception {
         Folder f = createFolder();
         FreeStyleProject child = f.createProject(FreeStyleProject.class, "foo");
-        assertEquals(1,f.getItems().size());
+        assertEquals(1, f.getItems().size());
 
         child.delete();
-        assertEquals(0,f.getItems().size());
+        assertEquals(0, f.getItems().size());
     }
 
     /**
@@ -172,10 +175,10 @@ class FolderTest {
     @Test
     void copyJob() throws Exception {
         /*
-            - foo
-            - folder
-              - foo
-         */
+           - foo
+           - folder
+             - foo
+        */
         FreeStyleProject top = r.createFreeStyleProject("foo");
         top.setDescription("top");
 
@@ -187,24 +190,28 @@ class FolderTest {
 
         // "foo" should copy "child"
         copyViaHttp(f, wc, "foo", "xyz");
-        assertEquals("child",((Job)f.getItem("xyz")).getDescription());
-        
+        assertEquals("child", ((Job) f.getItem("xyz")).getDescription());
+
         // "/foo" should copy "top"
         copyViaHttp(f, wc, "/foo", "uvw");
-        assertEquals("top",((Job)f.getItem("uvw")).getDescription());
+        assertEquals("top", ((Job) f.getItem("uvw")).getDescription());
     }
 
     private void copyViaHttp(Folder f, JenkinsRule.WebClient wc, String fromName, String toName) throws Exception {
-        // Taken from https://github.com/jenkinsci/jenkins/blob/80aa2c8e4093df270193402c3933f3f1f16271da/test/src/test/java/hudson/jobs/CreateItemTest.java#L68
+        // Taken from
+        // https://github.com/jenkinsci/jenkins/blob/80aa2c8e4093df270193402c3933f3f1f16271da/test/src/test/java/hudson/jobs/CreateItemTest.java#L68
         r.jenkins.setCrumbIssuer(null);
 
-        URL apiURL = new URL(
-                r.jenkins.getRootUrl() + "/" + f.getUrl() + "createItem?mode=copy&from=" + URLEncoder.encode(fromName, StandardCharsets.UTF_8) + "&name=" + URLEncoder.encode(toName, StandardCharsets.UTF_8));
+        URL apiURL = new URL(r.jenkins.getRootUrl() + "/" + f.getUrl() + "createItem?mode=copy&from="
+                + URLEncoder.encode(fromName, StandardCharsets.UTF_8) + "&name="
+                + URLEncoder.encode(toName, StandardCharsets.UTF_8));
 
         WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
         request.setEncodingType(null);
-        assertEquals(200, r.createWebClient()
-                .getPage(request).getWebResponse().getStatusCode(), "Copy Job request has failed");
+        assertEquals(
+                200,
+                r.createWebClient().getPage(request).getWebResponse().getStatusCode(),
+                "Copy Job request has failed");
     }
 
     @Test
@@ -222,11 +229,11 @@ class FolderTest {
         Folder f = createFolder();
         FreeStyleProject c1 = f.createProject(FreeStyleProject.class, "child1");
         Folder c2 = f.createProject(Folder.class, "nested");
-        FreeStyleProject c21 = c2.createProject(FreeStyleProject.class,"child2");
+        FreeStyleProject c21 = c2.createProject(FreeStyleProject.class, "child2");
 
         Folder f2 = r.jenkins.copy(f, "fcopy");
         assertInstanceOf(FreeStyleProject.class, f2.getItem("child1"));
-        Folder n = (Folder)f2.getItem("nested");
+        Folder n = (Folder) f2.getItem("nested");
         assertInstanceOf(FreeStyleProject.class, n.getItem("child2"));
     }
 
@@ -238,29 +245,34 @@ class FolderTest {
         d1.createProject(FreeStyleProject.class, "p2");
         d1.createProject(Folder.class, "d2").createProject(FreeStyleProject.class, "p4");
         d1.delete();
-        assertEquals("{d1=[d1], d1/d2=[d1, d1/d2, d1/p1, d1/p2], d1/d2/p4=[d1, d1/d2, d1/d2/p4, d1/p1, d1/p2], d1/p1=[d1, d1/p1, d1/p2], d1/p2=[d1, d1/p2]}",
-            DeleteListener.whatRemainedWhenDeleted.toString(),
-            "AbstractFolder.items is sorted by name so we can predict deletion order");
+        assertEquals(
+                "{d1=[d1], d1/d2=[d1, d1/d2, d1/p1, d1/p2], d1/d2/p4=[d1, d1/d2, d1/d2/p4, d1/p1, d1/p2], d1/p1=[d1, d1/p1, d1/p2], d1/p2=[d1, d1/p2]}",
+                DeleteListener.whatRemainedWhenDeleted.toString(),
+                "AbstractFolder.items is sorted by name so we can predict deletion order");
     }
 
     @TestExtension("delete")
     public static class DeleteListener extends ItemListener {
-        static Map<String,Set<String>> whatRemainedWhenDeleted = new TreeMap<>();
+        static Map<String, Set<String>> whatRemainedWhenDeleted = new TreeMap<>();
 
         @Override
         public void onDeleted(Item item) {
             try {
                 // Access metadata from another thread.
-                whatRemainedWhenDeleted.put(item.getFullName(), Timer.get().submit(() -> {
-                        Set<String> remaining = new TreeSet<>();
-                        for (Item i : Jenkins.get().getAllItems()) {
-                            remaining.add(i.getFullName());
-                            if (i instanceof Actionable) {
-                                ((Actionable) i).getAllActions();
-                            }
-                        }
-                        return remaining;
-                }).get());
+                whatRemainedWhenDeleted.put(
+                        item.getFullName(),
+                        Timer.get()
+                                .submit(() -> {
+                                    Set<String> remaining = new TreeSet<>();
+                                    for (Item i : Jenkins.get().getAllItems()) {
+                                        remaining.add(i.getFullName());
+                                        if (i instanceof Actionable) {
+                                            ((Actionable) i).getAllActions();
+                                        }
+                                    }
+                                    return remaining;
+                                })
+                                .get());
             } catch (Exception x) {
                 assert false : x;
             }
@@ -296,7 +308,7 @@ class FolderTest {
         Folder f = createFolder();
         FreeStyleProject a = f.createProject(FreeStyleProject.class, "a");
         FreeStyleProject b = f.createProject(FreeStyleProject.class, "b");
-        a.getPublishersList().add(new BuildTrigger("b",false));
+        a.getPublishersList().add(new BuildTrigger("b", false));
 
         FreeStyleBuild a1 = r.assertBuildStatusSuccess(a.scheduleBuild2(0));
         for (int i = 0; i < 10 && b.getLastBuild() == null; i++) {
@@ -315,8 +327,7 @@ class FolderTest {
         HtmlForm fm = p.getFormByName("createItem");
         fm.getInputByName("name").setValue("abcView");
         for (HtmlRadioButtonInput r : fm.getRadioButtonsByName("mode")) {
-            if (r.getValue().equals(ListView.class.getName()))
-                r.click();
+            if (r.getValue().equals(ListView.class.getName())) r.click();
         }
         r.submit(fm);
         assertSame(ListView.class, f.getView("abcView").getClass());
@@ -330,13 +341,13 @@ class FolderTest {
     @Test
     void dataCompatibility() {
         Folder f = (Folder) r.jenkins.getItem("foo");
-        ListView pv = (ListView)f.getPrimaryView();
-        assertEquals(2,pv.getColumns().size());
+        ListView pv = (ListView) f.getPrimaryView();
+        assertEquals(2, pv.getColumns().size());
         assertEquals(JobColumn.class, pv.getColumns().get(0).getClass());
         assertEquals(BuildButtonColumn.class, pv.getColumns().get(1).getClass());
 
         // we only have 2 columns in the zip but we expect a lot more in the out-of-the-box ListView.
-        assertTrue(2<new ListView("test").getColumns().size());
+        assertTrue(2 < new ListView("test").getColumns().size());
     }
 
     @Test
@@ -356,7 +367,7 @@ class FolderTest {
         Folder f1 = r.jenkins.createProject(Folder.class, "f");
         FreeStyleProject p1 = f1.createProject(FreeStyleProject.class, "test1");
 
-        FreeStyleBuild p1b1 = p1.scheduleBuild2(0).get();  // one completed build
+        FreeStyleBuild p1b1 = p1.scheduleBuild2(0).get(); // one completed build
 
         p1.getBuildersList().add(new SleepBuilder(99999999));
         p1.save();
@@ -366,7 +377,7 @@ class FolderTest {
         r.jenkins.reload();
 
         Folder f2 = (Folder) r.jenkins.getItem("f");
-        assertNotSame(f1,f2);
+        assertNotSame(f1, f2);
 
         FreeStyleProject p2 = (FreeStyleProject) f2.getItem("test1");
         /* Fails now. Why was this here?
@@ -377,9 +388,9 @@ class FolderTest {
         FreeStyleBuild p2b2 = p2.getBuildByNumber(2);
 
         assertTrue(p2b2.isBuilding());
-        assertSame(p2b2,p1b2);
+        assertSame(p2b2, p1b2);
 
-        assertNotSame(p1b1,p2b1);
+        assertNotSame(p1b1, p2b1);
 
         p1b2.getExecutor().interrupt(); // kill the executor
     }
@@ -389,21 +400,29 @@ class FolderTest {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         final Folder d = r.jenkins.createProject(Folder.class, "d");
         final FreeStyleProject p1 = d.createProject(FreeStyleProject.class, "p1");
-        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
-                grant(Jenkins.READ).everywhere().toEveryone().
-                grant(Item.DISCOVER).everywhere().toAuthenticated().
-                grant(Item.READ).onItems(d).toEveryone().
-                grant(Item.READ).onItems(p1).to("alice"));
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ)
+                .everywhere()
+                .toEveryone()
+                .grant(Item.DISCOVER)
+                .everywhere()
+                .toAuthenticated()
+                .grant(Item.READ)
+                .onItems(d)
+                .toEveryone()
+                .grant(Item.READ)
+                .onItems(p1)
+                .to("alice"));
         FreeStyleProject p2 = d.createProject(FreeStyleProject.class, "p2");
         try (var context = ACL.as2(Jenkins.ANONYMOUS2)) {
-                assertEquals(Collections.emptyList(), d.getItems());
-                assertNull(d.getItem("p1"));
-                assertNull(d.getItem("p2"));
+            assertEquals(Collections.emptyList(), d.getItems());
+            assertNull(d.getItem("p1"));
+            assertNull(d.getItem("p2"));
         }
         try (var context = ACL.as2(User.getById("alice", true).impersonate2())) {
-                assertEquals(Collections.singletonList(p1), d.getItems());
-                assertEquals(p1, d.getItem("p1"));
-                assertThrows(AccessDeniedException.class, () -> d.getItem("p2"), "should have been told p2 exists");
+            assertEquals(Collections.singletonList(p1), d.getItems());
+            assertEquals(p1, d.getItem("p1"));
+            assertThrows(AccessDeniedException.class, () -> d.getItem("p2"), "should have been told p2 exists");
         }
     }
 
@@ -423,12 +442,12 @@ class FolderTest {
         // Need to do this to avoid JENKINS-9774
         as.add(Jenkins.ADMINISTER, "alice");
         r.jenkins.setAuthorizationStrategy(as);
-        
+
         // We add a stub property to generate the persisted list
         // Then we ensure owner is being assigned properly.
         folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
         assertPropertyOwner("After property add", folder, FolderCredentialsProvider.FolderCredentialsProperty.class);
-    
+
         // Reload and ensure that the property owner is set
         r.jenkins.reload();
         Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
@@ -441,12 +460,13 @@ class FolderTest {
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
 
         // We add a stub property to generate the persisted list
-        // After that we save and reload the config in order to drop PersistedListOwner according to the JENKINS-32359 scenario
+        // After that we save and reload the config in order to drop PersistedListOwner according to the JENKINS-32359
+        // scenario
         folder.addProperty(new FolderCredentialsProvider.FolderCredentialsProperty(new DomainCredentials[0]));
         r.jenkins.reload();
-        
+
         // Add another property
-        Map<Permission,Set<String>> grantedPermissions = new HashMap<>();
+        Map<Permission, Set<String>> grantedPermissions = new HashMap<>();
         Set<String> sids = new HashSet<>();
         sids.add("admin");
         grantedPermissions.put(Jenkins.ADMINISTER, sids);
@@ -455,19 +475,26 @@ class FolderTest {
         // Need to do this to avoid JENKINS-9774
         as.add(Jenkins.ADMINISTER, "alice");
         r.jenkins.setAuthorizationStrategy(as);
-        folder.addProperty(new com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty(grantedPermissions));
-        
+        folder.addProperty(
+                new com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty(grantedPermissions));
+
         // Reload folder from disk and check the state
         r.jenkins.reload();
         Folder reloadedFolder = r.jenkins.getItemByFullName("myFolder", Folder.class);
         assertThat("Folder has not been found after the reloading", reloadedFolder, notNullValue());
-        assertThat("Property has not been reloaded, hence it has not been saved properly",
-            reloadedFolder.getProperties().get(com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class),
-            notNullValue());
-        
+        assertThat(
+                "Property has not been reloaded, hence it has not been saved properly",
+                reloadedFolder
+                        .getProperties()
+                        .get(com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class),
+                notNullValue());
+
         // Also ensure that both property owners are configured correctly
         assertPropertyOwner("After reload", reloadedFolder, FolderCredentialsProvider.FolderCredentialsProperty.class);
-        assertPropertyOwner("After reload", reloadedFolder, com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
+        assertPropertyOwner(
+                "After reload",
+                reloadedFolder,
+                com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
     }
 
     @Issue("JENKINS-52164")
@@ -490,28 +517,40 @@ class FolderTest {
     @Issue("JENKINS-63836")
     @Test
     void shouldNotHaveHealthMetricConfiguredGloballyOnCreation() throws Exception {
-        assertThat("by default, global configuration should not have any health metrics",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
-        
+        assertThat(
+                "by default, global configuration should not have any health metrics",
+                AbstractFolderConfiguration.get().getHealthMetrics(),
+                hasSize(0));
+
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> healthMetrics = folder.getHealthMetrics();
-        assertThat("a new created folder should not have any health metrics configured globally",
-                healthMetrics, hasSize(0));
+        assertThat(
+                "a new created folder should not have any health metrics configured globally",
+                healthMetrics,
+                hasSize(0));
 
         AbstractFolderConfiguration.get().setHealthMetrics(null);
         folder = r.jenkins.createProject(Folder.class, "myFolder2");
         healthMetrics = folder.getHealthMetrics();
-        assertThat("a new created folder should not have any health metrics configured globally",
-                healthMetrics, hasSize(0));
+        assertThat(
+                "a new created folder should not have any health metrics configured globally",
+                healthMetrics,
+                hasSize(0));
     }
 
     @Test
     void visibleItems() throws IOException, InterruptedException {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
-                grant(Jenkins.READ).everywhere().toEveryone().
-                grant(Item.DISCOVER).everywhere().toAuthenticated().
-                grant(Item.READ).everywhere().to("alice"));
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ)
+                .everywhere()
+                .toEveryone()
+                .grant(Item.DISCOVER)
+                .everywhere()
+                .toAuthenticated()
+                .grant(Item.READ)
+                .everywhere()
+                .to("alice"));
         Folder f = createFolder();
         assertFalse(f.hasVisibleItems());
         FreeStyleProject child = f.createProject(FreeStyleProject.class, "foo");
@@ -542,24 +581,28 @@ class FolderTest {
      * @param propertyClass Property class
      * @param step Failure message prefix
      */
-    private <T extends AbstractFolderProperty<AbstractFolder<?>>> void assertPropertyOwner
-            (String step, Folder folder, Class<T> propertyClass) {
-        AbstractFolder<?> propertyOwner = folder.getProperties().get(propertyClass).getOwner();
-        assertThat(step + ": The property owner should be instance of Folder", 
-                propertyOwner, instanceOf(Folder.class));
-        assertThat(step + ": The owner field of the " + propertyClass + 
-                " property should point to the owner folder " + folder, 
-                (Folder)propertyOwner, equalTo(folder));
+    private <T extends AbstractFolderProperty<AbstractFolder<?>>> void assertPropertyOwner(
+            String step, Folder folder, Class<T> propertyClass) {
+        AbstractFolder<?> propertyOwner =
+                folder.getProperties().get(propertyClass).getOwner();
+        assertThat(step + ": The property owner should be instance of Folder", propertyOwner, instanceOf(Folder.class));
+        assertThat(
+                step + ": The owner field of the " + propertyClass + " property should point to the owner folder "
+                        + folder,
+                (Folder) propertyOwner,
+                equalTo(folder));
     }
-    
+
     private Folder createFolder() throws IOException {
-        return r.jenkins.createProject(Folder.class, "folder" + r.jenkins.getItems().size());
+        return r.jenkins.createProject(
+                Folder.class, "folder" + r.jenkins.getItems().size());
     }
 
     private HtmlAnchor findRenameAnchor(AbstractItem item) throws Exception {
         JenkinsRule.WebClient w = r.createWebClient();
         HtmlPage page = w.goTo(item.getUrl());
-        String relativeUrl = r.contextPath + "/" + item.getUrl() + item.getAction(RenameAction.class).getUrlName();
+        String relativeUrl = r.contextPath + "/" + item.getUrl()
+                + item.getAction(RenameAction.class).getUrlName();
         return page.getAnchorByHref(relativeUrl);
     }
 
@@ -568,7 +611,8 @@ class FolderTest {
     void doCreateView() throws Exception {
         Folder f = createFolder();
         String folderURL = f.getUrl() + "createView?mode=copy&name=NewView&from=All";
-        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch the status code instead of the test crashing
+        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch
+        // the status code instead of the test crashing
         JenkinsRule.WebClient webClient = r.createWebClient().withThrowExceptionOnFailingStatusCode(false);
         // The expected response status code is 404, this means that the requested page is not available
         // The request sent is using a GET instead of POST
@@ -580,7 +624,8 @@ class FolderTest {
     void doCreateItem() throws Exception {
         Folder f = createFolder();
         String folderURL = f.getUrl() + "createItem?mode=copy&name=NewFolder&from=" + f.getName();
-        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch the status code instead of the test crashing
+        // Create a web client with the option to not throw exceptions on failing status codes - this allows us to catch
+        // the status code instead of the test crashing
         JenkinsRule.WebClient webClient = r.createWebClient().withThrowExceptionOnFailingStatusCode(false);
         // The expected response status code of the folder URL is 405, this means that the method is not allowed
         // The request sent is using a GET instead of POST request which is not allowed

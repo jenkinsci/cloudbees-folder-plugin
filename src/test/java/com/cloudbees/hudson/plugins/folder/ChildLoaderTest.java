@@ -24,13 +24,14 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.is;
+
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import java.nio.file.Files;
 import java.time.Duration;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.is;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.junit.jupiter.FlagExtension;
@@ -38,26 +39,43 @@ import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
 final class ChildLoaderTest {
 
-    @RegisterExtension private final JenkinsSessionExtension js = new JenkinsSessionExtension();
+    @RegisterExtension
+    private final JenkinsSessionExtension js = new JenkinsSessionExtension();
 
-    @RegisterExtension private static final FlagExtension<String> gracePeriodFlag = FlagExtension.systemProperty(ChildLoader.GRACE_PERIOD_PROP);
+    @RegisterExtension
+    private static final FlagExtension<String> gracePeriodFlag =
+            FlagExtension.systemProperty(ChildLoader.GRACE_PERIOD_PROP);
 
-    @Test void brokenChildren() throws Throwable {
+    @Test
+    void brokenChildren() throws Throwable {
         js.then(r -> {
-            var bot = r.createProject(Folder.class, "top").createProject(Folder.class, "mid").createProject(FreeStyleProject.class, "bot");
+            var bot = r.createProject(Folder.class, "top")
+                    .createProject(Folder.class, "mid")
+                    .createProject(FreeStyleProject.class, "bot");
             r.buildAndAssertStatus(Result.SUCCESS, bot);
             Files.delete(bot.getConfigFile().getFile().toPath());
         });
         js.then(r -> {
             assertThat(r.jenkins.allItems(FreeStyleProject.class), emptyIterable());
-            assertThat(Files.exists(r.jenkins.getItemByFullName("top/mid").getRootDir().toPath().resolve("broken-children")), is(false));
+            assertThat(
+                    Files.exists(r.jenkins
+                            .getItemByFullName("top/mid")
+                            .getRootDir()
+                            .toPath()
+                            .resolve("broken-children")),
+                    is(false));
         });
         System.setProperty(ChildLoader.GRACE_PERIOD_PROP, "1s");
         Thread.sleep(Duration.ofSeconds(5).toMillis());
         js.then(r -> {
             assertThat(r.jenkins.allItems(FreeStyleProject.class), emptyIterable());
-            assertThat(Files.exists(r.jenkins.getItemByFullName("top/mid").getRootDir().toPath().resolve("broken-children/bot")), is(true));
+            assertThat(
+                    Files.exists(r.jenkins
+                            .getItemByFullName("top/mid")
+                            .getRootDir()
+                            .toPath()
+                            .resolve("broken-children/bot")),
+                    is(true));
         });
     }
-
 }

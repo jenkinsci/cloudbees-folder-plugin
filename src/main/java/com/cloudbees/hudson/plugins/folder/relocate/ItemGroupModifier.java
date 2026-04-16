@@ -116,26 +116,30 @@ public interface ItemGroupModifier<G extends ItemGroup<I>, I extends TopLevelIte
         }
     }
 
-    @Extension final class StandardModifier implements ItemGroupModifier<DirectlyModifiableTopLevelItemGroup,TopLevelItem> {
+    @Extension
+    final class StandardModifier implements ItemGroupModifier<DirectlyModifiableTopLevelItemGroup, TopLevelItem> {
 
-        @Override public Class<DirectlyModifiableTopLevelItemGroup> getTargetClass() {
+        @Override
+        public Class<DirectlyModifiableTopLevelItemGroup> getTargetClass() {
             return DirectlyModifiableTopLevelItemGroup.class;
         }
 
-        @Override public <II extends TopLevelItem> boolean canAdd(DirectlyModifiableTopLevelItemGroup target, II item) {
+        @Override
+        public <II extends TopLevelItem> boolean canAdd(DirectlyModifiableTopLevelItemGroup target, II item) {
             return target.canAdd(item);
         }
 
-        @Override public <II extends TopLevelItem> II add(DirectlyModifiableTopLevelItemGroup target, II item) throws IOException {
+        @Override
+        public <II extends TopLevelItem> II add(DirectlyModifiableTopLevelItemGroup target, II item)
+                throws IOException {
             II _item = target.add(item, item.getName());
             _item.onLoad(target, item.getName());
             return _item;
         }
 
-        @Override public void remove(DirectlyModifiableTopLevelItemGroup target, TopLevelItem item) throws IOException {
+        @Override
+        public void remove(DirectlyModifiableTopLevelItemGroup target, TopLevelItem item) throws IOException {
             target.remove(item);
         }
-
     }
-
 }

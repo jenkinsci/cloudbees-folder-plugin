@@ -24,21 +24,19 @@
 
 package com.cloudbees.hudson.plugins.folder.health;
 
+import hudson.Extension;
+import hudson.model.AutoCompletionCandidates;
+import hudson.model.HealthReport;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
 import java.util.Collections;
 import java.util.List;
-
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
-import hudson.Extension;
-import hudson.model.AutoCompletionCandidates;
-import hudson.model.HealthReport;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
 
 /**
  * A health metric for a named child item.
@@ -110,8 +108,8 @@ public class NamedChildHealthMetric extends FolderHealthMetric {
          */
         @RequirePOST
         @Restricted(DoNotUse.class)
-        public AutoCompletionCandidates doAutoCompleteChildName(@QueryParameter String value,
-                @AncestorInPath ItemGroup<Item> container) {
+        public AutoCompletionCandidates doAutoCompleteChildName(
+                @QueryParameter String value, @AncestorInPath ItemGroup<Item> container) {
             AutoCompletionCandidates candidates = new AutoCompletionCandidates();
             for (Item item : container.getItems()) {
                 String name = item.getName();

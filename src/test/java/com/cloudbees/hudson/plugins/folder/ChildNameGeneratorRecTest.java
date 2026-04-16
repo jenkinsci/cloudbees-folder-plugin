@@ -24,6 +24,14 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.cloudbees.hudson.plugins.folder.computed.ChildObserver;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
@@ -57,14 +65,6 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.StaplerRequest2;
 
-import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 /**
  * Tests {@link ChildNameGenerator} using a generator where the previous implementation of the computed folder used a
  * name encoding algorithm and the new one has switched to {@link ChildNameGenerator}. We want to ensure that the
@@ -83,51 +83,53 @@ class ChildNameGeneratorRecTest {
     @Test
     void createdFromScratch() throws Throwable {
         extension.then(j -> {
-                ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
-                instance.assertItemNames(0);
-                instance.recompute(Result.SUCCESS);
-                instance.assertItemNames(1);
-                instance.addKids(
-                        "child-one",
-                        "child_two",
-                        "child three",
-                        "leanbh c\u00FAig", // "leanbh cúig",
-                        "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
-                        "\u513F\u7AE5\u516D", // "儿童六",
-                        "\uC544\uC774 7", // "아이 7",
-                        "ni\u00F1o ocho" // "niño ocho"
-                );
-                instance.recompute(Result.SUCCESS);
-                checkComputedFolder(instance, 2);
+            ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
+            instance.assertItemNames(0);
+            instance.recompute(Result.SUCCESS);
+            instance.assertItemNames(1);
+            instance.addKids(
+                    "child-one",
+                    "child_two",
+                    "child three",
+                    "leanbh c\u00FAig", // "leanbh cúig",
+                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", // "ребенок пять",
+                    "\u513F\u7AE5\u516D", // "儿童六",
+                    "\uC544\uC774 7", // "아이 7",
+                    "ni\u00F1o ocho" // "niño ocho"
+                    );
+            instance.recompute(Result.SUCCESS);
+            checkComputedFolder(instance, 2);
         });
         extension.then(j -> {
-                TopLevelItem i = j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                j.jenkins.reload();
-                i = j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0);
-                instance.doReload();
-                checkComputedFolder(instance, 0);
+            TopLevelItem i = j.jenkins.getItem("instance");
+            assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+            ComputedFolderImpl instance = (ComputedFolderImpl) i;
+            checkComputedFolder(instance, 0);
+            j.jenkins.reload();
+            i = j.jenkins.getItem("instance");
+            assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+            instance = (ComputedFolderImpl) i;
+            checkComputedFolder(instance, 0);
+            instance.doReload();
+            checkComputedFolder(instance, 0);
         });
     }
 
     private void checkComputedFolder(ComputedFolderImpl instance, int round) {
         // because these were previously encoded with rawEncode we can recover exactly
-        instance.assertItemNames(round,
+        instance.assertItemNames(
+                round,
                 "child-one",
                 "child_two",
                 "child three",
                 "leanbh c\u00FAig", // "leanbh cúig",
-                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", // "ребенок пять",
                 "\u513F\u7AE5\u516D", // "儿童六",
                 "\uC544\uC774 7", // "아이 7",
                 "ni\u00F1o ocho" // "niño ocho"
-        );
-        instance.assertItemShortUrls(round,
+                );
+        instance.assertItemShortUrls(
+                round,
                 "job/child-one/",
                 "job/child_two/",
                 "job/child%20three/",
@@ -135,9 +137,9 @@ class ChildNameGeneratorRecTest {
                 "job/%D1%80%D0%B5%D0%B1%D0%B5%D0%BD%D0%BE%D0%BA%20%D0%BF%D1%8F%D1%82%D1%8C/", // ребенок пять
                 "job/%E5%84%BF%E7%AB%A5%E5%85%AD/", // 儿童六
                 "job/%EC%95%84%EC%9D%B4%207/", // 아이 7
-                "job/ni%C3%B1o%20ocho/"
-        );
-        instance.assertItemDirs(round,
+                "job/ni%C3%B1o%20ocho/");
+        instance.assertItemDirs(
+                round,
                 "child_on-1ec93354e47959489d1440d",
                 "child_tw-bca7d461e11f4f3ed12fd0d",
                 "child_th-b7a6e5662f26eb036090308",
@@ -145,18 +147,17 @@ class ChildNameGeneratorRecTest {
                 "________-97e4b38574769f9d9968fe9", // ребенок пять
                 "___-d22e9fe51690274d8262bda", // 儿童六
                 "_____7-d57fff123224bd679e4213b", // 아이 7
-                "nin_o_oc-1a0c91070942136ba398919"
-        );
-        for (String name: Arrays.asList(
+                "nin_o_oc-1a0c91070942136ba398919");
+        for (String name : Arrays.asList(
                 "child-one",
                 "child_two",
                 "child three",
                 "leanbh c\u00FAig", // "leanbh cúig",
-                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", // "ребенок пять",
                 "\u513F\u7AE5\u516D", // "儿童六",
                 "\uC544\uC774 7", // "아이 7",
                 "ni\u00F1o ocho" // "niño ocho"
-        )) {
+                )) {
             checkChild(instance, name);
         }
     }
@@ -165,8 +166,10 @@ class ChildNameGeneratorRecTest {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
-        assertThat("The root directory of the item for name " + idealName + " is mangled",
-                item.getRootDir().getName(), is(mangle(idealName)));
+        assertThat(
+                "The root directory of the item for name " + idealName + " is mangled",
+                item.getRootDir().getName(),
+                is(mangle(idealName)));
     }
 
     private static String encode(String s) {
@@ -179,9 +182,7 @@ class ChildNameGeneratorRecTest {
         StringBuilder buf = new StringBuilder(32);
         for (char c : base.toCharArray()) {
             if (buf.length() >= 8) break;
-            if (('A' <= c && c <= 'Z')
-                    || ('a' <= c && c <= 'z')
-                    || ('0' <= c && c <= '9')) {
+            if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9')) {
                 buf.append(Character.toLowerCase(c));
             } else {
                 buf.append('_');
@@ -309,8 +310,8 @@ class ChildNameGeneratorRecTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws
-                IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             round++;
             created = new ArrayList<>();
             deleted = new ArrayList<>();
@@ -350,9 +351,8 @@ class ChildNameGeneratorRecTest {
         }
 
         @Override
-        protected Collection<FreeStyleProject> orphanedItems(Collection<FreeStyleProject> orphaned,
-                                                             TaskListener listener)
-                throws IOException, InterruptedException {
+        protected Collection<FreeStyleProject> orphanedItems(
+                Collection<FreeStyleProject> orphaned, TaskListener listener) throws IOException, InterruptedException {
             Collection<FreeStyleProject> deleting = super.orphanedItems(orphaned, listener);
             for (FreeStyleProject p : deleting) {
                 String kid = p.getName();
@@ -414,9 +414,7 @@ class ChildNameGeneratorRecTest {
             public <I extends TopLevelItem> ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator() {
                 return (ChildNameGenerator<AbstractFolder<I>, I>) GENERATOR;
             }
-
         }
-
     }
 
     public static class NameProperty extends JobProperty<FreeStyleProject> {
@@ -454,8 +452,7 @@ class ChildNameGeneratorRecTest {
             extends ChildNameGenerator<F, J> {
 
         @Override
-        public String itemNameFromItem(@NonNull F parent,
-                                       @NonNull J item) {
+        public String itemNameFromItem(@NonNull F parent, @NonNull J item) {
             NameProperty property = item.getProperty(NameProperty.class);
             if (property != null) {
                 return encode(property.getName());
@@ -465,8 +462,7 @@ class ChildNameGeneratorRecTest {
         }
 
         @Override
-        public String dirNameFromItem(@NonNull F parent,
-                                      @NonNull J item) {
+        public String dirNameFromItem(@NonNull F parent, @NonNull J item) {
             NameProperty property = item.getProperty(NameProperty.class);
             if (property != null) {
                 return mangle(property.getName());
@@ -477,15 +473,13 @@ class ChildNameGeneratorRecTest {
 
         @NonNull
         @Override
-        public String itemNameFromLegacy(@NonNull F parent,
-                                         @NonNull String legacyDirName) {
+        public String itemNameFromLegacy(@NonNull F parent, @NonNull String legacyDirName) {
             return rawDecode(legacyDirName);
         }
 
         @NonNull
         @Override
-        public String dirNameFromLegacy(@NonNull F parent,
-                                        @NonNull String legacyDirName) {
+        public String dirNameFromLegacy(@NonNull F parent, @NonNull String legacyDirName) {
             return mangle(rawDecode(legacyDirName));
         }
     }
@@ -517,6 +511,4 @@ class ChildNameGeneratorRecTest {
         }
         return buffer.toString(StandardCharsets.UTF_8);
     }
-
-
 }

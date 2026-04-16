@@ -25,6 +25,7 @@
 package com.cloudbees.hudson.plugins.folder.views;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AllView;
 import hudson.model.View;
 import hudson.views.ViewsTabBar;
@@ -32,7 +33,6 @@ import java.io.ObjectStreamException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -63,8 +63,8 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
      * @param tabBar the initial {@link ViewsTabBar}.
      */
     @DataBoundConstructor
-    public DefaultFolderViewHolder(@NonNull Collection<? extends View> views,
-                                   @CheckForNull String primaryView, @NonNull ViewsTabBar tabBar) {
+    public DefaultFolderViewHolder(
+            @NonNull Collection<? extends View> views, @CheckForNull String primaryView, @NonNull ViewsTabBar tabBar) {
         if (views.isEmpty()) {
             throw new IllegalArgumentException("Initial views cannot be empty");
         }
@@ -130,5 +130,4 @@ public class DefaultFolderViewHolder extends AbstractFolderViewHolder {
         }
         return this;
     }
-
 }

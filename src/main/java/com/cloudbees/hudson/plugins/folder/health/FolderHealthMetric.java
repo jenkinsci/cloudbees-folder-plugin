@@ -30,7 +30,6 @@ import hudson.model.HealthReport;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.TopLevelItem;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -52,7 +51,7 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
         }
         try {
             Method getBuildHealth = item.getClass().getMethod("getBuildHealth");
-            return  (HealthReport) getBuildHealth.invoke(item);
+            return (HealthReport) getBuildHealth.invoke(item);
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             // ignore best effort only
         }
@@ -66,17 +65,17 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
          * @param item a {@link Folder} or any other {@link TopLevelItem}
          */
         void observe(Item item);
+
         List<HealthReport> report();
     }
 
     public enum Type {
-        
         SELF_ONLY(false, false, false),
         IMMEDIATE_TOP_LEVEL_ITEMS(true, false, true),
         RECURSIVE_TOP_LEVEL_ITEMS(true, true, true),
         IMMEDIATE_ALL_ITEMS(true, false, false),
         RECURSIVE_ALL_ITEMS(true, true, false);
-        
+
         private final boolean withChildren;
         private final boolean recursive;
         private final boolean topLevelItems;
@@ -86,7 +85,7 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
             this.recursive = recursive;
             this.topLevelItems = topLevelItems;
         }
-        
+
         public boolean isWithChildren() {
             return withChildren;
         }
@@ -99,5 +98,4 @@ public abstract class FolderHealthMetric extends AbstractDescribableImpl<FolderH
             return topLevelItems;
         }
     }
-
 }

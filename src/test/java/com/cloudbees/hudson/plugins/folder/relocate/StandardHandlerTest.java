@@ -24,6 +24,9 @@
 
 package com.cloudbees.hudson.plugins.folder.relocate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -32,9 +35,6 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.util.Arrays;
 import jenkins.model.Jenkins;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -58,9 +58,13 @@ class StandardHandlerTest {
         final Folder d2 = r.jenkins.createProject(Folder.class, "d2"); // where we could go
         Folder d3 = r.jenkins.createProject(Folder.class, "d3"); // where we cannot
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
-            grant(Jenkins.READ, Item.READ).everywhere().to("joe").
-            grant(Item.CREATE).onItems(d2).to("joe"));
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ, Item.READ)
+                .everywhere()
+                .to("joe")
+                .grant(Item.CREATE)
+                .onItems(d2)
+                .to("joe"));
         try (ACLContext ctx = ACL.as(User.getOrCreateByIdOrFullName("joe"))) {
             assertEquals(Arrays.asList(d1, d2), new StandardHandler().validDestinations(j));
             assertEquals(Arrays.asList(r.jenkins, d2), new StandardHandler().validDestinations(d1));

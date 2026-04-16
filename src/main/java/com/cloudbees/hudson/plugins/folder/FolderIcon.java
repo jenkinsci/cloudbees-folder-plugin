@@ -40,15 +40,15 @@ import org.kohsuke.stapler.Stapler;
  *
  * <p>
  * Possible subtypes can range from dumb icons that always render the same thing to smarter icons
- * that change its icon based on the properties/contents of the folder. 
+ * that change its icon based on the properties/contents of the folder.
  */
-public abstract class FolderIcon extends AbstractStatusIcon implements Describable<FolderIcon>, ExtensionPoint,
-        IconSpec {
+public abstract class FolderIcon extends AbstractStatusIcon
+        implements Describable<FolderIcon>, ExtensionPoint, IconSpec {
     /**
      * Called by {@link AbstractFolder} to set the owner that this icon is used for.
      * <p>
      * If you are implementing {@link FolderIcon} that changes the behaviour based on the contents/properties
-     * of the folder, store the folder object to a field and use that. 
+     * of the folder, store the folder object to a field and use that.
      * @param folder the folder.
      */
     protected void setOwner(AbstractFolder<?> folder) {

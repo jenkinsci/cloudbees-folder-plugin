@@ -23,6 +23,10 @@
  */
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
 import java.io.IOException;
@@ -38,10 +42,6 @@ import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class EventOutputStreamsTest {
 
@@ -65,52 +65,59 @@ class EventOutputStreamsTest {
 
     private void test(final boolean aFlush, final boolean bFlush) throws Exception {
         final File file = File.createTempFile("junit", null, work);
-        final EventOutputStreams instance = new EventOutputStreams(new EventOutputStreams.OutputFile() {
-            @NonNull
-            @Override
-            public File get() {
-                return file;
-            }
-        }, 250, TimeUnit.MILLISECONDS, 8192, false, Long.MAX_VALUE, 0);
-        Thread t1 = new Thread(() -> {
-                OutputStream os = instance.get();
-                try {
-                    PrintWriter pw = new PrintWriter(os, aFlush);
-                    for (int i = 0; i < 10000; i += 1) {
-                        pw.println(String.format("%1$05dA", i));
+        final EventOutputStreams instance = new EventOutputStreams(
+                new EventOutputStreams.OutputFile() {
+                    @NonNull
+                    @Override
+                    public File get() {
+                        return file;
                     }
-                    pw.flush();
-                } catch (Throwable e) {
-                    e.printStackTrace(System.err);
-                } finally {
-                    if (os != null) {
-                        try {
-                            os.close();
-                        } catch (IOException e) {
-                            // ignore
-                        }
+                },
+                250,
+                TimeUnit.MILLISECONDS,
+                8192,
+                false,
+                Long.MAX_VALUE,
+                0);
+        Thread t1 = new Thread(() -> {
+            OutputStream os = instance.get();
+            try {
+                PrintWriter pw = new PrintWriter(os, aFlush);
+                for (int i = 0; i < 10000; i += 1) {
+                    pw.println(String.format("%1$05dA", i));
+                }
+                pw.flush();
+            } catch (Throwable e) {
+                e.printStackTrace(System.err);
+            } finally {
+                if (os != null) {
+                    try {
+                        os.close();
+                    } catch (IOException e) {
+                        // ignore
                     }
                 }
+            }
         });
         Thread t2 = new Thread(() -> {
-                OutputStream os = instance.get();
-                try {
-                    PrintWriter pw = new PrintWriter(os, bFlush);
-                    for (int i = 0; i < 10000; i+=1) {
-                        pw.println(String.format("%1$05dB", i));
-                    }
-                    pw.flush();
-                } catch (Throwable e) {
-                    e.printStackTrace(System.err);
-                } finally {
-                    if (os != null) {
-                        try {
-                            os.close();
-                        } catch ( IOException e) {
-                            // ignore
-                        }
+            OutputStream os = instance.get();
+            try {
+                PrintWriter pw = new PrintWriter(os, bFlush);
+                for (int i = 0; i < 10000; i += 1) {
+                    pw.println(String.format("%1$05dB", i));
+                }
+                pw.flush();
+            } catch (Throwable e) {
+                e.printStackTrace(System.err);
+            } finally {
+                if (os != null) {
+                    try {
+                        os.close();
+                    } catch (IOException e) {
+                        // ignore
                     }
                 }
+            }
         });
         t1.start();
         t2.start();
@@ -119,19 +126,23 @@ class EventOutputStreamsTest {
         List<String> as = new ArrayList<>();
         List<String> bs = new ArrayList<>();
         try (Stream<String> lines = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
-          lines.forEach(line -> {
-            assertThat("Line does not have both thread output: '" + StringEscapeUtils.escapeJava(line)+"'",
-                    line.matches("^\\d+[AB](\\d+[AB])+$"), is(false));
-            assertThat("Line does not contain a null character: '" + StringEscapeUtils.escapeJava(line) + "'",
-                    line.indexOf(0), is(-1));
-            if (line.endsWith("A")) {
-                as.add(line);
-            } else if (line.endsWith("B")) {
-                bs.add(line);
-            } else {
-                fail("unexpected line: '" + StringEscapeUtils.escapeJava(line) +"'");
-            }
-          });
+            lines.forEach(line -> {
+                assertThat(
+                        "Line does not have both thread output: '" + StringEscapeUtils.escapeJava(line) + "'",
+                        line.matches("^\\d+[AB](\\d+[AB])+$"),
+                        is(false));
+                assertThat(
+                        "Line does not contain a null character: '" + StringEscapeUtils.escapeJava(line) + "'",
+                        line.indexOf(0),
+                        is(-1));
+                if (line.endsWith("A")) {
+                    as.add(line);
+                } else if (line.endsWith("B")) {
+                    bs.add(line);
+                } else {
+                    fail("unexpected line: '" + StringEscapeUtils.escapeJava(line) + "'");
+                }
+            });
         }
         List<String> sorted = new ArrayList<>(as);
         Collections.sort(sorted);

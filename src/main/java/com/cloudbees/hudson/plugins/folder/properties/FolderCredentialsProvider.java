@@ -84,11 +84,10 @@ public class FolderCredentialsProvider extends CredentialsProvider {
     /**
      * The valid scopes for this store.
      */
-    private static final Set<CredentialsScope> SCOPES =
-            Collections.singleton(CredentialsScope.GLOBAL);
+    private static final Set<CredentialsScope> SCOPES = Collections.singleton(CredentialsScope.GLOBAL);
 
     @GuardedBy("self")
-    private static final WeakHashMap<AbstractFolder<?>,FolderCredentialsProperty> emptyProperties =
+    private static final WeakHashMap<AbstractFolder<?>, FolderCredentialsProperty> emptyProperties =
             new WeakHashMap<>();
 
     /**
@@ -104,9 +103,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
 
     @NonNull
     @Override
-    public <C extends Credentials> List<C> getCredentialsInItemGroup(@NonNull Class<C> type, @Nullable ItemGroup itemGroup,
-                                                          @Nullable Authentication authentication,
-                                                          @NonNull List<DomainRequirement> domainRequirements) {
+    public <C extends Credentials> List<C> getCredentialsInItemGroup(
+            @NonNull Class<C> type,
+            @Nullable ItemGroup itemGroup,
+            @Nullable Authentication authentication,
+            @NonNull List<DomainRequirement> domainRequirements) {
         List<C> result = new ArrayList<>();
         Set<String> ids = new HashSet<>();
         if (ACL.SYSTEM2.equals(authentication)) {
@@ -143,9 +144,11 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @NonNull
     @Override
-    public <C extends Credentials> List<C> getCredentialsInItem(@NonNull Class<C> type, @NonNull Item item,
-                                                          @Nullable Authentication authentication,
-                                                          @NonNull List<DomainRequirement> domainRequirements) {
+    public <C extends Credentials> List<C> getCredentialsInItem(
+            @NonNull Class<C> type,
+            @NonNull Item item,
+            @Nullable Authentication authentication,
+            @NonNull List<DomainRequirement> domainRequirements) {
         if (item instanceof AbstractFolder) {
             // credentials defined in the folder should be available in the context of the folder
             return getCredentialsInItemGroup(type, (ItemGroup) item, authentication, domainRequirements);
@@ -158,11 +161,12 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @NonNull
     @Override
-    public <C extends IdCredentials> ListBoxModel getCredentialIdsInItemGroup(@NonNull Class<C> type,
-                                                                   @Nullable ItemGroup itemGroup,
-                                                                   @Nullable Authentication authentication,
-                                                                   @NonNull List<DomainRequirement> domainRequirements,
-                                                                   @NonNull CredentialsMatcher matcher) {
+    public <C extends IdCredentials> ListBoxModel getCredentialIdsInItemGroup(
+            @NonNull Class<C> type,
+            @Nullable ItemGroup itemGroup,
+            @Nullable Authentication authentication,
+            @NonNull List<DomainRequirement> domainRequirements,
+            @NonNull CredentialsMatcher matcher) {
         ListBoxModel result = new ListBoxModel();
         Set<String> ids = new HashSet<>();
         if (ACL.SYSTEM2.equals(authentication)) {
@@ -172,10 +176,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                     FolderCredentialsProperty property = folder.getProperties().get(FolderCredentialsProperty.class);
                     if (property != null) {
                         for (C c : DomainCredentials.getCredentials(
-                                property.getDomainCredentialsMap(),
-                                type,
-                                domainRequirements,
-                                matcher)) {
+                                property.getDomainCredentialsMap(), type, domainRequirements, matcher)) {
                             if (ids.add(c.getId())) {
                                 result.add(CredentialsNameProvider.name(c), c.getId());
                             }
@@ -183,7 +184,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
                     }
                 }
                 if (itemGroup instanceof Item) {
-                    itemGroup = ((Item)itemGroup).getParent();
+                    itemGroup = ((Item) itemGroup).getParent();
                 } else {
                     break;
                 }
@@ -197,10 +198,12 @@ public class FolderCredentialsProvider extends CredentialsProvider {
      */
     @NonNull
     @Override
-    public <C extends IdCredentials> ListBoxModel getCredentialIdsInItem(@NonNull Class<C> type, @NonNull Item item,
-                                                                   @Nullable Authentication authentication,
-                                                                   @NonNull List<DomainRequirement> domainRequirements,
-                                                                   @NonNull CredentialsMatcher matcher) {
+    public <C extends IdCredentials> ListBoxModel getCredentialIdsInItem(
+            @NonNull Class<C> type,
+            @NonNull Item item,
+            @Nullable Authentication authentication,
+            @NonNull List<DomainRequirement> domainRequirements,
+            @NonNull CredentialsMatcher matcher) {
         if (item instanceof AbstractFolder) {
             // credentials defined in the folder should be available in the context of the folder
             return getCredentialIdsInItemGroup(type, (ItemGroup) item, authentication, domainRequirements, matcher);
@@ -257,8 +260,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
          *
          * @since 3.10
          */
-        private Map<Domain, List<Credentials>> domainCredentialsMap =
-                new CopyOnWriteMap.Hash<>();
+        private Map<Domain, List<Credentials>> domainCredentialsMap = new CopyOnWriteMap.Hash<>();
 
         /**
          * Our store.
@@ -393,8 +395,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         private void checkedSave(Permission p) throws IOException {
             checkPermission(p);
             try (ACLContext oldContext = ACL.as2(ACL.SYSTEM2)) {
-                FolderCredentialsProperty property =
-                        owner.getProperties().get(FolderCredentialsProperty.class);
+                FolderCredentialsProperty property = owner.getProperties().get(FolderCredentialsProperty.class);
                 if (property == null) {
                     synchronized (emptyProperties) {
                         owner.getProperties().add(this);
@@ -519,8 +520,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
         /**
          * Implementation for {@link StoreImpl} to delegate to while keeping the lock synchronization simple.
          */
-        private synchronized boolean updateCredentials(@NonNull Domain domain, @NonNull Credentials current,
-                                                       @NonNull Credentials replacement) throws IOException {
+        private synchronized boolean updateCredentials(
+                @NonNull Domain domain, @NonNull Credentials current, @NonNull Credentials replacement)
+                throws IOException {
             checkPermission(CredentialsProvider.UPDATE);
             Map<Domain, List<Credentials>> domainCredentialsMap = getDomainCredentialsMap();
             if (domainCredentialsMap.containsKey(domain)) {
@@ -570,9 +572,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
              */
             @Override
             public String getIconFileName() {
-                return isVisible()
-                        ? "/plugin/cloudbees-folder/images/svgs/folder-store.svg"
-                        : null;
+                return isVisible() ? "/plugin/cloudbees-folder/images/svgs/folder-store.svg" : null;
             }
 
             /**
@@ -580,9 +580,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
              */
             @Override
             public String getIconClassName() {
-                return isVisible()
-                        ? "symbol-folder-store-outline plugin-cloudbees-folder"
-                        : null;
+                return isVisible() ? "symbol-folder-store-outline plugin-cloudbees-folder" : null;
             }
 
             /**
@@ -616,7 +614,7 @@ public class FolderCredentialsProvider extends CredentialsProvider {
              */
             @SuppressWarnings("unused") // used by stapler
             public DescriptorExtensionList<DomainSpecification, Descriptor<DomainSpecification>>
-            getSpecificationDescriptors() {
+                    getSpecificationDescriptors() {
                 return Jenkins.get().getDescriptorList(DomainSpecification.class);
             }
         }
@@ -661,9 +659,8 @@ public class FolderCredentialsProvider extends CredentialsProvider {
             @NonNull
             @Override
             public List<Domain> getDomains() {
-                return Collections.unmodifiableList(new ArrayList<>(
-                        getDomainCredentialsMap().keySet()
-                ));
+                return Collections.unmodifiableList(
+                        new ArrayList<>(getDomainCredentialsMap().keySet()));
             }
 
             /**
@@ -720,8 +717,9 @@ public class FolderCredentialsProvider extends CredentialsProvider {
              * {@inheritDoc}
              */
             @Override
-            public boolean updateCredentials(@NonNull Domain domain, @NonNull Credentials current,
-                                             @NonNull Credentials replacement) throws IOException {
+            public boolean updateCredentials(
+                    @NonNull Domain domain, @NonNull Credentials current, @NonNull Credentials replacement)
+                    throws IOException {
                 return FolderCredentialsProperty.this.updateCredentials(domain, current, replacement);
             }
         }

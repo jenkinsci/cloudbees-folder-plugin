@@ -48,8 +48,8 @@ public abstract class OrphanedItemStrategy extends AbstractDescribableImpl<Orpha
      * @throws IOException          if there was an I/O issue processing the items.
      * @throws InterruptedException if interrupted while processing the items.
      */
-    public abstract <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner,
-                                                                         Collection<I> orphaned, TaskListener listener)
+    public abstract <I extends TopLevelItem> Collection<I> orphanedItems(
+            ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener)
             throws IOException, InterruptedException;
 
     /**
@@ -59,5 +59,4 @@ public abstract class OrphanedItemStrategy extends AbstractDescribableImpl<Orpha
     public OrphanedItemStrategyDescriptor getDescriptor() {
         return (OrphanedItemStrategyDescriptor) super.getDescriptor();
     }
-
 }

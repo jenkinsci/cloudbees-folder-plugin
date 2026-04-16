@@ -2,11 +2,15 @@ package com.cloudbees.hudson.plugins.folder.config;
 
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.security.Permission;
 import hudson.util.DescribableList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -15,16 +19,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest2;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-@Extension @Symbol("defaultFolderConfiguration")
+@Extension
+@Symbol("defaultFolderConfiguration")
 public class AbstractFolderConfiguration extends GlobalConfiguration {
 
     private List<FolderHealthMetric> healthMetrics;
-
 
     @NonNull
     @Override
@@ -66,8 +65,8 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
                         metrics.add(metric);
                     }
                 }
-                abstractFolderConfiguration.setHealthMetrics(new DescribableList<FolderHealthMetric,
-                        FolderHealthMetricDescriptor>(abstractFolderConfiguration, metrics));
+                abstractFolderConfiguration.setHealthMetrics(new DescribableList<
+                        FolderHealthMetric, FolderHealthMetricDescriptor>(abstractFolderConfiguration, metrics));
             }
         }
     }
@@ -85,7 +84,7 @@ public class AbstractFolderConfiguration extends GlobalConfiguration {
 
     @Override
     public boolean configure(StaplerRequest2 req, JSONObject json) {
-        if(json.containsKey("healthMetrics")) {
+        if (json.containsKey("healthMetrics")) {
             req.bindJSON(this, json);
             this.save();
         } else {

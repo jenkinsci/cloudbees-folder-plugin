@@ -50,7 +50,12 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
      */
     @Override
     public AbstractFolderProperty<?> newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
-        if (Util.isOverridden(AbstractFolderPropertyDescriptor.class, getClass(), "newInstance", StaplerRequest.class, JSONObject.class)) {
+        if (Util.isOverridden(
+                AbstractFolderPropertyDescriptor.class,
+                getClass(),
+                "newInstance",
+                StaplerRequest.class,
+                JSONObject.class)) {
             return newInstance(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, formData);
         } else {
             // Analogous to hack in JobPropertyDescriptor.
@@ -95,7 +100,9 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
             Class<?> applicable = Types.erasure(Types.getTypeArgument(pt, 0));
             return applicable.isAssignableFrom(containerType);
         } else {
-            throw new AssertionError(clazz+" doesn't properly parameterize AbstractFolderProperty. The isApplicable() method must be overridden.");
+            throw new AssertionError(
+                    clazz
+                            + " doesn't properly parameterize AbstractFolderProperty. The isApplicable() method must be overridden.");
         }
     }
 
@@ -106,7 +113,8 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
      * @return the applicable descriptors.
      */
     @SuppressWarnings("rawtypes") // erasure
-    public static List<AbstractFolderPropertyDescriptor> getApplicableDescriptors(Class<? extends AbstractFolder> containerType) {
+    public static List<AbstractFolderPropertyDescriptor> getApplicableDescriptors(
+            Class<? extends AbstractFolder> containerType) {
         List<AbstractFolderPropertyDescriptor> r = new ArrayList<>();
         for (AbstractFolderPropertyDescriptor p : ExtensionList.lookup(AbstractFolderPropertyDescriptor.class)) {
             if (p.isApplicable(containerType)) {
@@ -115,5 +123,4 @@ public abstract class AbstractFolderPropertyDescriptor extends Descriptor<Abstra
         }
         return r;
     }
-
 }
