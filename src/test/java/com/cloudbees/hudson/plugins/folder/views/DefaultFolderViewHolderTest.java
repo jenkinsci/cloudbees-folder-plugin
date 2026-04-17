@@ -24,13 +24,13 @@
 
 package com.cloudbees.hudson.plugins.folder.views;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.diagnosis.OldDataMonitor;
 import hudson.model.AdministrativeMonitor;
 import hudson.model.AllView;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
@@ -54,7 +54,8 @@ class DefaultFolderViewHolderTest {
     void oldData() {
         Folder d = r.jenkins.getItemByFullName("d", Folder.class);
         assertEquals(AllView.DEFAULT_VIEW_NAME, d.getPrimaryView().getViewName());
-        for (OldDataMonitor.VersionRange problem : AdministrativeMonitor.all().get(OldDataMonitor.class).getData().values()) {
+        for (OldDataMonitor.VersionRange problem :
+                AdministrativeMonitor.all().get(OldDataMonitor.class).getData().values()) {
             fail(problem.extra);
         }
     }

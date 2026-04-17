@@ -25,13 +25,13 @@
 package com.cloudbees.hudson.plugins.folder.relocate;
 
 import com.cloudbees.hudson.plugins.folder.Messages;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;
 import hudson.model.Item;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.model.Jenkins;
 import org.jenkins.ui.icon.IconSpec;
 
@@ -84,10 +84,10 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
     }
 
     /**
-     * Checks if the relocation operation is currently available for the specific item 
+     * Checks if the relocation operation is currently available for the specific item
      * (as {@link Jenkins#getAuthentication()} if the user is a factor). You can assume that the current user
      * has {@link RelocationAction#RELOCATE} permission.
-     * 
+     *
      * @param item the item being checked.
      * @return {@code true} if the UI is available for the current user on the specified item.
      */
@@ -117,6 +117,4 @@ public abstract class RelocationUI implements ExtensionPoint, IconSpec {
         }
         return null;
     }
-
-
 }

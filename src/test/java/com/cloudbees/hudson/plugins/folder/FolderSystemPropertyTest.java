@@ -24,14 +24,13 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import hudson.util.DescribableList;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +42,8 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 @WithJenkins
 class FolderSystemPropertyTest {
 
-    private static final String HEALTH_METRIC_PROPERTY = System.getProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
+    private static final String HEALTH_METRIC_PROPERTY =
+            System.getProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
 
     private JenkinsRule r;
 
@@ -61,7 +61,8 @@ class FolderSystemPropertyTest {
     static void afterAll() {
         // Put back the previous value before the test was executed
         if (HEALTH_METRIC_PROPERTY != null) {
-            System.setProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", HEALTH_METRIC_PROPERTY);
+            System.setProperty(
+                    AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS", HEALTH_METRIC_PROPERTY);
         } else {
             System.clearProperty(AbstractFolderConfiguration.class.getName() + ".ADD_HEALTH_METRICS");
         }
@@ -70,18 +71,27 @@ class FolderSystemPropertyTest {
     @Issue("JENKINS-63836")
     @Test
     void shouldHaveHealthMetricConfiguredGloballyOnSystemProperty() throws Exception {
-        assertThat("if used .ADD_HEALTH_METRICS system property, global configuration should have all folder health metrics",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize((int) FolderHealthMetricDescriptor.all().stream().filter(d -> d.createDefault() != null).count()));
+        assertThat(
+                "if used .ADD_HEALTH_METRICS system property, global configuration should have all folder health metrics",
+                AbstractFolderConfiguration.get().getHealthMetrics(),
+                hasSize((int) FolderHealthMetricDescriptor.all().stream()
+                        .filter(d -> d.createDefault() != null)
+                        .count()));
 
         Folder folder = r.jenkins.createProject(Folder.class, "myFolder");
         DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> healthMetrics = folder.getHealthMetrics();
-        assertThat("a new created folder should have all the folder health metrics configured globally",
-                healthMetrics.toList(), containsInAnyOrder(AbstractFolderConfiguration.get().getHealthMetrics().toArray()));
+        assertThat(
+                "a new created folder should have all the folder health metrics configured globally",
+                healthMetrics.toList(),
+                containsInAnyOrder(
+                        AbstractFolderConfiguration.get().getHealthMetrics().toArray()));
 
         AbstractFolderConfiguration.get().setHealthMetrics(null);
         folder = r.jenkins.createProject(Folder.class, "myFolder2");
         healthMetrics = folder.getHealthMetrics();
-        assertThat("a new created folder should have all the folder health metrics configured globally",
-                healthMetrics, iterableWithSize(0));
+        assertThat(
+                "a new created folder should have all the folder health metrics configured globally",
+                healthMetrics,
+                iterableWithSize(0));
     }
 }

@@ -24,6 +24,10 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import com.cloudbees.hudson.plugins.folder.AbstractFolderDescriptor;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
@@ -34,11 +38,6 @@ import hudson.util.StreamTaskListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
@@ -54,18 +53,18 @@ class ComputedFolder2Test {
     @Test
     void eventAfterRestart() throws Throwable {
         extension.then(j -> {
-                EventableFolder d = j.createProject(EventableFolder.class, "d");
-                d.add("one");
-                String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
-                assertThat(log, d.getItems(), hasSize(equalTo(1)));
+            EventableFolder d = j.createProject(EventableFolder.class, "d");
+            d.add("one");
+            String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
+            assertThat(log, d.getItems(), hasSize(equalTo(1)));
         });
         extension.then(j -> {
-                EventableFolder d = j.jenkins.getItemByFullName("d", EventableFolder.class);
-                assertNotNull(d);
-                assertThat(d.getItems(), hasSize(equalTo(1)));
-                d.add("two");
-                String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
-                assertThat(log, d.getItems(), hasSize(equalTo(1)));
+            EventableFolder d = j.jenkins.getItemByFullName("d", EventableFolder.class);
+            assertNotNull(d);
+            assertThat(d.getItems(), hasSize(equalTo(1)));
+            d.add("two");
+            String log = ComputedFolderTest.doRecompute(d, Result.SUCCESS);
+            assertThat(log, d.getItems(), hasSize(equalTo(1)));
         });
     }
 
@@ -78,7 +77,8 @@ class ComputedFolder2Test {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws InterruptedException {
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws InterruptedException {
             for (String kid : kids) {
                 FreeStyleProject p = observer.shouldUpdate(kid);
                 try {

@@ -44,7 +44,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Default implementation of {@link RelocationUI}
- * 
+ *
  * @since 4.9
  */
 @Extension(ordinal = -1000.0)
@@ -56,7 +56,7 @@ public class DefaultRelocationUI extends RelocationUI {
     public boolean isApplicableTo(Class<? extends Item> itemClass) {
         return true;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -70,7 +70,7 @@ public class DefaultRelocationUI extends RelocationUI {
         // No actual handler, so not available.
         return false;
     }
-    
+
     /**
      * List of destinations that the item can be moved to by the current user.
      *
@@ -120,12 +120,12 @@ public class DefaultRelocationUI extends RelocationUI {
         if (chain.isEmpty()) {
             return new Failure("no known way to handle " + item);
         }
-        HttpResponse response = chain.get(0).handle(item, dest, new AtomicReference<>(), chain.subList(1, chain.size()));
+        HttpResponse response =
+                chain.get(0).handle(item, dest, new AtomicReference<>(), chain.subList(1, chain.size()));
         if (response != null) {
             return response;
         } else {
             return HttpResponses.forwardToPreviousPage();
         }
     }
-
 }

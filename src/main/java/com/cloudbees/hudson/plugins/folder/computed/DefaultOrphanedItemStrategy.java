@@ -83,10 +83,11 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      * @param numToKeepStr      how many branches to keep.
      */
     @DataBoundConstructor
-    public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, @CheckForNull String daysToKeepStr,
-                                     @CheckForNull String numToKeepStr) {
+    public DefaultOrphanedItemStrategy(
+            boolean pruneDeadBranches, @CheckForNull String daysToKeepStr, @CheckForNull String numToKeepStr) {
         this.pruneDeadBranches = pruneDeadBranches;
-        // TODO in lieu of DeadBranchCleanupThread, introduce a form warning if daysToKeep < PeriodicFolderTrigger.interval
+        // TODO in lieu of DeadBranchCleanupThread, introduce a form warning
+        // if daysToKeep < PeriodicFolderTrigger.interval
         this.daysToKeep = pruneDeadBranches ? fromString(daysToKeepStr) : -1;
         this.numToKeep = pruneDeadBranches ? fromString(numToKeepStr) : -1;
     }
@@ -100,7 +101,7 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
      */
     public DefaultOrphanedItemStrategy(boolean pruneDeadBranches, int daysToKeep, int numToKeep) {
         this.pruneDeadBranches = pruneDeadBranches;
-        this.daysToKeep = pruneDeadBranches && daysToKeep > 0? daysToKeep : -1;
+        this.daysToKeep = pruneDeadBranches && daysToKeep > 0 ? daysToKeep : -1;
         this.numToKeep = pruneDeadBranches && numToKeep > 0 ? numToKeep : -1;
     }
 
@@ -219,10 +220,10 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
         long t = 0;
         if (item instanceof ComputedFolder) {
             // pick up special case of computed folders
-            t = ((ComputedFolder)item).getComputation().getTimestamp().getTimeInMillis();
+            t = ((ComputedFolder) item).getComputation().getTimestamp().getTimeInMillis();
         }
-        for (Job<?,?> j : item.getAllJobs()) {
-            Run<?,?> b = j.getLastBuild();
+        for (Job<?, ?> j : item.getAllJobs()) {
+            Run<?, ?> b = j.getLastBuild();
             if (b != null) {
                 t = Math.max(t, b.getTimeInMillis());
             }
@@ -241,19 +242,21 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
     }
 
     @Override
-    public <I extends TopLevelItem> Collection<I> orphanedItems(ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener) throws IOException, InterruptedException {
+    public <I extends TopLevelItem> Collection<I> orphanedItems(
+            ComputedFolder<I> owner, Collection<I> orphaned, TaskListener listener)
+            throws IOException, InterruptedException {
         if (abortBuilds) {
             List<Run<?, ?>> abortedBuilds = new ArrayList<>();
-            for (I item: orphaned) {
-                for (Job<?, ?> job: item.getAllJobs()) {
+            for (I item : orphaned) {
+                for (Job<?, ?> job : item.getAllJobs()) {
                     if (job instanceof hudson.model.Queue.Task) {
                         hudson.model.Queue jenkinsQueue = Jenkins.get().getQueue();
                         hudson.model.Queue.Task task = (hudson.model.Queue.Task) job;
-                        for (hudson.model.Queue.Item pendingBuild: jenkinsQueue.getItems(task)) {
+                        for (hudson.model.Queue.Item pendingBuild : jenkinsQueue.getItems(task)) {
                             jenkinsQueue.cancel(pendingBuild);
                         }
                     }
-                    for (Run<?, ?> build: job.getBuilds()) {
+                    for (Run<?, ?> build : job.getBuilds()) {
                         Executor executor = build.getExecutor();
                         if (executor == null) {
                             // Since the latest builds are returned first and to avoid looping on a huge build history,
@@ -273,7 +276,8 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             // To avoid waiting forever, we give at most 60 seconds to the canceled builds to complete.
             // If they do not complete in time, their parents will be removed in a future scan.
             long maxWaitNanos = 60_000_000_000L;
-            ABORTED_BUILDS: for (Run<?, ?> abortedBuild: abortedBuilds) {
+            ABORTED_BUILDS:
+            for (Run<?, ?> abortedBuild : abortedBuilds) {
                 while (abortedBuild.isLogUpdated()) {
                     if ((System.nanoTime() - waitForAbortedBuildsStartTimeNanos) > maxWaitNanos) {
                         break ABORTED_BUILDS;
@@ -287,31 +291,38 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             listener.getLogger().printf("Evaluating orphaned items in %s%n", owner.getFullDisplayName());
             List<I> candidates = new ArrayList<>(orphaned);
             candidates.sort((i1, i2) -> {
-                    boolean disabled1 = disabled(i1);
-                    boolean disabled2 = disabled(i2);
-                    // prefer the not previously disabled ahead of the previously disabled
-                    if (disabled1 ^ disabled2) {
-                        return disabled2 ? -1 : +1;
-                    }
-                    // most recent build first
-                    long ms1 = lastBuildTime(i1);
-                    long ms2 = lastBuildTime(i2);
-                    return Long.compare(ms2, ms1);
+                boolean disabled1 = disabled(i1);
+                boolean disabled2 = disabled(i2);
+                // prefer the not previously disabled ahead of the previously disabled
+                if (disabled1 ^ disabled2) {
+                    return disabled2 ? -1 : +1;
+                }
+                // most recent build first
+                long ms1 = lastBuildTime(i1);
+                long ms2 = lastBuildTime(i2);
+                return Long.compare(ms2, ms1);
             });
-            CANDIDATES: for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext();) {
+            CANDIDATES:
+            for (Iterator<I> iterator = candidates.iterator(); iterator.hasNext(); ) {
                 I item = iterator.next();
-                for (Job<?,?> job : item.getAllJobs()) {
+                for (Job<?, ?> job : item.getAllJobs()) {
                     // Enumerating all builds is inefficient. But we will most likely delete this job anyway,
                     // which will have a cost proportional to the number of builds just to delete those files.
-                    for (Run<?,?> build : job.getBuilds()) {
+                    for (Run<?, ?> build : job.getBuilds()) {
                         if (!abortBuilds && build.isBuilding()) {
-                            listener.getLogger().printf("Will not remove %s as %s is still in progress%n", item.getDisplayName(), build.getFullDisplayName());
+                            listener.getLogger()
+                                    .printf(
+                                            "Will not remove %s as %s is still in progress%n",
+                                            item.getDisplayName(), build.getFullDisplayName());
                             iterator.remove();
                             continue CANDIDATES;
                         }
                         String whyKeepLog = build.getWhyKeepLog();
                         if (whyKeepLog != null) {
-                            listener.getLogger().printf("Will not remove %s as %s is marked to not be removed: %s%n", item.getDisplayName(), build.getFullDisplayName(), whyKeepLog);
+                            listener.getLogger()
+                                    .printf(
+                                            "Will not remove %s as %s is marked to not be removed: %s%n",
+                                            item.getDisplayName(), build.getFullDisplayName(), whyKeepLog);
                             iterator.remove();
                             continue CANDIDATES;
                         }
@@ -324,10 +335,14 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
                     I item = iterator.next();
                     count++;
                     if (count <= numToKeep) {
-                        listener.getLogger().printf("Will not remove %s as it is only #%d in the list%n", item.getDisplayName(), count);
+                        listener.getLogger()
+                                .printf(
+                                        "Will not remove %s as it is only #%d in the list%n",
+                                        item.getDisplayName(), count);
                         continue;
                     }
-                    listener.getLogger().printf("Will remove %s as it is #%d in the list%n", item.getDisplayName(), count);
+                    listener.getLogger()
+                            .printf("Will remove %s as it is #%d in the list%n", item.getDisplayName(), count);
                     toRemove.add(item);
                     iterator.remove();
                 }
@@ -370,5 +385,4 @@ public class DefaultOrphanedItemStrategy extends OrphanedItemStrategy {
             return "Default";
         }
     }
-
 }

@@ -1,5 +1,7 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.model.Actionable;
 import hudson.model.Result;
@@ -9,8 +11,6 @@ import java.io.File;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.Ancestor;
@@ -45,12 +45,11 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
                 l = anc;
             }
         }
-        if (l == null) return null;    // there was no Run object
+        if (l == null) return null; // there was no Run object
 
         String base = l.getUrl();
 
         return new RunUrl(base);
-
     }
 
     /**
@@ -60,7 +59,8 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
      */
     @NonNull
     public String getTimestampString() {
-        long duration = new GregorianCalendar().getTimeInMillis() - computation.getTimestamp().getTimeInMillis();
+        long duration = new GregorianCalendar().getTimeInMillis()
+                - computation.getTimestamp().getTimeInMillis();
         return Util.getPastTimeString(duration);
     }
 
@@ -120,7 +120,6 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
     public static final class RunUrl {
         private final String base;
 
-
         public RunUrl(String base) {
             this.base = base;
         }
@@ -144,7 +143,5 @@ public class PseudoRun<I extends TopLevelItem> extends Actionable implements Sta
         public String getPreviousBuildUrl() {
             return null;
         }
-
     }
-
 }

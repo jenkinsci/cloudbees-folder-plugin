@@ -24,7 +24,9 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import java.util.zip.GZIPInputStream;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.BulkChange;
@@ -33,6 +35,7 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.PlainTextConsoleOutputStream;
+import hudson.diagnosis.OldDataMonitor;
 import hudson.model.Actionable;
 import hudson.model.BallColor;
 import hudson.model.Cause;
@@ -59,6 +62,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -68,15 +72,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import java.util.zip.GZIPInputStream;
 import jenkins.model.FullyNamedModelObject;
-import jenkins.security.stapler.StaplerNotDispatchable;
-import hudson.diagnosis.OldDataMonitor;
-import net.jcip.annotations.GuardedBy;
-import java.nio.charset.StandardCharsets;
 import jenkins.model.Loadable;
+import jenkins.security.stapler.StaplerNotDispatchable;
+import net.jcip.annotations.GuardedBy;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.jelly.XMLOutput;
@@ -92,7 +92,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * A particular “run” of {@link ComputedFolder}.
  * @since 4.11-beta-1
  */
-public class FolderComputation<I extends TopLevelItem> extends Actionable implements FullyNamedModelObject, Queue.Executable, Saveable, Loadable {
+public class FolderComputation<I extends TopLevelItem> extends Actionable
+        implements FullyNamedModelObject, Queue.Executable, Saveable, Loadable {
 
     /**
      * Our logger.
@@ -101,20 +102,22 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
 
     /** If defined, a number of backup log files to keep. */
     @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
-    private static @CheckForNull Integer BACKUP_LOG_COUNT = Integer.getInteger(FolderComputation.class.getName() + ".BACKUP_LOG_COUNT");
+    private static @CheckForNull Integer BACKUP_LOG_COUNT =
+            Integer.getInteger(FolderComputation.class.getName() + ".BACKUP_LOG_COUNT");
 
     /** If defined, a number of kB that the event log can grow to before rotation. */
     @SuppressWarnings("FieldMayBeFinal") // let this be set dynamically by system Groovy script
     @NonNull
-    private static int EVENT_LOG_MAX_SIZE = Math.max(1,Integer.getInteger(FolderComputation.class.getName() + ".EVENT_LOG_MAX_SIZE", 150));
+    private static int EVENT_LOG_MAX_SIZE =
+            Math.max(1, Integer.getInteger(FolderComputation.class.getName() + ".EVENT_LOG_MAX_SIZE", 150));
 
     /** The associated folder. */
     @NonNull
-    private transient final ComputedFolder<I> folder;
+    private final transient ComputedFolder<I> folder;
 
     /** The previous run result, if any. */
     @CheckForNull
-    private transient final Result previousResult;
+    private final transient Result previousResult;
 
     /** The events output stream handler */
     @CheckForNull
@@ -178,7 +181,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
             if (x instanceof AbortException) {
                 listener.fatalError(x.getMessage());
             } else {
-                Functions.printStackTrace(x, listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
+                Functions.printStackTrace(
+                        x, listener.fatalError("Failed to recompute children of " + folder.getFullDisplayName()));
             }
             _result = Result.FAILURE;
         } finally {
@@ -237,39 +241,42 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     @NonNull
     public synchronized StreamTaskListener createEventsListener() {
         File eventsFile = getEventsFile();
-        if (!eventsFile.getParentFile().isDirectory() && !eventsFile.getParentFile().mkdirs()) {
-            LOGGER.log(Level.WARNING, "Could not create directory {0} for {1}",
-                    new Object[]{eventsFile.getParentFile(), folder.getFullName()});
+        if (!eventsFile.getParentFile().isDirectory()
+                && !eventsFile.getParentFile().mkdirs()) {
+            LOGGER.log(Level.WARNING, "Could not create directory {0} for {1}", new Object[] {
+                eventsFile.getParentFile(), folder.getFullName()
+            });
             // TODO return a StreamTaskListener sending output to a log, for now this will just try and fail to write
         }
         if (eventStreams == null) {
-            eventStreams = new EventOutputStreams(new EventOutputStreams.OutputFile() {
-                @NonNull
-                @Override
-                public File get() {
-                    return getEventsFile();
-                }
-
-                @Override
-                public boolean canWriteNow() {
-                    // TODO rework once JENKINS-42248 is solved
-                    GregorianCalendar timestamp = new GregorianCalendar();
-                    timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
-                    Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.emptyList());
-                    for (QueueTaskDispatcher d: QueueTaskDispatcher.all()) {
-                        if (d.canRun(probe) != null) {
-                            return false;
+            eventStreams = new EventOutputStreams(
+                    new EventOutputStreams.OutputFile() {
+                        @NonNull
+                        @Override
+                        public File get() {
+                            return getEventsFile();
                         }
-                    }
-                    return true;
-                }
-            },
-                    250, TimeUnit.MILLISECONDS,
+
+                        @Override
+                        public boolean canWriteNow() {
+                            // TODO rework once JENKINS-42248 is solved
+                            GregorianCalendar timestamp = new GregorianCalendar();
+                            timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
+                            Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.emptyList());
+                            for (QueueTaskDispatcher d : QueueTaskDispatcher.all()) {
+                                if (d.canRun(probe) != null) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
+                    },
+                    250,
+                    TimeUnit.MILLISECONDS,
                     1024,
                     true,
                     EVENT_LOG_MAX_SIZE * 1024L,
-                    BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT)
-            );
+                    BACKUP_LOG_COUNT == null ? 0 : Math.max(0, BACKUP_LOG_COUNT));
         }
         return new StreamTaskListener(eventStreams.get(), StandardCharsets.UTF_8);
     }
@@ -359,10 +366,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
         if (eventsFile.length() <= 0) {
             ByteBuffer buffer = new ByteBuffer();
             try {
-                buffer.write(
-                        String.format("No events as of %tc, waiting for events...%n", new Date())
-                                .getBytes(StandardCharsets.UTF_8)
-                );
+                buffer.write(String.format("No events as of %tc, waiting for events...%n", new Date())
+                        .getBytes(StandardCharsets.UTF_8));
                 return new AnnotatedLargeText<>(buffer, StandardCharsets.UTF_8, false, this);
             } catch (IOException e) {
                 // ignore and fall through
@@ -393,7 +398,8 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
      * @throws IOException if things go wrong.
      */
     public void doConsoleText(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
-        if (Util.isOverridden(FolderComputation.class, getClass(), "doConsoleText", StaplerRequest.class, StaplerResponse.class)) {
+        if (Util.isOverridden(
+                FolderComputation.class, getClass(), "doConsoleText", StaplerRequest.class, StaplerResponse.class)) {
             doConsoleText(StaplerRequest.fromStaplerRequest2(req), StaplerResponse.fromStaplerResponse2(rsp));
         } else {
             doConsoleTextImpl(req, rsp);
@@ -412,9 +418,9 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable implem
     private void doConsoleTextImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
         rsp.setContentType("text/plain;charset=UTF-8");
         try (PlainTextConsoleOutputStream out = new PlainTextConsoleOutputStream(rsp.getOutputStream());
-             InputStream input = getLogInputStream()) {
-                    IOUtils.copy(input, out);
-                    out.flush();
+                InputStream input = getLogInputStream()) {
+            IOUtils.copy(input, out);
+            out.flush();
         }
     }
 

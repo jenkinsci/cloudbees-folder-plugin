@@ -27,15 +27,12 @@ package com.cloudbees.hudson.plugins.folder.health;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+import hudson.model.HealthReport;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import com.cloudbees.hudson.plugins.folder.Folder;
-
-import hudson.model.HealthReport;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins

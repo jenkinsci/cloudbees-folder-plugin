@@ -126,8 +126,7 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         } catch (NumberFormatException e) {
             value = 1;
         }
-        return Math.min(TimeUnit.DAYS.toMillis(30),
-                Math.max(TimeUnit.MINUTES.toMillis(1), units.toMillis(value)));
+        return Math.min(TimeUnit.DAYS.toMillis(30), Math.max(TimeUnit.MINUTES.toMillis(1), units.toMillis(value)));
     }
 
     /**
@@ -165,7 +164,10 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
     /**
      * {@inheritDoc}
      */
-    @SuppressFBWarnings(value = {"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "NP_NULL_ON_SOME_PATH"}, justification = "ComputedFolder.computation is set in init but that is overridable so let us just make sure; Trigger.job once set is never cleared")
+    @SuppressFBWarnings(
+            value = {"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "NP_NULL_ON_SOME_PATH"},
+            justification =
+                    "ComputedFolder.computation is set in init but that is overridable so let us just make sure; Trigger.job once set is never cleared")
     @Override
     public void run() {
         if (job == null) {
@@ -182,14 +184,19 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
             // so we trigger slightly early
             // Also take into account that we are delaying computation by 5s
             // and it may take ~3s for computation to go an executor and timestamp to be recorded,
-            // so in the case of a 1m trigger we need some grace period or it will actually only be run every 2m typically.
+            // so in the case of a 1m trigger we need some grace period
+            // or it will actually only be run every 2m typically.
             long almostInterval = interval - interval / 20 - TimeUnit.SECONDS.toMillis(15);
             long remaining = last + almostInterval - System.currentTimeMillis();
             if (remaining > 0) {
-                LOGGER.fine(() -> job + " was last computed at " + new Date(last) + " which is within the adjusted interval of " + Util.getTimeSpanString(almostInterval) + " by " + Util.getTimeSpanString(remaining));
+                LOGGER.fine(() ->
+                        job + " was last computed at " + new Date(last) + " which is within the adjusted interval of "
+                                + Util.getTimeSpanString(almostInterval) + " by " + Util.getTimeSpanString(remaining));
                 return;
             }
-            LOGGER.fine(() -> job + " was last computed at " + new Date(last) + " which exceeds the adjusted interval of " + Util.getTimeSpanString(almostInterval) + " by " + Util.getTimeSpanString(-remaining));
+            LOGGER.fine(
+                    () -> job + " was last computed at " + new Date(last) + " which exceeds the adjusted interval of "
+                            + Util.getTimeSpanString(almostInterval) + " by " + Util.getTimeSpanString(-remaining));
         }
         if (job.scheduleBuild(5, new TimerTrigger.TimerTriggerCause())) {
             LOGGER.fine(() -> "triggering " + job + " in 5s");
@@ -251,8 +258,5 @@ public class PeriodicFolderTrigger extends Trigger<ComputedFolder<?>> {
         static {
             Items.XSTREAM2.addCompatibilityAlias("jenkins.branch.IndexAtLeastTrigger", PeriodicFolderTrigger.class);
         }
-
     }
-
-
 }

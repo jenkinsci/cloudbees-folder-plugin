@@ -24,6 +24,8 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import static hudson.Util.fixEmpty;
+
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
@@ -32,11 +34,12 @@ import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
 import com.cloudbees.hudson.plugins.folder.icons.StockFolderIcon;
 import com.cloudbees.hudson.plugins.folder.views.AbstractFolderViewHolder;
 import com.cloudbees.hudson.plugins.folder.views.DefaultFolderViewHolder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
-import static hudson.Util.fixEmpty;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -92,8 +95,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
@@ -136,16 +137,24 @@ import org.springframework.security.access.AccessDeniedException;
  * @since 4.11-beta-1
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // mistakes in various places
-public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem implements TopLevelItem, ItemGroup<I>, ModifiableViewGroup, StaplerFallback, ModelObjectWithChildren, StaplerOverridable, IconSpec {
+public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractItem
+        implements TopLevelItem,
+                ItemGroup<I>,
+                ModifiableViewGroup,
+                StaplerFallback,
+                ModelObjectWithChildren,
+                StaplerOverridable,
+                IconSpec {
 
     /**
      * Our logger.
      */
     private static final Logger LOGGER = Logger.getLogger(AbstractFolder.class.getName());
+
     private static final Random ENTROPY = new Random();
-    private static final int HEALTH_REPORT_CACHE_REFRESH_MIN = Math.max(10, Math.min(1440, Integer.getInteger(
-            AbstractFolder.class.getName()+".healthReportCacheRefreshMin", 60
-    )));
+    private static final int HEALTH_REPORT_CACHE_REFRESH_MIN = Math.max(
+            10,
+            Math.min(1440, Integer.getInteger(AbstractFolder.class.getName() + ".healthReportCacheRefreshMin", 60)));
 
     private static long loadingTick;
     private static final AtomicInteger jobTotal = new AtomicInteger();
@@ -157,7 +166,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Restricted(NoExternalUse.class)
     protected static final ThreadLocal<Boolean> reloadingThis = ThreadLocal.withInitial(() -> false);
 
-    @Initializer(before=InitMilestone.JOB_LOADED, fatal=false)
+    @Initializer(before = InitMilestone.JOB_LOADED, fatal = false)
     public static void loadJobTotal() {
         if (!loadJobTotalRan.compareAndSet(false, true)) {
             return; // TODO why does Jenkins run the initializer many times?!
@@ -165,6 +174,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         scan(new File(Jenkins.get().getRootDir(), "jobs"), 0);
         // TODO reset count after reload config from disk (otherwise goes up to 200% etc.)
     }
+
     private static void scan(File d, int depth) {
         File[] projects = d.listFiles();
         if (projects == null) {
@@ -185,9 +195,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     }
 
     /** Child items, keyed by {@link Item#getName}. */
-    protected transient Map<String,I> items = new CopyOnWriteMap.Tree<>(String.CASE_INSENSITIVE_ORDER);
+    protected transient Map<String, I> items = new CopyOnWriteMap.Tree<>(String.CASE_INSENSITIVE_ORDER);
 
-    private DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> properties;
+    private DescribableList<AbstractFolderProperty<?>, AbstractFolderPropertyDescriptor> properties;
 
     private /*almost final*/ AbstractFolderViewHolder folderViews;
 
@@ -211,7 +221,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
 
     private transient /*almost final*/ ViewGroupMixIn viewGroupMixIn;
 
-    private DescribableList<FolderHealthMetric,FolderHealthMetricDescriptor> healthMetrics;
+    private DescribableList<FolderHealthMetric, FolderHealthMetricDescriptor> healthMetrics;
 
     private FolderIcon icon;
 
@@ -247,8 +257,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 if (primaryView != null) {
                     primaryView = AllView.migrateLegacyPrimaryAllViewLocalizedName(views, primaryView);
                 }
-                folderViews = new DefaultFolderViewHolder(views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar()
-                        : viewsTabBar);
+                folderViews = new DefaultFolderViewHolder(
+                        views, primaryView, viewsTabBar == null ? newDefaultViewsTabBar() : viewsTabBar);
             } else {
                 folderViews = newFolderViewHolder();
             }
@@ -261,25 +271,30 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             protected List<View> views() {
                 return folderViews.getViews();
             }
+
             @Override
             protected String primaryView() {
                 String primaryView = folderViews.getPrimaryView();
                 return primaryView == null ? folderViews.getViews().get(0).getViewName() : primaryView;
             }
+
             @Override
             protected void primaryView(String name) {
                 folderViews.setPrimaryView(name);
             }
+
             @Override
             public void addView(View v) throws IOException {
                 if (folderViews.isViewsModifiable()) {
                     super.addView(v);
                 }
             }
+
             @Override
             public boolean canDelete(View view) {
                 return folderViews.isViewsModifiable() && super.canDelete(view);
             }
+
             @Override
             public synchronized void deleteView(View view) throws IOException {
                 if (folderViews.isViewsModifiable()) {
@@ -287,9 +302,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
             }
         };
-        
+
         if (healthMetrics == null) {
-            healthMetrics = new DescribableList<>(this, AbstractFolderConfiguration.get().getHealthMetrics());
+            healthMetrics = new DescribableList<>(
+                    this, AbstractFolderConfiguration.get().getHealthMetrics());
         }
     }
 
@@ -335,8 +351,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @param <V>        the child type.
      * @return a map of the children keyed by the generated keys.
      */
-    public static <K, V extends TopLevelItem> Map<K, V> loadChildren(AbstractFolder<V> parent, File modulesDir,
-                                                             Function<? super V, ? extends K> key) {
+    public static <K, V extends TopLevelItem> Map<K, V> loadChildren(
+            AbstractFolder<V> parent, File modulesDir, Function<? super V, ? extends K> key) {
         return ExtensionList.lookupFirst(ChildLoader.class).loadChildren(parent, modulesDir, key);
     }
 
@@ -401,7 +417,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         String n = t.getName();
         try {
             if (items == null) {
-                // When Jenkins is getting reloaded, we want children being loaded to be able to find existing items that they will be overriding.
+                // When Jenkins is getting reloaded, we want children being loaded to be able to find existing items
+                // that they will be overriding.
                 // This is necessary for them to correctly keep the running builds, for example.
                 // ItemGroupMixIn.loadChildren handles the rest of this logic.
                 Item current = parent.getItem(name);
@@ -410,30 +427,30 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 }
             }
 
-            final ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator = childNameGenerator();
+            final ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator = childNameGenerator();
             items = loadChildren(this, getJobsDir(), item -> {
-                    String fullName = item.getFullName();
-                    t.setName("Loading job " + fullName);
-                    float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
-                    long now = System.currentTimeMillis();
-                    if (loadingTick == 0) {
-                        loadingTick = now;
-                    } else if (now - loadingTick > TICK_INTERVAL) {
-                        LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
-                        loadingTick = now;
-                    }
-                    String childName = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
-                    if (childName == null) {
-                        return childNameGenerator.itemNameFromLegacy(AbstractFolder.this, item.getName());
-                    }
-                    return childName;
+                String fullName = item.getFullName();
+                t.setName("Loading job " + fullName);
+                float percentage = 100.0f * jobEncountered.incrementAndGet() / Math.max(1, jobTotal.get());
+                long now = System.currentTimeMillis();
+                if (loadingTick == 0) {
+                    loadingTick = now;
+                } else if (now - loadingTick > TICK_INTERVAL) {
+                    LOGGER.log(Level.INFO, String.format("Loading job %s (%.1f%%)", fullName, percentage));
+                    loadingTick = now;
+                }
+                String childName = childNameGenerator.itemNameFromItem(AbstractFolder.this, item);
+                if (childName == null) {
+                    return childNameGenerator.itemNameFromLegacy(AbstractFolder.this, item.getName());
+                }
+                return childName;
             });
         } finally {
             t.setName(n);
         }
     }
 
-    ChildNameGenerator<AbstractFolder<I>,I> childNameGenerator() {
+    ChildNameGenerator<AbstractFolder<I>, I> childNameGenerator() {
         return getDescriptor().childNameGenerator();
     }
 
@@ -450,14 +467,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * To add properties, use {@link #addProperty}.
      * @return the list of properties.
      */
-    public DescribableList<AbstractFolderProperty<?>,AbstractFolderPropertyDescriptor> getProperties() {
+    public DescribableList<AbstractFolderProperty<?>, AbstractFolderPropertyDescriptor> getProperties() {
         return properties;
     }
 
     @SuppressWarnings("rawtypes") // else setOwner will not compile
     public void addProperty(AbstractFolderProperty p) throws IOException {
         if (!p.getDescriptor().isApplicable(getClass())) {
-            throw new IllegalArgumentException(p.getClass().getName() + " cannot be applied to " + getClass().getName());
+            throw new IllegalArgumentException(p.getClass().getName() + " cannot be applied to "
+                    + getClass().getName());
         }
         p.setOwner(this);
         properties.add(p);
@@ -666,8 +684,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     public ContextMenu doChildrenContextMenu(StaplerRequest2 request, StaplerResponse2 response) {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doChildrenContextMenu", StaplerRequest.class, StaplerResponse.class)) {
-            return doChildrenContextMenu(request != null ? StaplerRequest.fromStaplerRequest2(request) : null, response != null ? StaplerResponse.fromStaplerResponse2(response) : null);
+        if (Util.isOverridden(
+                AbstractFolder.class,
+                getClass(),
+                "doChildrenContextMenu",
+                StaplerRequest.class,
+                StaplerResponse.class)) {
+            return doChildrenContextMenu(
+                    request != null ? StaplerRequest.fromStaplerRequest2(request) : null,
+                    response != null ? StaplerResponse.fromStaplerResponse2(response) : null);
         } else {
             return doChildrenContextMenuImpl(request, response);
         }
@@ -680,13 +705,15 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Override
     @StaplerNotDispatchable
     public ContextMenu doChildrenContextMenu(StaplerRequest request, StaplerResponse response) {
-        return doChildrenContextMenuImpl(request != null ? StaplerRequest.toStaplerRequest2(request) : null, response != null ? StaplerResponse.toStaplerResponse2(response) : null);
+        return doChildrenContextMenuImpl(
+                request != null ? StaplerRequest.toStaplerRequest2(request) : null,
+                response != null ? StaplerResponse.toStaplerResponse2(response) : null);
     }
 
     private ContextMenu doChildrenContextMenuImpl(StaplerRequest2 request, StaplerResponse2 response) {
         ContextMenu menu = new ContextMenu();
         for (View view : getViews()) {
-            menu.add(view.getAbsoluteUrl(),view.getDisplayName());
+            menu.add(view.getAbsoluteUrl(), view.getDisplayName());
         }
         return menu;
     }
@@ -694,9 +721,12 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @POST
     public synchronized void doCreateView(StaplerRequest2 req, StaplerResponse2 rsp)
             throws IOException, ServletException, ParseException, Descriptor.FormException {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doCreateView", StaplerRequest.class, StaplerResponse.class)) {
+        if (Util.isOverridden(
+                AbstractFolder.class, getClass(), "doCreateView", StaplerRequest.class, StaplerResponse.class)) {
             try {
-                doCreateView(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+                doCreateView(
+                        req != null ? StaplerRequest.fromStaplerRequest2(req) : null,
+                        rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
             } catch (javax.servlet.ServletException e) {
                 throw ServletExceptionWrapper.toJakartaServletException(e);
             }
@@ -713,7 +743,9 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     public synchronized void doCreateView(StaplerRequest req, StaplerResponse rsp)
             throws IOException, javax.servlet.ServletException, ParseException, Descriptor.FormException {
         try {
-            doCreateViewImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+            doCreateViewImpl(
+                    req != null ? StaplerRequest.toStaplerRequest2(req) : null,
+                    rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
         } catch (ServletException e) {
             throw ServletExceptionWrapper.fromJakartaServletException(e);
         }
@@ -745,7 +777,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             return FormValidation.error(Messages.Hudson_ViewAlreadyExists(view));
         }
     }
-
 
     /**
      * Get the current health report for a folder.
@@ -779,14 +810,13 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         // ensure we refresh on average once every HEALTH_REPORT_CACHE_REFRESH_MIN but not all at once
         nextHealthReportsRefreshMillis = System.currentTimeMillis()
                 + TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN * 3L / 4L)
-                + ENTROPY.nextInt((int)TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
+                + ENTROPY.nextInt((int) TimeUnit.MINUTES.toMillis(HEALTH_REPORT_CACHE_REFRESH_MIN / 2));
         reports = new ArrayList<>();
 
         for (FolderHealthMetric metric : healthMetrics) {
             FolderHealthMetric.Reporter reporter = metric.reporter();
             observeMetric(metric.getType(), reporter);
             reports.addAll(reporter.report());
-
         }
         for (AbstractFolderProperty<?> p : getProperties()) {
             for (FolderHealthMetric metric : p.getHealthMetrics()) {
@@ -895,7 +925,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     /**
      * {@inheritDoc}
      */
-    @Exported(name="jobs")
+    @Exported(name = "jobs")
     @Override
     public Collection<I> getItems() {
         return getItems(item -> true);
@@ -1022,7 +1052,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
         setDisabled(disabled);
         if (disabled && this instanceof Queue.Task) {
-            Jenkins.get().getQueue().cancel((Queue.Task)this);
+            Jenkins.get().getQueue().cancel((Queue.Task) this);
         }
         save();
         ItemListener.fireOnUpdated(this);
@@ -1090,10 +1120,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * {@inheritDoc}
      */
     @Override
-    public synchronized void doSubmitDescription(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "doSubmitDescription", StaplerRequest.class, StaplerResponse.class)) {
+    public synchronized void doSubmitDescription(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException {
+        if (Util.isOverridden(
+                AbstractFolder.class, getClass(), "doSubmitDescription", StaplerRequest.class, StaplerResponse.class)) {
             try {
-                doSubmitDescription(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+                doSubmitDescription(
+                        req != null ? StaplerRequest.fromStaplerRequest2(req) : null,
+                        rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
             } catch (javax.servlet.ServletException e) {
                 throw ServletExceptionWrapper.toJakartaServletException(e);
             }
@@ -1108,21 +1142,26 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Deprecated
     @Override
     @StaplerNotDispatchable
-    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException {
+    public synchronized void doSubmitDescription(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException {
         try {
-            doSubmitDescriptionImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
+            doSubmitDescriptionImpl(
+                    req != null ? StaplerRequest.toStaplerRequest2(req) : null,
+                    rsp != null ? StaplerResponse.toStaplerResponse2(rsp) : null);
         } catch (ServletException e) {
             throw ServletExceptionWrapper.fromJakartaServletException(e);
         }
     }
 
-    private void doSubmitDescriptionImpl(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    private void doSubmitDescriptionImpl(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException {
         getPrimaryView().doSubmitDescription(req, rsp);
     }
 
     @Restricted(NoExternalUse.class)
     @RequirePOST
-    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, Descriptor.FormException {
         checkPermission(CONFIGURE);
 
         req.setCharacterEncoding("UTF-8");
@@ -1160,10 +1199,10 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         }
 
         ProjectNamingStrategy namingStrategy = Jenkins.get().getProjectNamingStrategy();
-            if (namingStrategy.isForceExistingJobs()) {
-                namingStrategy.checkName(getParent().getFullName(), name);
-            }
-            FormApply.success(getSuccessfulDestination()).generateResponse(req, rsp, this);
+        if (namingStrategy.isForceExistingJobs()) {
+            namingStrategy.checkName(getParent().getFullName(), name);
+        }
+        FormApply.success(getSuccessfulDestination()).generateResponse(req, rsp, this);
     }
 
     /**
@@ -1179,10 +1218,14 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         return ".";
     }
 
-    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException, Descriptor.FormException {
-        if (Util.isOverridden(AbstractFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
+    protected void submit(StaplerRequest2 req, StaplerResponse2 rsp)
+            throws IOException, ServletException, Descriptor.FormException {
+        if (Util.isOverridden(
+                AbstractFolder.class, getClass(), "submit", StaplerRequest.class, StaplerResponse.class)) {
             try {
-                submit(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
+                submit(
+                        req != null ? StaplerRequest.fromStaplerRequest2(req) : null,
+                        rsp != null ? StaplerResponse.fromStaplerResponse2(rsp) : null);
             } catch (javax.servlet.ServletException e) {
                 throw ServletExceptionWrapper.toJakartaServletException(e);
             }
@@ -1193,7 +1236,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      * @deprecated use {@link #submit(StaplerRequest2, StaplerResponse2)}
      */
     @Deprecated
-    protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, javax.servlet.ServletException, Descriptor.FormException {}
+    protected void submit(StaplerRequest req, StaplerResponse rsp)
+            throws IOException, javax.servlet.ServletException, Descriptor.FormException {}
 
     /**
      * {@inheritDoc}
@@ -1208,7 +1252,7 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
      */
     @Override
     protected void checkRename(String newName) {
-        for (Job<?,?> job : getAllJobs()) {
+        for (Job<?, ?> job : getAllJobs()) {
             if (job.isBuilding()) {
                 throw new Failure("Unable to rename a folder while a job inside it is building.");
             }
@@ -1275,7 +1319,6 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
         public void onUpdated(Item item) {
             invalidateBuildHealthReports(item);
         }
-
     }
 
     @Extension
@@ -1300,5 +1343,4 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
             invalidateBuildHealthReports(run.getParent());
         }
     }
-
 }

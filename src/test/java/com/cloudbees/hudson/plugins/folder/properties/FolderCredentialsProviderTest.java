@@ -23,6 +23,12 @@
  */
 package com.cloudbees.hudson.plugins.folder.properties;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
@@ -61,12 +67,6 @@ import org.jvnet.hudson.test.MockQueueItemAuthenticator;
 import org.jvnet.hudson.test.TestBuilder;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 @WithJenkins
 class FolderCredentialsProviderTest {
 
@@ -87,22 +87,19 @@ class FolderCredentialsProviderTest {
     @Test
     void credentialsAvailableAtFolderScope() throws Exception {
         Folder f = createFolder();
-        List<StandardUsernamePasswordCredentials> asGroup =
-                CredentialsProvider.lookupCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
-                        ACL.SYSTEM2, Collections.emptyList());
-        List<StandardUsernamePasswordCredentials> asItem =
-                CredentialsProvider.lookupCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
-                        ACL.SYSTEM2, Collections.emptyList());
+        List<StandardUsernamePasswordCredentials> asGroup = CredentialsProvider.lookupCredentialsInItemGroup(
+                StandardUsernamePasswordCredentials.class, f, ACL.SYSTEM2, Collections.emptyList());
+        List<StandardUsernamePasswordCredentials> asItem = CredentialsProvider.lookupCredentialsInItem(
+                StandardUsernamePasswordCredentials.class, f, ACL.SYSTEM2, Collections.emptyList());
         assertThat(asGroup, is(asItem));
         CredentialsStore folderStore = getFolderStore(f);
-        UsernamePasswordCredentialsImpl credentials =
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "test-id", "description", "test-user",
-                        "secret");
+        UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(
+                CredentialsScope.GLOBAL, "test-id", "description", "test-user", "secret");
         folderStore.addCredentials(Domain.global(), credentials);
-        asGroup = CredentialsProvider.lookupCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
-                ACL.SYSTEM2, Collections.emptyList());
-        asItem = CredentialsProvider.lookupCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
-                ACL.SYSTEM2, Collections.emptyList());
+        asGroup = CredentialsProvider.lookupCredentialsInItemGroup(
+                StandardUsernamePasswordCredentials.class, f, ACL.SYSTEM2, Collections.emptyList());
+        asItem = CredentialsProvider.lookupCredentialsInItem(
+                StandardUsernamePasswordCredentials.class, f, ACL.SYSTEM2, Collections.emptyList());
         assertThat(asGroup, is(asItem));
         assertThat(asGroup, hasItem(credentials));
         assertThat(asItem, hasItem(credentials));
@@ -111,24 +108,37 @@ class FolderCredentialsProviderTest {
     @Test
     void credentialsListableAtFolderScope() throws Exception {
         Folder f = createFolder();
-        ListBoxModel asGroup =
-                CredentialsProvider.listCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
-                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
-        ListBoxModel asItem =
-                CredentialsProvider.listCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
-                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
+        ListBoxModel asGroup = CredentialsProvider.listCredentialsInItemGroup(
+                StandardUsernamePasswordCredentials.class,
+                f,
+                ACL.SYSTEM2,
+                Collections.emptyList(),
+                CredentialsMatchers.always());
+        ListBoxModel asItem = CredentialsProvider.listCredentialsInItem(
+                StandardUsernamePasswordCredentials.class,
+                f,
+                ACL.SYSTEM2,
+                Collections.emptyList(),
+                CredentialsMatchers.always());
         assertThat(asGroup, is(asItem));
         assertThat(asGroup.size(), is(0));
         assertThat(asItem.size(), is(0));
         CredentialsStore folderStore = getFolderStore(f);
-        UsernamePasswordCredentialsImpl credentials =
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "test-id", "description", "test-user",
-                        "secret");
+        UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(
+                CredentialsScope.GLOBAL, "test-id", "description", "test-user", "secret");
         folderStore.addCredentials(Domain.global(), credentials);
-        asGroup = CredentialsProvider.listCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, f,
-                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
-        asItem = CredentialsProvider.listCredentialsInItem(StandardUsernamePasswordCredentials.class, f,
-                        ACL.SYSTEM2, Collections.emptyList(), CredentialsMatchers.always());
+        asGroup = CredentialsProvider.listCredentialsInItemGroup(
+                StandardUsernamePasswordCredentials.class,
+                f,
+                ACL.SYSTEM2,
+                Collections.emptyList(),
+                CredentialsMatchers.always());
+        asItem = CredentialsProvider.listCredentialsInItem(
+                StandardUsernamePasswordCredentials.class,
+                f,
+                ACL.SYSTEM2,
+                Collections.emptyList(),
+                CredentialsMatchers.always());
         assertThat(asGroup.size(), is(1));
         assertThat(asGroup.get(0).value, is("test-id"));
         assertThat(asItem.size(), is(1));
@@ -139,9 +149,10 @@ class FolderCredentialsProviderTest {
     void given_folderCredential_when_builtAsSystem_then_credentialFound() throws Exception {
         Folder f = createFolder();
         CredentialsStore folderStore = getFolderStore(f);
-        folderStore.addCredentials(Domain.global(),
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
-                        "manchu"));
+        folderStore.addCredentials(
+                Domain.global(),
+                new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo", "manchu"));
         FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
         prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu"));
         r.buildAndAssertSuccess(prj);
@@ -151,9 +162,10 @@ class FolderCredentialsProviderTest {
     void given_folderCredential_when_builtAsUserWithUseItem_then_credentialFound() throws Exception {
         Folder f = createFolder();
         CredentialsStore folderStore = getFolderStore(f);
-        folderStore.addCredentials(Domain.global(),
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
-                        "manchu"));
+        folderStore.addCredentials(
+                Domain.global(),
+                new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo", "manchu"));
         FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
         prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu"));
 
@@ -166,7 +178,8 @@ class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator()
+                .authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -177,9 +190,10 @@ class FolderCredentialsProviderTest {
     void given_folderCredential_when_builtAsUserWithoutUseItem_then_credentialNotFound() throws Exception {
         Folder f = createFolder();
         CredentialsStore folderStore = getFolderStore(f);
-        folderStore.addCredentials(Domain.global(),
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
-                        "manchu"));
+        folderStore.addCredentials(
+                Domain.global(),
+                new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo", "manchu"));
         FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
         prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu"));
 
@@ -191,7 +205,8 @@ class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator()
+                .authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -200,14 +215,16 @@ class FolderCredentialsProviderTest {
 
     @Test
     void given_folderAndSystemCredentials_when_builtAsUserWithUseItem_then_folderCredentialFound() throws Exception {
-        SystemCredentialsProvider.getInstance().getCredentials().add(
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "You don't want me", "bar", "fly")
-        );
+        SystemCredentialsProvider.getInstance()
+                .getCredentials()
+                .add(new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "You don't want me", "bar", "fly"));
         Folder f = createFolder();
         CredentialsStore folderStore = getFolderStore(f);
-        folderStore.addCredentials(Domain.global(),
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
-                        "manchu"));
+        folderStore.addCredentials(
+                Domain.global(),
+                new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo", "manchu"));
         FreeStyleProject prj = f.createProject(FreeStyleProject.class, "job");
         prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu", Matchers.hasProperty("username", is("foo"))));
 
@@ -220,7 +237,8 @@ class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator()
+                .authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -236,19 +254,24 @@ class FolderCredentialsProviderTest {
     }
 
     @Test
-    void given_nestedFolderAndSystemCredentials_when_builtAsUserWithUseItem_then_folderCredentialFound() throws Exception {
-        SystemCredentialsProvider.getInstance().getCredentials().add(
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "You don't want me", "bar", "fly")
-        );
+    void given_nestedFolderAndSystemCredentials_when_builtAsUserWithUseItem_then_folderCredentialFound()
+            throws Exception {
+        SystemCredentialsProvider.getInstance()
+                .getCredentials()
+                .add(new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "You don't want me", "bar", "fly"));
         Folder f = createFolder();
         CredentialsStore folderStore = getFolderStore(f);
-        folderStore.addCredentials(Domain.global(),
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Prof. Xavier", "prof",
-                        "xavier"));
+        folderStore.addCredentials(
+                Domain.global(),
+                new UsernamePasswordCredentialsImpl(
+                        CredentialsScope.GLOBAL, "foo-manchu", "Prof. Xavier", "prof", "xavier"));
         Folder child = f.createProject(Folder.class, "child");
-        getFolderStore(child).addCredentials(Domain.global(),
-                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo",
-                        "manchu"));
+        getFolderStore(child)
+                .addCredentials(
+                        Domain.global(),
+                        new UsernamePasswordCredentialsImpl(
+                                CredentialsScope.GLOBAL, "foo-manchu", "Dr. Fu Manchu", "foo", "manchu"));
         FreeStyleProject prj = child.createProject(FreeStyleProject.class, "job");
         prj.getBuildersList().add(new HasCredentialBuilder("foo-manchu", Matchers.hasProperty("username", is("foo"))));
 
@@ -261,7 +284,8 @@ class FolderCredentialsProviderTest {
         strategy.grant(Computer.BUILD).everywhere().to("bob");
 
         r.jenkins.setAuthorizationStrategy(strategy);
-        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator().authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
+        MockQueueItemAuthenticator authenticator = new MockQueueItemAuthenticator()
+                .authenticate(prj.getFullName(), User.getById("bob", true).impersonate2());
 
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().clear();
         QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(authenticator);
@@ -279,13 +303,16 @@ class FolderCredentialsProviderTest {
     @Test
     @Issue("SECURITY-3252")
     void cannotUpdateCredentialsId() throws Exception {
-        UsernamePasswordCredentialsImpl cred1 = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "cred1", "Cred 1", "foo", "bar");
-        UsernamePasswordCredentialsImpl cred2 = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "cred2", "Cred 2", "fee", "baz");
+        UsernamePasswordCredentialsImpl cred1 =
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "cred1", "Cred 1", "foo", "bar");
+        UsernamePasswordCredentialsImpl cred2 =
+                new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "cred2", "Cred 2", "fee", "baz");
         Folder f = createFolder();
         CredentialsStore folderStore = getFolderStore(f);
         folderStore.addCredentials(Domain.global(), cred1);
 
-        assertThrows(IllegalArgumentException.class, () -> folderStore.updateCredentials(Domain.global(), cred1, cred2));
+        assertThrows(
+                IllegalArgumentException.class, () -> folderStore.updateCredentials(Domain.global(), cred1, cred2));
     }
 
     private static class HasCredentialBuilder extends TestBuilder {
@@ -325,7 +352,6 @@ class FolderCredentialsProviderTest {
                 return true;
             }
         }
-
     }
 
     private CredentialsStore getFolderStore(Folder f) {
@@ -341,6 +367,7 @@ class FolderCredentialsProviderTest {
     }
 
     private Folder createFolder() throws IOException {
-        return r.jenkins.createProject(Folder.class, "folder" + r.jenkins.getItems().size());
+        return r.jenkins.createProject(
+                Folder.class, "folder" + r.jenkins.getItems().size());
     }
 }

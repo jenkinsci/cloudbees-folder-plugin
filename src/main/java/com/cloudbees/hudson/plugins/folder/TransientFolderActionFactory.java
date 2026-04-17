@@ -27,7 +27,6 @@ package com.cloudbees.hudson.plugins.folder;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Action;
-
 import java.util.Collection;
 import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
@@ -67,4 +66,3 @@ public abstract class TransientFolderActionFactory implements ExtensionPoint {
         return Jenkins.get().getExtensionList(TransientFolderActionFactory.class);
     }
 }
-

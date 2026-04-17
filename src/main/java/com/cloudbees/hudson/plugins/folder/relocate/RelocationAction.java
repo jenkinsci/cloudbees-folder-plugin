@@ -26,22 +26,21 @@ package com.cloudbees.hudson.plugins.folder.relocate;
 
 import com.cloudbees.hudson.plugins.folder.Messages;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
+import java.util.Collection;
+import java.util.Collections;
 import jenkins.model.TransientActionFactory;
 import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerFallback;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Does the actual work of relocating an item.
@@ -52,7 +51,12 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
     /**
      * The permission required to move an item.
      */
-    public static final Permission RELOCATE = new Permission(Item.PERMISSIONS, "Move", Messages._RelocateAction_permission_desc(), Permission.CREATE, PermissionScope.ITEM);
+    public static final Permission RELOCATE = new Permission(
+            Item.PERMISSIONS,
+            "Move",
+            Messages._RelocateAction_permission_desc(),
+            Permission.CREATE,
+            PermissionScope.ITEM);
 
     /**
      * The item that would be moved.
@@ -82,11 +86,10 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
         this.ui = ui;
     }
 
-
     /**
      * {@inheritDoc}
      */
-    @Override 
+    @Override
     public String getIconFileName() {
         return !item.hasPermission(RELOCATE) || ui == null || !ui.isAvailable(item) ? null : ui.getIconFileName();
     }
@@ -102,7 +105,7 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
     /**
      * {@inheritDoc}
      */
-    @Override 
+    @Override
     public String getDisplayName() {
         return ui == null ? null : ui.getDisplayName();
     }
@@ -110,7 +113,7 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
     /**
      * {@inheritDoc}
      */
-    @Override 
+    @Override
     public String getUrlName() {
         return ui == null ? null : ui.getUrlName();
     }
@@ -161,7 +164,8 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
             RELOCATE.getId(); // ensure loaded eagerly
         }
 
-        @Override public Class<Item> type() {
+        @Override
+        public Class<Item> type() {
             return Item.class;
         }
 
@@ -174,5 +178,4 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
             return Collections.singleton(new RelocationAction(target));
         }
     }
-
 }

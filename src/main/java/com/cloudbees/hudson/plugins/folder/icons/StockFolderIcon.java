@@ -36,8 +36,7 @@ import org.kohsuke.stapler.Stapler;
  */
 public class StockFolderIcon extends FolderIcon {
     @DataBoundConstructor
-    public StockFolderIcon() {
-    }
+    public StockFolderIcon() {}
 
     @Override
     public String getIconClassName() {
@@ -49,14 +48,14 @@ public class StockFolderIcon extends FolderIcon {
         return image != null
                 ? image
                 : (Stapler.getCurrentRequest2().getContextPath() + Hudson.RESOURCE_PATH
-                + "/plugin/cloudbees-folder/images/svgs/folder.svg");
+                        + "/plugin/cloudbees-folder/images/svgs/folder.svg");
     }
 
     public String getDescription() {
         return Messages.StockFolderIcon_Description();
     }
 
-    @Extension(ordinal=100)
+    @Extension(ordinal = 100)
     public static class DescriptorImpl extends FolderIconDescriptor {
         @Override
         public String getDisplayName() {

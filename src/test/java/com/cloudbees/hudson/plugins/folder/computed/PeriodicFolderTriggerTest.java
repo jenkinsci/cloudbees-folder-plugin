@@ -24,26 +24,27 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
-import hudson.util.ListBoxModel;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import hudson.util.ListBoxModel;
+import java.util.List;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
 
-import java.util.List;
-
 class PeriodicFolderTriggerTest {
 
     static List<ListBoxModel.Option> options() {
-       return new PeriodicFolderTrigger.DescriptorImpl().doFillIntervalItems();
+        return new PeriodicFolderTrigger.DescriptorImpl().doFillIntervalItems();
     }
 
     @Issue("JENKINS-33006")
     @ParameterizedTest
     @MethodSource("options")
     void interval(ListBoxModel.Option option) {
-        assertEquals(option.value, new PeriodicFolderTrigger(option.value).getInterval(), "correctly round-trip " + option.name);
+        assertEquals(
+                option.value,
+                new PeriodicFolderTrigger(option.value).getInterval(),
+                "correctly round-trip " + option.name);
     }
 }

@@ -107,13 +107,14 @@ public class EventOutputStreams implements Closeable {
         this(outputFile, 250, TimeUnit.MILLISECONDS, 1024, append, 32 * 1024L, fileCount);
     }
 
-    public EventOutputStreams(OutputFile outputFile,
-                              long flushInterval,
-                              TimeUnit flushIntervalUnits,
-                              int flushSize,
-                              boolean append,
-                              long rotateSize,
-                              int fileCount) {
+    public EventOutputStreams(
+            OutputFile outputFile,
+            long flushInterval,
+            TimeUnit flushIntervalUnits,
+            int flushSize,
+            boolean append,
+            long rotateSize,
+            int fileCount) {
         this.outputFile = outputFile;
         this.flushIntervalNanos = flushIntervalUnits.toNanos(flushInterval);
         this.flushSize = flushSize;
@@ -144,9 +145,7 @@ public class EventOutputStreams implements Closeable {
                 if (!appendNextOpen || file.length() > rotateSize) {
                     if (fileCount > 0) {
                         for (int i = fileCount - 1; i >= 0; i--) {
-                            File f = i == 0
-                                    ? file
-                                    : new File(file.getParent(), file.getName() + "." + (i));
+                            File f = i == 0 ? file : new File(file.getParent(), file.getName() + "." + (i));
                             if (f.exists()) {
                                 File n = new File(file.getParent(), file.getName() + "." + (i + 1));
                                 n.delete();
@@ -277,7 +276,7 @@ public class EventOutputStreams implements Closeable {
      * Supplies the current output file destination. We use indirection so that when used from a
      * {@link FolderComputation} the containing {@link Folder} can be moved without keeping the events log open.
      */
-    public static abstract class OutputFile {
+    public abstract static class OutputFile {
         /**
          * Returns the file that output is being sent to.
          *

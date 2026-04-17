@@ -1,13 +1,20 @@
 package com.cloudbees.hudson.plugins.folder.config;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.hasSize;
+
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric;
-import org.htmlunit.html.HtmlElement;
-import org.htmlunit.html.HtmlForm;
 import hudson.ExtensionFinder;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 import jenkins.model.Jenkins;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
@@ -15,21 +22,15 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LogRecorder;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.hasSize;
-
 @WithJenkins
 class AbstractFolderConfigurationTest {
 
     private static final String GUICE_INITIALIZATION_MESSAGE =
             "Failed to instantiate Key[type=" + AbstractFolderConfiguration.class.getName() + ", annotation=[none]];";
 
-    private final LogRecorder logging = new LogRecorder().record(ExtensionFinder.GuiceFinder.class, Level.INFO).capture(100);
+    private final LogRecorder logging = new LogRecorder()
+            .record(ExtensionFinder.GuiceFinder.class, Level.INFO)
+            .capture(100);
 
     private JenkinsRule r;
 
@@ -41,7 +42,8 @@ class AbstractFolderConfigurationTest {
     @Test
     @Issue("JENKINS-60393")
     void testInitialization() {
-        assertThat("AbstractFolderConfiguration should not cause circular dependency on startup",
+        assertThat(
+                "AbstractFolderConfiguration should not cause circular dependency on startup",
                 logging.getRecords().stream()
                         .filter(lr -> lr.getLevel().intValue() == Level.WARNING.intValue())
                         .filter(lr -> lr.getMessage().contains(GUICE_INITIALIZATION_MESSAGE))
@@ -53,8 +55,11 @@ class AbstractFolderConfigurationTest {
     @Test
     void healthMetricsAppearsInConfiguredGlobally() throws Exception {
         HtmlForm cfg = r.createWebClient().goTo("configure").getFormByName("config");
-        assertThat("adding metrics from Global Configuration",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(cfg.getElementsByAttribute("div", "suffix", "healthMetrics").size()));
+        assertThat(
+                "adding metrics from Global Configuration",
+                AbstractFolderConfiguration.get().getHealthMetrics(),
+                hasSize(cfg.getElementsByAttribute("div", "suffix", "healthMetrics")
+                        .size()));
     }
 
     @Issue("JENKINS-60393")
@@ -69,8 +74,10 @@ class AbstractFolderConfigurationTest {
         }
         r.submit(cfg);
 
-        assertThat("deleting all global metrics should result in an empty list",
-                AbstractFolderConfiguration.get().getHealthMetrics(), hasSize(0));
+        assertThat(
+                "deleting all global metrics should result in an empty list",
+                AbstractFolderConfiguration.get().getHealthMetrics(),
+                hasSize(0));
     }
 
     /**

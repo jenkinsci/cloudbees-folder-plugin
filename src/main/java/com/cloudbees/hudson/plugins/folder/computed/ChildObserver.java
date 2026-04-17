@@ -24,12 +24,12 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import java.util.Map;
 import java.util.Set;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 /**
  * Callback for {@link ComputedFolder}. Methods may be called only inside the scope of
@@ -43,8 +43,7 @@ public abstract class ChildObserver<I extends TopLevelItem> implements AutoClose
     /**
      * Not implementable outside package.
      */
-    ChildObserver() {
-    }
+    ChildObserver() {}
 
     /**
      * Checks whether there is an existing child which should be updated. It is <strong>strongly</strong> recommended to

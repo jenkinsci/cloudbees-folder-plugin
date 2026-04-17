@@ -24,9 +24,18 @@
 
 package com.cloudbees.hudson.plugins.folder;
 
+import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.cloudbees.hudson.plugins.folder.computed.ChildObserver;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Util;
@@ -51,21 +60,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import net.sf.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.StaplerRequest2;
-
-import static com.cloudbees.hudson.plugins.folder.ChildNameGeneratorAltTest.windowsFFS;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests {@link ChildNameGenerator} using a generator that modifies both the {@link Item#getName()} and the directory.
@@ -106,35 +106,35 @@ class ChildNameGeneratorTest {
     @Test
     void createdFromScratch() throws Throwable {
         extension.then(j -> {
-                ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
-                instance.assertItemNames(0);
-                instance.recompute(Result.SUCCESS);
-                instance.assertItemNames(1);
-                instance.addKids( // these are all NFC names
-                        "child-one",
-                        "child_two",
-                        "child three",
-                        "leanbh c\u00faig", // leanbh cúig
-                        "ребенок пять",
-                        "儿童六",
-                        "\uc544\uc774 7", // 아이 7
-                        "ni\u00f1o ocho" // niño ocho
-                );
-                instance.recompute(Result.SUCCESS);
-                checkComputedFolder(instance, 2, Normalizer.Form.NFC);
+            ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, "instance");
+            instance.assertItemNames(0);
+            instance.recompute(Result.SUCCESS);
+            instance.assertItemNames(1);
+            instance.addKids( // these are all NFC names
+                    "child-one",
+                    "child_two",
+                    "child three",
+                    "leanbh c\u00faig", // leanbh cúig
+                    "ребенок пять",
+                    "儿童六",
+                    "\uc544\uc774 7", // 아이 7
+                    "ni\u00f1o ocho" // niño ocho
+                    );
+            instance.recompute(Result.SUCCESS);
+            checkComputedFolder(instance, 2, Normalizer.Form.NFC);
         });
         extension.then(j -> {
-                TopLevelItem i = j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                ComputedFolderImpl instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, Normalizer.Form.NFC);
-                j.jenkins.reload();
-                i = j.jenkins.getItem("instance");
-                assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
-                instance = (ComputedFolderImpl) i;
-                checkComputedFolder(instance, 0, Normalizer.Form.NFC);
-                instance.doReload();
-                checkComputedFolder(instance, 0, Normalizer.Form.NFC);
+            TopLevelItem i = j.jenkins.getItem("instance");
+            assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+            ComputedFolderImpl instance = (ComputedFolderImpl) i;
+            checkComputedFolder(instance, 0, Normalizer.Form.NFC);
+            j.jenkins.reload();
+            i = j.jenkins.getItem("instance");
+            assertThat("Item loaded from disk", i, instanceOf(ComputedFolderImpl.class));
+            instance = (ComputedFolderImpl) i;
+            checkComputedFolder(instance, 0, Normalizer.Form.NFC);
+            instance.doReload();
+            checkComputedFolder(instance, 0, Normalizer.Form.NFC);
         });
     }
 
@@ -151,18 +151,19 @@ class ChildNameGeneratorTest {
             }
         }
         if (windows) {
-            instance.assertItemNames(round,
+            instance.assertItemNames(
+                    round,
                     "$$child-one",
                     "$$child_two",
                     "$$child three",
                     "$$leanbh cuI\u0300\ufffdig",
                     "$$N\u0303\u20ac\u00d0\u00b5\u00d0\u00b1\u00d0\u00b5\u00d0\u00bd\u00d0\u00be\u00d0\u00ba "
-                            + "\u00d0\u00bfN\u0303\ufffdN\u0303\u201aN\u0303\u0152", //"ребенок пять",
+                            + "\u00d0\u00bfN\u0303\ufffdN\u0303\u201aN\u0303\u0152", // "ребенок пять",
                     "$$a\u030a\u201e\u00bfc\u0327\u00ab\u00a5a\u030a\u2026\u00ad", // "儿童六",
                     "$$a\u0301\u201e\u2039a\u0301\u2026\u00a1a\u0301\u201e\u2039a\u0301\u2026\u00b5 7", // 아이 7
-                    "$$ninI\u0300\u0192o ocho"
-            );
-            instance.assertItemShortUrls(round,
+                    "$$ninI\u0300\u0192o ocho");
+            instance.assertItemShortUrls(
+                    round,
                     "job/$$child-one/",
                     "job/$$child_two/",
                     "job/$$child%20three/",
@@ -172,9 +173,9 @@ class ChildNameGeneratorTest {
                     "job/$$a%CC%8A%E2%80%9E%C2%BFc%CC%A7%C2%AB%C2%A5a%CC%8A%E2%80%A6%C2%AD/", // 儿童六
                     "job/$$a%CC%81%E2%80%9E%E2%80%B9a%CC%81%E2%80%A6%C2%A1a%CC%81%E2%80%9E%E2%80%B9a%CC%81%E2%80%A6"
                             + "%C2%B5%207/", // 아이 7
-                    "job/$$ninI%CC%80%C6%92o%20ocho/"
-            );
-            instance.assertItemDirs(round,
+                    "job/$$ninI%CC%80%C6%92o%20ocho/");
+            instance.assertItemDirs(
+                    round,
                     "child_on-1ec93354e47959489d1440d",
                     "child_tw-bca7d461e11f4f3ed12fd0d",
                     "child_th-b7a6e5662f26eb036090308",
@@ -182,33 +183,32 @@ class ChildNameGeneratorTest {
                     "n_______-0cf1929f67ea2901a9bab2d", // ребенок пять
                     "a___c___-5ef56a0f2914216ae5d5a49", // 儿童六
                     "a___a___-0f5050ad36d8b4f8ccbf621", // 아이 7
-                    "nini__o_-7d5abd24952fd3011a7327b"
-            );
+                    "nini__o_-7d5abd24952fd3011a7327b");
             for (String name : Arrays.asList(
                     "child-one",
                     "child_two",
                     "child three",
                     "leanbh cu\u0301ig",
-                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", // "ребенок пять",
                     "\u513F\u7AE5\u516D", // "儿童六",
                     "\u110b\u1161\u110b\u1175 7",
-                    "nin\u0303o ocho"
-            )) {
+                    "nin\u0303o ocho")) {
                 checkChild(instance, new String(name.getBytes(StandardCharsets.UTF_8), "Windows-1252"));
             }
 
         } else {
-            instance.assertItemNames(round,
+            instance.assertItemNames(
+                    round,
                     "$$child-one",
                     "$$child_two",
                     "$$child three",
                     "$$leanbh cu\u0301ig",
-                    "$$\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "$$\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", // "ребенок пять",
                     "$$\u513F\u7AE5\u516D", // "儿童六",
                     "$$\u110b\u1161\u110b\u1175 7",
-                    "$$nin\u0303o ocho"
-            );
-            instance.assertItemShortUrls(round,
+                    "$$nin\u0303o ocho");
+            instance.assertItemShortUrls(
+                    round,
                     "job/$$child-one/",
                     "job/$$child_two/",
                     "job/$$child%20three/",
@@ -216,12 +216,12 @@ class ChildNameGeneratorTest {
                     "job/$$%D1%80%D0%B5%D0%B1%D0%B5%D0%BD%D0%BE%D0%BA%20%D0%BF%D1%8F%D1%82%D1%8C/", // ребенок пять
                     "job/$$%E5%84%BF%E7%AB%A5%E5%85%AD/", // 儿童六
                     "job/$$%E1%84%8B%E1%85%A1%E1%84%8B%E1%85%B5%207/", // 아이 7
-                    "job/$$nin%CC%83o%20ocho/"
-            );
+                    "job/$$nin%CC%83o%20ocho/");
             switch (form) {
                 case NFC:
                 case NFKC:
-                    instance.assertItemDirs(round,
+                    instance.assertItemDirs(
+                            round,
                             "child_on-1ec93354e47959489d1440d",
                             "child_tw-bca7d461e11f4f3ed12fd0d",
                             "child_th-b7a6e5662f26eb036090308",
@@ -229,12 +229,12 @@ class ChildNameGeneratorTest {
                             "________-97e4b38574769f9d9968fe9", // ребенок пять
                             "___-d22e9fe51690274d8262bda", // 儿童六
                             "_____7-d57fff123224bd679e4213b", // 아이 7
-                            "nin_o_oc-1a0c91070942136ba398919"
-                    );
+                            "nin_o_oc-1a0c91070942136ba398919");
                     break;
                 case NFD:
                 case NFKD:
-                    instance.assertItemDirs(round,
+                    instance.assertItemDirs(
+                            round,
                             "child_on-1ec93354e47959489d1440d",
                             "child_tw-bca7d461e11f4f3ed12fd0d",
                             "child_th-b7a6e5662f26eb036090308",
@@ -242,8 +242,7 @@ class ChildNameGeneratorTest {
                             "________-97e4b38574769f9d9968fe9", // ребенок пять
                             "___-d22e9fe51690274d8262bda", // 儿童六
                             "_____7-6d2219439eec0df19863ab8", // 아이 7
-                            "nin_o_oc-782e3bad2d233732a03f9dd"
-                    );
+                            "nin_o_oc-782e3bad2d233732a03f9dd");
                     break;
             }
             for (String name : Arrays.asList(
@@ -251,11 +250,11 @@ class ChildNameGeneratorTest {
                     "child_two",
                     "child three",
                     "leanbh c\u00FAig", // "leanbh cúig",
-                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", //"ребенок пять",
+                    "\u0440\u0435\u0431\u0435\u043D\u043E\u043A \u043F\u044F\u0442\u044C", // "ребенок пять",
                     "\u513F\u7AE5\u516D", // "儿童六",
                     "\uC544\uC774 7", // "아이 7",
                     "ni\u00F1o ocho" // "niño ocho"
-            )) {
+                    )) {
                 checkChild(instance, Normalizer.normalize(name, form));
             }
         }
@@ -265,22 +264,26 @@ class ChildNameGeneratorTest {
         String encodedName = encode(idealName);
         FreeStyleProject item = instance.getItem(encodedName);
         assertThat("We have an item for name " + idealName, item, notNullValue());
-        assertThat("The root directory of the item for name " + idealName + " is mangled",
-                item.getRootDir().getName(), is(mangle(idealName)));
+        assertThat(
+                "The root directory of the item for name " + idealName + " is mangled",
+                item.getRootDir().getName(),
+                is(mangle(idealName)));
         String altEncoding = Normalizer.normalize(idealName, Normalizer.Form.NFD);
         if (idealName.equals(altEncoding)) {
             altEncoding = Normalizer.normalize(idealName, Normalizer.Form.NFC);
         }
         if (!idealName.equals(altEncoding)) {
             File altRootDir = instance.getRootDirFor(altEncoding);
-            assertThat("Alternative normalized form: " + altRootDir + " does not exist",
-                    altRootDir.isDirectory(), is(false));
+            assertThat(
+                    "Alternative normalized form: " + altRootDir + " does not exist",
+                    altRootDir.isDirectory(),
+                    is(false));
         }
     }
 
     private static String encode(String s) {
         // we want to test that the name can be different from the on-disk name
-        return "$$"+Normalizer.normalize(s, Normalizer.Form.NFD);
+        return "$$" + Normalizer.normalize(s, Normalizer.Form.NFD);
     }
 
     private static String mangle(String s) {
@@ -289,9 +292,7 @@ class ChildNameGeneratorTest {
         StringBuilder buf = new StringBuilder(32);
         for (char c : base.toCharArray()) {
             if (buf.length() >= 8) break;
-            if (('A' <= c && c <= 'Z')
-                    || ('a' <= c && c <= 'z')
-                    || ('0' <= c && c <= '9')) {
+            if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9')) {
                 buf.append(Character.toLowerCase(c));
             } else {
                 buf.append('_');
@@ -420,8 +421,8 @@ class ChildNameGeneratorTest {
         }
 
         @Override
-        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener) throws
-                IOException, InterruptedException {
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws IOException, InterruptedException {
             round++;
             created = new ArrayList<>();
             deleted = new ArrayList<>();
@@ -461,9 +462,8 @@ class ChildNameGeneratorTest {
         }
 
         @Override
-        protected Collection<FreeStyleProject> orphanedItems(Collection<FreeStyleProject> orphaned,
-                                                             TaskListener listener)
-                throws IOException, InterruptedException {
+        protected Collection<FreeStyleProject> orphanedItems(
+                Collection<FreeStyleProject> orphaned, TaskListener listener) throws IOException, InterruptedException {
             Collection<FreeStyleProject> deleting = super.orphanedItems(orphaned, listener);
             for (FreeStyleProject p : deleting) {
                 String kid = p.getName();
@@ -489,10 +489,11 @@ class ChildNameGeneratorTest {
             for (FreeStyleProject p : getItems()) {
                 actual.add(p.getName());
             }
-            assertThat(asJavaStrings(actual), anyOf(
-                    is(asJavaStrings(new TreeSet<>(Arrays.asList(names)))),
-                    is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))
-            ));
+            assertThat(
+                    asJavaStrings(actual),
+                    anyOf(
+                            is(asJavaStrings(new TreeSet<>(Arrays.asList(names)))),
+                            is(asJavaStrings(windowsFFS(Normalizer.Form.NFD, names)))));
         }
 
         public void assertItemShortUrls(int round, String... names) {
@@ -567,8 +568,7 @@ class ChildNameGeneratorTest {
             extends ChildNameGenerator<F, J> {
 
         @Override
-        public String itemNameFromItem(@NonNull F parent,
-                                       @NonNull J item) {
+        public String itemNameFromItem(@NonNull F parent, @NonNull J item) {
             NameProperty property = item.getProperty(NameProperty.class);
             if (property != null) {
                 return encode(property.getName());
@@ -578,8 +578,7 @@ class ChildNameGeneratorTest {
         }
 
         @Override
-        public String dirNameFromItem(@NonNull F parent,
-                                      @NonNull J item) {
+        public String dirNameFromItem(@NonNull F parent, @NonNull J item) {
             NameProperty property = item.getProperty(NameProperty.class);
             if (property != null) {
                 return mangle(property.getName());
@@ -590,15 +589,13 @@ class ChildNameGeneratorTest {
 
         @NonNull
         @Override
-        public String itemNameFromLegacy(@NonNull F parent,
-                                         @NonNull String legacyDirName) {
+        public String itemNameFromLegacy(@NonNull F parent, @NonNull String legacyDirName) {
             return encode(legacyDirName);
         }
 
         @NonNull
         @Override
-        public String dirNameFromLegacy(@NonNull F parent,
-                                        @NonNull String legacyDirName) {
+        public String dirNameFromLegacy(@NonNull F parent, @NonNull String legacyDirName) {
             return mangle(legacyDirName);
         }
     }
@@ -617,7 +614,7 @@ class ChildNameGeneratorTest {
 
     static Set<String> asJavaStrings(Iterable<String> strings) {
         Set<String> result = new TreeSet<>();
-        for (String s: strings) {
+        for (String s : strings) {
             result.add(asJavaString(s).toString());
         }
         return result;

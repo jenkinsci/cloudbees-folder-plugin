@@ -33,14 +33,14 @@ import jenkins.model.CauseOfInterruption;
  */
 public class OrphanedParent extends CauseOfInterruption {
 
-	private final String orphanedParentFullDisplayName;
+    private final String orphanedParentFullDisplayName;
 
-	public OrphanedParent(Item orphanedParent) {
-		this.orphanedParentFullDisplayName = orphanedParent.getFullDisplayName();
-	}
+    public OrphanedParent(Item orphanedParent) {
+        this.orphanedParentFullDisplayName = orphanedParent.getFullDisplayName();
+    }
 
-	@Override
-	public String getShortDescription() {
-		return Messages.OrphanedParent_CauseOfInterruption_ShortDescription(orphanedParentFullDisplayName);
-	}
+    @Override
+    public String getShortDescription() {
+        return Messages.OrphanedParent_CauseOfInterruption_ShortDescription(orphanedParentFullDisplayName);
+    }
 }

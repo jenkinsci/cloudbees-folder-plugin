@@ -28,10 +28,9 @@ import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.model.HealthReport;
 import hudson.model.Item;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import java.util.Collections;
 import java.util.List;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class WorstChildHealthMetric extends FolderHealthMetric {
 
@@ -61,7 +60,7 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
         return new ReporterImpl();
     }
 
-    @Extension(ordinal=400)
+    @Extension(ordinal = 400)
     public static class DescriptorImpl extends FolderHealthMetricDescriptor {
 
         @Override
@@ -69,10 +68,10 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
             return Messages.WorstChildHealthMetric_DisplayName();
         }
 
-        @Override public FolderHealthMetric createDefault() {
+        @Override
+        public FolderHealthMetric createDefault() {
             return new WorstChildHealthMetric(true);
         }
-
     }
 
     private static class ReporterImpl implements Reporter {
@@ -85,16 +84,15 @@ public class WorstChildHealthMetric extends FolderHealthMetric {
             }
             HealthReport report = getHealthReport(item);
             if (report != null && (worst == null || report.getScore() < worst.getScore())) {
-                worst = new HealthReport(report.getScore(), report.getIconUrl(),
-                        Messages._Folder_HealthWrap(item.getFullDisplayName(),
-                                report.getLocalizableDescription()));
+                worst = new HealthReport(
+                        report.getScore(),
+                        report.getIconUrl(),
+                        Messages._Folder_HealthWrap(item.getFullDisplayName(), report.getLocalizableDescription()));
             }
         }
 
         public List<HealthReport> report() {
-            return worst != null && worst.getScore() < 100
-                    ? Collections.singletonList(worst)
-                    : Collections.emptyList();
+            return worst != null && worst.getScore() < 100 ? Collections.singletonList(worst) : Collections.emptyList();
         }
     }
 }

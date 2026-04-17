@@ -45,8 +45,9 @@ public abstract class ChildLoader implements ExtensionPoint {
      */
     protected <V extends TopLevelItem> boolean ensureDirExists(File modulesDir, AbstractFolder<V> parent) {
         if (!modulesDir.isDirectory() && !modulesDir.mkdirs()) { // make sure it exists
-            LOGGER.log(Level.SEVERE, "Could not create {0} for folder {1}",
-                    new Object[]{modulesDir, parent.getFullName()});
+            LOGGER.log(
+                    Level.SEVERE, "Could not create {0} for folder {1}", new Object[] {modulesDir, parent.getFullName()
+                    });
             return false;
         }
         return true;
@@ -91,20 +92,27 @@ public abstract class ChildLoader implements ExtensionPoint {
                     var subdirP = subdir.toPath();
                     var gracePeriod = SystemProperties.getDuration(GRACE_PERIOD_PROP, Duration.ofDays(1));
                     try {
-                        if (Files.getLastModifiedTime(subdirP).toInstant().isBefore(Instant.now().minus(gracePeriod))) {
+                        if (Files.getLastModifiedTime(subdirP)
+                                .toInstant()
+                                .isBefore(Instant.now().minus(gracePeriod))) {
                             var brokenChildrenDir = parent.getRootDir().toPath().resolve("broken-children");
                             var brokenChildDir = brokenChildrenDir.resolve(subdirP.getFileName());
                             if (!Files.exists(brokenChildDir)) {
                                 Files.createDirectories(brokenChildrenDir);
                                 Files.move(subdirP, brokenChildDir);
-                                LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdir + " to " + brokenChildDir + " for analysis");
+                                LOGGER.warning(() -> xmlFile + " did not exist; moved " + subdir + " to "
+                                        + brokenChildDir + " for analysis");
                                 return null;
                             }
                         }
                     } catch (IOException x) {
-                        LOGGER.log(Level.WARNING, x, () -> xmlFile + " did not exist; failed to move " + subdir + " aside for analysis");
+                        LOGGER.log(
+                                Level.WARNING,
+                                x,
+                                () -> xmlFile + " did not exist; failed to move " + subdir + " aside for analysis");
                     }
-                    LOGGER.warning(() -> xmlFile + " did not exist; " + Util.getTimeSpanString(gracePeriod.toMillis()) + " after last modification time " + subdir + " will be moved aside");
+                    LOGGER.warning(() -> xmlFile + " did not exist; " + Util.getTimeSpanString(gracePeriod.toMillis())
+                            + " after last modification time " + subdir + " will be moved aside");
                     return null;
                 }
             }

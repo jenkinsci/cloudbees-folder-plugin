@@ -46,7 +46,9 @@ import org.kohsuke.stapler.StaplerRequest2;
  * Property potentially applicable to any {@link AbstractFolder}.
  * @since 4.11-beta-1
  */
-public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extends AbstractDescribableImpl<AbstractFolderProperty<?>> implements ExtensionPoint, ReconfigurableDescribable<AbstractFolderProperty<?>> {
+public abstract class AbstractFolderProperty<C extends AbstractFolder<?>>
+        extends AbstractDescribableImpl<AbstractFolderProperty<?>>
+        implements ExtensionPoint, ReconfigurableDescribable<AbstractFolderProperty<?>> {
 
     /**
      * The {@link AbstractFolder} object that owns this property.
@@ -73,7 +75,7 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
     public C getOwner() {
         return owner;
     }
-    
+
     @Override
     public AbstractFolderPropertyDescriptor getDescriptor() {
         return (AbstractFolderPropertyDescriptor) super.getDescriptor();
@@ -92,7 +94,8 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
 
     @Override
     public AbstractFolderProperty<?> reconfigure(StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {
-        if (Util.isOverridden(AbstractFolderProperty.class, getClass(), "reconfigure", StaplerRequest.class, JSONObject.class)) {
+        if (Util.isOverridden(
+                AbstractFolderProperty.class, getClass(), "reconfigure", StaplerRequest.class, JSONObject.class)) {
             return reconfigure(req != null ? StaplerRequest.fromStaplerRequest2(req) : null, form);
         } else {
             return reconfigureImpl(req, form);
@@ -108,7 +111,8 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
         return reconfigureImpl(req != null ? StaplerRequest.toStaplerRequest2(req) : null, form);
     }
 
-    private AbstractFolderProperty<?> reconfigureImpl(StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {
+    private AbstractFolderProperty<?> reconfigureImpl(StaplerRequest2 req, JSONObject form)
+            throws Descriptor.FormException {
         return form == null ? null : getDescriptor().newInstance(req, form);
     }
 
@@ -133,5 +137,4 @@ public abstract class AbstractFolderProperty<C extends AbstractFolder<?>> extend
     public List<FolderHealthMetric> getHealthMetrics() {
         return Collections.emptyList();
     }
-
 }
