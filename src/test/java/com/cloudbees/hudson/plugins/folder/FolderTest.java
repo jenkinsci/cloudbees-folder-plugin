@@ -711,8 +711,10 @@ class FolderTest {
                 lazyBlocks,
                 hasSize(1));
         DomNode lazyBlock = lazyBlocks.get(0);
-        String proxyUrl = lazyBlock.getAttributes().getNamedItem("data-proxy-url").getNodeValue();
-        String crumb = lazyBlock.getAttributes().getNamedItem("data-proxy-crumb").getNodeValue();
+        String proxyUrl =
+                lazyBlock.getAttributes().getNamedItem("data-proxy-url").getNodeValue();
+        String crumb =
+                lazyBlock.getAttributes().getNamedItem("data-proxy-crumb").getNodeValue();
 
         if (!proxyUrl.endsWith("/")) {
             proxyUrl += "/";
@@ -724,8 +726,7 @@ class FolderTest {
         // bind.js also sends this header, populated client-side by Jenkins' own crumb.js wrapper
         // (crumb.wrap(headers)) using the crumb issuer's actual configured field name; replicate
         // that here since we are not executing the real browser-side JavaScript.
-        renderRequest.setAdditionalHeader(
-                r.jenkins.getCrumbIssuer().getCrumbRequestField(), crumb);
+        renderRequest.setAdditionalHeader(r.jenkins.getCrumbIssuer().getCrumbRequestField(), crumb);
         renderRequest.setRequestBody("[]");
         Page renderedFragment = viewer.getPage(renderRequest);
         String html = renderedFragment.getWebResponse().getContentAsString();
