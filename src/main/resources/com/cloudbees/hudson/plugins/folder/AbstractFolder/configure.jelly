@@ -97,11 +97,11 @@ THE SOFTWARE.
               <j:if test="${it.folderViews.tabBarModifiable}">
                 <j:choose>
                   <j:when test="${descriptor.tabBarConfigurable}">
-                    <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
+                    <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar" capture="readOnlyMode"/>
                   </j:when>
                   <j:otherwise>
                     <f:invisibleEntry>
-                        <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar"/>
+                        <f:dropdownDescriptorSelector title="${%Views Tab Bar}" field="viewsTabBar" capture="readOnlyMode"/>
                     </f:invisibleEntry>
                   </j:otherwise>
                 </j:choose>
@@ -109,11 +109,11 @@ THE SOFTWARE.
 
               <j:choose>
                 <j:when test="${descriptor.iconConfigurable}">
-                  <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+                  <f:dropdownDescriptorSelector title="${%Icon}" field="icon" capture="readOnlyMode"/>
                 </j:when>
                 <j:otherwise>
                   <f:invisibleEntry>
-                      <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+                      <f:dropdownDescriptorSelector title="${%Icon}" field="icon" capture="readOnlyMode"/>
                   </f:invisibleEntry>
                 </j:otherwise>
               </j:choose>
@@ -122,7 +122,7 @@ THE SOFTWARE.
           </j:when>
           <j:otherwise>
             <f:invisibleEntry>
-                <f:dropdownDescriptorSelector title="${%Icon}" field="icon"/>
+                <f:dropdownDescriptorSelector title="${%Icon}" field="icon" capture="readOnlyMode"/>
             </f:invisibleEntry>
           </j:otherwise>
         </j:choose>

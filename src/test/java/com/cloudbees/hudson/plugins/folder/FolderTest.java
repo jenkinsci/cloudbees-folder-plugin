@@ -76,6 +76,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.RenameAction;
 import jenkins.util.Timer;
 import org.htmlunit.HttpMethod;
+import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 import org.htmlunit.html.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -89,6 +90,7 @@ import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.security.access.AccessDeniedException;
 
 @WithJenkins
@@ -668,5 +670,116 @@ class FolderTest {
                 "the Advanced toggle must still be rendered for a user who can configure the folder",
                 adminConfigure.getByXPath("//button[contains(@class, 'advancedButton')]"),
                 not(empty()));
+    }
+
+    /**
+     * {@code f:dropdownDescriptorSelector} renders the config fragment of the currently selected
+     * descriptor inline, but every other candidate descriptor's fragment is rendered lazily via
+     * {@code l:renderOnDemand}. {@code RenderOnDemandClosure} snapshots only the jelly variables
+     * named in the tag's {@code capture} attribute (plus a few Stapler well-known bindings) at the
+     * time the outer page is rendered; anything else, including the outer {@code readOnlyMode}
+     * variable set in {@code AbstractFolder/configure.jelly}, is invisible to the lazily-rendered
+     * fragment unless explicitly captured. This test registers a second {@link FolderIcon}
+     * descriptor (so the Icon dropdown actually needs to lazily render a non-selected entry) and
+     * fetches that lazy fragment directly through the same stapler-bound-proxy protocol the
+     * browser's own JavaScript uses (see {@code org/kohsuke/stapler/bind.js}), to assert that a
+     * read-only viewer sees the field as read-only there too.
+     */
+    @Issue("JENKINS-62218")
+    @Test
+    void readOnlyViewerCannotEditLazyIconDescriptorFields() throws Exception {
+        Folder f = createFolder();
+        f.save();
+
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
+        mockStrategy
+                .grant(Jenkins.READ, Item.READ, Item.EXTENDED_READ)
+                .everywhere()
+                .to("viewer");
+        mockStrategy.grant(Jenkins.ADMINISTER).everywhere().to("admin");
+        r.jenkins.setAuthorizationStrategy(mockStrategy);
+
+        JenkinsRule.WebClient viewer = r.createWebClient();
+        viewer.login("viewer");
+        HtmlPage viewerConfigure = viewer.getPage(f, "configure");
+
+        List<DomNode> lazyBlocks = viewerConfigure.getByXPath("//div[contains(@class, 'render-on-demand')]");
+        assertThat(
+                "the folder has two icon descriptors (stock + the fake one registered below) and only"
+                        + " the non-selected one (the fake one) should need to be rendered lazily",
+                lazyBlocks,
+                hasSize(1));
+        DomNode lazyBlock = lazyBlocks.get(0);
+        String proxyUrl = lazyBlock.getAttributes().getNamedItem("data-proxy-url").getNodeValue();
+        String crumb = lazyBlock.getAttributes().getNamedItem("data-proxy-crumb").getNodeValue();
+
+        if (!proxyUrl.endsWith("/")) {
+            proxyUrl += "/";
+        }
+        URL renderUrl = new URL(viewerConfigure.getUrl(), proxyUrl + "render");
+        WebRequest renderRequest = new WebRequest(renderUrl, HttpMethod.POST);
+        renderRequest.setAdditionalHeader("Content-Type", "application/x-stapler-method-invocation;charset=UTF-8");
+        renderRequest.setAdditionalHeader("Crumb", crumb);
+        // bind.js also sends this header, populated client-side by Jenkins' own crumb.js wrapper
+        // (crumb.wrap(headers)) using the crumb issuer's actual configured field name; replicate
+        // that here since we are not executing the real browser-side JavaScript.
+        renderRequest.setAdditionalHeader(
+                r.jenkins.getCrumbIssuer().getCrumbRequestField(), crumb);
+        renderRequest.setRequestBody("[]");
+        Page renderedFragment = viewer.getPage(renderRequest);
+        String html = renderedFragment.getWebResponse().getContentAsString();
+
+        assertThat(
+                "a read-only viewer must not see an editable <input> for a field belonging to a"
+                        + " lazily-loaded (non-selected) descriptor fragment",
+                html,
+                not(containsString("<input")));
+        assertThat(
+                "possibleReadOnlyField.jelly should have rendered the read-only placeholder instead",
+                html,
+                containsString("jenkins-not-applicable"));
+    }
+
+    /**
+     * A second {@link FolderIcon} implementation solely so that {@code isIconConfigurable()}
+     * (which requires more than one registered {@link FolderIconDescriptor}) returns {@code true}
+     * and the Icon dropdown actually needs to lazily render a non-selected entry, giving
+     * {@link #readOnlyViewerCannotEditLazyIconDescriptorFields()} something concrete to fetch.
+     */
+    public static class FakeCaptureFolderIcon extends FolderIcon {
+        private final String extraField;
+
+        @DataBoundConstructor
+        public FakeCaptureFolderIcon(String extraField) {
+            this.extraField = extraField;
+        }
+
+        public String getExtraField() {
+            return extraField;
+        }
+
+        @Override
+        public String getIconClassName() {
+            return "symbol-folder-outline plugin-ionicons-api";
+        }
+
+        @Override
+        public String getImageOf(String size) {
+            return iconClassNameImageOf(size);
+        }
+
+        @Override
+        public String getDescription() {
+            return "FakeCaptureFolderIcon";
+        }
+
+        @TestExtension("readOnlyViewerCannotEditLazyIconDescriptorFields")
+        public static class DescriptorImpl extends FolderIconDescriptor {
+            @Override
+            public String getDisplayName() {
+                return "FakeCaptureFolderIcon";
+            }
+        }
     }
 }
