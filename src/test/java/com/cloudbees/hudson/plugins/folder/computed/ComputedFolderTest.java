@@ -657,7 +657,8 @@ class ComputedFolderTest {
         // Contains the initial computation's timestamp
         String computationAfterA = d.getComputation().getDataFile().asString();
 
-        // The computation performed above has a timestamp. The sleep below makes sure the next computation will store a different one.
+        // The computation performed above has a timestamp. The sleep below makes sure the next computation will store a
+        // different one.
         TimeUnit.MILLISECONDS.sleep(1);
         d.kids.add("B");
         d.recompute(Result.SUCCESS);
