@@ -647,6 +647,38 @@ class ComputedFolderTest {
         }
     }
 
+    @Test
+    void verifyFailingComputationDoesntSave() throws Exception {
+        FailingComputedFolder d = r.jenkins.createProject(FailingComputedFolder.class, "d");
+        d.setDisplayName("My Folder");
+
+        d.kids.add("A");
+        d.recompute(Result.SUCCESS);
+        // Contains the initial computation's timestamp
+        String computationAfterA = d.getComputation().getDataFile().asString();
+
+        // The computation performed above has a timestamp. The sleep below makes sure the next computation will store a different one.
+        TimeUnit.MILLISECONDS.sleep(1);
+        d.kids.add("B");
+        d.recompute(Result.SUCCESS);
+        // Contains the timestamp after the second computation
+        String computationAfterB = d.getComputation().getDataFile().asString();
+
+        // At least the timestamps in the saved files are different.
+        assertNotEquals(computationAfterA, computationAfterB);
+
+        // Ensures the folder computation file would be different from the previous one, if it was saved
+        TimeUnit.MILLISECONDS.sleep(1);
+        d.startFailing();
+        d.kids.add("C");
+        d.recompute(Result.FAILURE);
+        // If the computation file was saved, this would also be different from the previous.
+        // But because there's a failure, the file won't be touched and will be equal to after B.
+        String computationAfterC = d.getComputation().getDataFile().asString();
+
+        assertEquals(computationAfterB, computationAfterC);
+    }
+
     /**
      * Waits until Hudson finishes building everything, including those in the queue, or fail the test
      * if the specified timeout milliseconds is
@@ -1277,6 +1309,45 @@ class ComputedFolderTest {
             @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new OneUndeletableChildComputedFolder(parent, name);
+            }
+        }
+    }
+
+    /**
+     * A folder that starts by working like a SampleComputedFolder
+     * but once it starts failing, it ceases to be able to compute its children.
+     * <br/>
+     * Useful to simulate network issues with folder-updating plugins.
+     */
+    public static class FailingComputedFolder extends SampleComputedFolder {
+
+        private boolean fail = false;
+
+        protected FailingComputedFolder(ItemGroup parent, String name) {
+            super(parent, name);
+        }
+
+        public void startFailing() {
+            fail = true;
+        }
+
+        @Override
+        protected void computeChildren(ChildObserver<FreeStyleProject> observer, TaskListener listener)
+                throws IOException, InterruptedException {
+            if (fail) {
+                throw new IOException("Simulating failures starting to happen on folder recomputation.");
+            } else {
+                super.computeChildren(observer, listener);
+            }
+        }
+
+        @SuppressWarnings("unused")
+        @TestExtension
+        public static class DescriptorImpl extends AbstractFolderDescriptor {
+
+            @Override
+            public TopLevelItem newInstance(ItemGroup parent, String name) {
+                return new FailingComputedFolder(parent, name);
             }
         }
     }
