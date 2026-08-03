@@ -1,0 +1,5 @@
+items:
+  - folder:
+      name: "team-beta"
+      displayName: "Team Beta Updated"
+      description: "New Description via JCasC"
