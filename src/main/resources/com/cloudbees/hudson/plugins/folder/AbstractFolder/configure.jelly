@@ -128,26 +128,14 @@ THE SOFTWARE.
         </j:choose>
 
         <f:section title="${%Health metrics}" icon="symbol-pulse-outline plugin-ionicons-api">
-          <j:choose>
-            <j:when test="${readOnlyMode}">
-              <f:block>
-                <f:hetero-list descriptors="${descriptor.getHealthMetricDescriptors()}"
-                               items="${it.healthMetrics}" name="healthMetrics"
-                               addCaption="${%Add metric}" deleteCaption="${%Remove}"
-                               oneEach="true" hasHeader="true" honorOrder="true"/>
-              </f:block>
-            </j:when>
-            <j:otherwise>
-              <f:advanced title="${%Health metrics}" align="left">
-                <f:block>
-                  <f:hetero-list descriptors="${descriptor.getHealthMetricDescriptors()}"
-                                 items="${it.healthMetrics}" name="healthMetrics"
-                                 addCaption="${%Add metric}" deleteCaption="${%Remove}"
-                                 oneEach="true" hasHeader="true" honorOrder="true"/>
-                </f:block>
-              </f:advanced>
-            </j:otherwise>
-          </j:choose>
+          <f:advanced title="${%Health metrics}" align="left">
+            <f:block>
+              <f:hetero-list descriptors="${descriptor.getHealthMetricDescriptors()}"
+                             items="${it.healthMetrics}" name="healthMetrics"
+                             addCaption="${%Add metric}" deleteCaption="${%Remove}"
+                             oneEach="true" hasHeader="true" honorOrder="true"/>
+            </f:block>
+          </f:advanced>
         </f:section>
 
         <!-- folder property configurations -->

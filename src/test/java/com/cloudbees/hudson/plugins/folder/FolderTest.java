@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.cloudbees.hudson.plugins.folder.config.AbstractFolderConfiguration;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetric;
 import com.cloudbees.hudson.plugins.folder.health.FolderHealthMetricDescriptor;
-import com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric;
 import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import hudson.model.AbstractItem;
@@ -631,42 +630,5 @@ class FolderTest {
         // The expected response status code of the folder URL is 405, this means that the method is not allowed
         // The request sent is using a GET instead of POST request which is not allowed
         assertEquals(405, webClient.goTo(folderURL).getWebResponse().getStatusCode());
-    }
-
-    @Issue("JENKINS-62218")
-    @Test
-    void readOnlyViewerSeesExpandedHealthMetrics() throws Exception {
-        Folder f = createFolder();
-        f.getHealthMetrics().add(new WorstChildHealthMetric());
-        f.save();
-
-        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
-        mockStrategy
-                .grant(Jenkins.READ, Item.READ, Item.EXTENDED_READ)
-                .everywhere()
-                .to("viewer");
-        mockStrategy.grant(Jenkins.ADMINISTER).everywhere().to("admin");
-        r.jenkins.setAuthorizationStrategy(mockStrategy);
-
-        JenkinsRule.WebClient viewer = r.createWebClient();
-        viewer.login("viewer");
-        HtmlPage viewerConfigure = viewer.getPage(f, "configure");
-        assertThat(
-                "a read-only viewer should not need to click an Advanced toggle to see configured health metrics",
-                viewerConfigure.getByXPath("//button[contains(@class, 'advancedButton')]"),
-                is(empty()));
-        assertThat(
-                "the configured health metric should be visible without expanding anything",
-                viewerConfigure.asNormalizedText(),
-                containsString("Child item with worst health"));
-
-        JenkinsRule.WebClient admin = r.createWebClient();
-        admin.login("admin");
-        HtmlPage adminConfigure = admin.getPage(f, "configure");
-        assertThat(
-                "the Advanced toggle must still be rendered for a user who can configure the folder",
-                adminConfigure.getByXPath("//button[contains(@class, 'advancedButton')]"),
-                not(empty()));
     }
 }
