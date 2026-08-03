@@ -24,5 +24,9 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:s="/lib/form">
   <j:set var="url" value="${h.getNearestAncestorUrl(request2,it)}"/>
-  <l:task icon="icon-new-package icon-md" href="${url}/newJob" title="${%newJob(it.newPronoun)}" permission="${it.CREATE}" />
+  <j:set var="newJobUrl" value="${h.getNearestAncestorUrl(request2, view)}"/>
+  <j:if test="${newJobUrl == null}">
+    <j:set var="newJobUrl" value="${url}"/>
+  </j:if>
+  <l:task icon="icon-new-package icon-md" href="${newJobUrl}/newJob" title="${%newJob(it.newPronoun)}" permission="${it.CREATE}" />
 </j:jelly>
