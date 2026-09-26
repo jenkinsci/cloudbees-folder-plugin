@@ -222,6 +222,24 @@ class FolderTest {
     }
 
     /**
+     * Ordinary folders (and the Jenkins root) keep their historical case-insensitive child lookup.
+     */
+    @Test
+    void freshFolderRetainCaseInsensitiveNames() throws IOException {
+        Folder f = createFolder();
+        FreeStyleProject prod = f.createProject(FreeStyleProject.class, "prod");
+        assertSame(prod, f.getItem("prod"));
+        assertSame(prod, f.getItem("PROD"));
+        assertSame(prod, f.getItem("Prod"));
+        assertThrows(IllegalArgumentException.class, () -> f.createProject(FreeStyleProject.class, "PROD"));
+        assertEquals(1, f.getItems().size());
+
+        FreeStyleProject rootProd = r.jenkins.createProject(FreeStyleProject.class, "rootprod");
+        assertSame(rootProd, r.jenkins.getItem("ROOTPROD"));
+        assertThrows(IllegalArgumentException.class, () -> r.jenkins.createProject(FreeStyleProject.class, "RootProd"));
+    }
+
+    /**
      * When copying a folder, its contents need to be recursively copied.
      */
     @Test
