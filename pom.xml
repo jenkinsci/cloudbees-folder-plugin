@@ -55,12 +55,12 @@
       <dependency>
         <groupId>io.jenkins</groupId>
         <artifactId>configuration-as-code</artifactId>
-        <version>999999-SNAPSHOT</version>
+        <version>2135.v216e6b_d0a_fa_9</version>
       </dependency>
       <dependency>
         <groupId>io.jenkins.configuration-as-code</groupId>
         <artifactId>test-harness</artifactId>
-        <version>999999-SNAPSHOT</version>
+        <version>2135.v216e6b_d0a_fa_9</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
