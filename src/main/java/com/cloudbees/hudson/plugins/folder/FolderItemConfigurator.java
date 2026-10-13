@@ -1,52 +1,70 @@
 package com.cloudbees.hudson.plugins.folder;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Item;
+import io.jenkins.plugins.casc.BaseConfigurator;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.ItemConfigurator;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
-import jenkins.model.Jenkins;
 import java.io.IOException;
+import jenkins.model.Jenkins;
 
 @Extension
-public class FolderItemConfigurator implements ItemConfigurator<Folder> {
+public class FolderItemConfigurator extends BaseConfigurator<Folder> implements ItemConfigurator<Folder> {
 
-	@Override
-	public String getName() {
-		return "folder";
-	}
+    @Override
+    @NonNull
+    public String getName() {
+        return "folder";
+    }
 
-	@Override
-	public Class<Folder> getTarget() {
-		return Folder.class;
-	}
+    @Override
+    public Class<Folder> getTarget() {
+        return Folder.class;
+    }
 
-	@Override
-	public Folder configure(String name, CNode config, ConfigurationContext context) throws ConfiguratorException {
-		try {
-			Jenkins jenkins = Jenkins.get();
-			Folder folder = (Folder) jenkins.getItem(name);
+    @Override
+    protected Folder instance(Mapping mapping, ConfigurationContext context) throws ConfiguratorException {
+        throw new UnsupportedOperationException("Folders must be created with an explicit name");
+    }
 
-			if (folder == null) {
-				folder = jenkins.createProject(Folder.class, name);
-			}
+    @Override
+    public Folder configure(String name, CNode config, ConfigurationContext context) throws ConfiguratorException {
+        try {
+            Jenkins jenkins = Jenkins.get();
+            Item existing = jenkins.getItem(name);
+            Folder folder;
 
-			Mapping mapping = config.asMapping();
+            if (existing == null) {
+                folder = jenkins.createProject(Folder.class, name);
+            } else if (existing instanceof Folder existingFolder) {
+                folder = existingFolder;
+            } else {
+                throw new ConfiguratorException("Item '" + name + "' already exists and is not a folder");
+            }
 
-			if (mapping.containsKey("description")) {
-				folder.setDescription(mapping.getScalarValue("description"));
-			}
+            Mapping mapping = config != null ? config.asMapping() : Mapping.EMPTY;
 
-			if (mapping.containsKey("displayName")) {
-				folder.setDisplayName(mapping.getScalarValue("displayName"));
-			}
+            if (mapping.containsKey("description")) {
+                CNode descNode = mapping.get("description");
+                folder.setDescription(descNode != null ? descNode.asScalar().getValue() : null);
+            }
 
-			folder.save();
-			return folder;
+            if (mapping.containsKey("displayName")) {
+                CNode nameNode = mapping.get("displayName");
+                folder.setDisplayName(nameNode != null ? nameNode.asScalar().getValue() : null);
+            }
 
-		} catch (IOException e) {
-			throw new ConfiguratorException("Failed to configure folder: " + name, e);
-		}
-	}
+            folder.save();
+            return folder;
+
+        } catch (ConfiguratorException e) {
+            throw e;
+        } catch (IOException | RuntimeException e) {
+            throw new ConfiguratorException("Failed to configure folder: " + name, e);
+        }
+    }
 }
