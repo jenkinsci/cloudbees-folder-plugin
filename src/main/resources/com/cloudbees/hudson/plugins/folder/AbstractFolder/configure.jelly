@@ -78,7 +78,7 @@ THE SOFTWARE.
               <j:if test="${it.folderViews.primaryModifiable and views.size()>1}">
                 <f:entry title="${%Default View}" field="defaultView">
                   <div class="jenkins-select">
-                    <select class="jenkins-select__input" name="primaryView">
+                    <select class="jenkins-select__input" name="primaryView" disabled="${readOnlyMode ? 'true' : null}">
                       <j:forEach var="v" items="${views}">
                         <j:choose>
                           <j:when test="${it.primaryView==v}">
