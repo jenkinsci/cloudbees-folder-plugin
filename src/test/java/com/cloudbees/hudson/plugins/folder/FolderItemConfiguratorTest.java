@@ -92,4 +92,16 @@ class FolderItemConfiguratorTest {
         assertEquals("", updatedFolder.getDescription());
         assertEquals("team-cleared", updatedFolder.getDisplayName());
     }
+
+    @Test
+    @SuppressWarnings("unused")
+    void shouldThrowExceptionOnUnsupportedAttribute(JenkinsConfiguredWithCodeRule j) {
+        ConfiguratorException exception = assertThrows(ConfiguratorException.class, () -> ConfigurationAsCode.get()
+                .configure(Objects.requireNonNull(getClass().getResource("invalid-folder-key.yaml"))
+                        .toExternalForm()));
+
+        assertTrue(
+                exception.getMessage().contains("Unsupported attribute 'displayname' for folder 'team-typo'"),
+                "Exception message should clearly identify the invalid key");
+    }
 }

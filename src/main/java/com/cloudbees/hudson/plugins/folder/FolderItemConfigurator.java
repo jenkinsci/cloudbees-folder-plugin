@@ -10,6 +10,7 @@ import io.jenkins.plugins.casc.ItemConfigurator;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
 import java.io.IOException;
+import java.util.Set;
 import jenkins.model.Jenkins;
 
 @Extension
@@ -47,6 +48,15 @@ public class FolderItemConfigurator extends BaseConfigurator<Folder> implements 
             }
 
             Mapping mapping = config != null ? config.asMapping() : Mapping.EMPTY;
+
+            Set<String> supportedAttributes = Set.of("description", "displayName");
+
+            for (String key : mapping.keySet()) {
+                if (!supportedAttributes.contains(key)) {
+                    throw new ConfiguratorException("Unsupported attribute '" + key + "' for folder '" + name
+                            + "'. Supported attributes are: description, displayName");
+                }
+            }
 
             if (mapping.containsKey("description")) {
                 CNode descNode = mapping.get("description");
