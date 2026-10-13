@@ -1,0 +1,5 @@
+items:
+  - folder:
+      name: "team-alpha"
+      displayName: "Team Alpha"
+      description: "Description for Team Alpha"
