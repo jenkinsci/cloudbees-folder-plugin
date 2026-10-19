@@ -133,8 +133,7 @@ class FolderTest {
     void renameProgrammatically() throws Exception {
         Folder f = createFolder();
         var folderFullName = f.getFullName();
-        FreeStyleProject fsProject = new FreeStyleProject(f, "p1");
-        f.add(fsProject, "p1");
+        FreeStyleProject fsProject = f.createProject(FreeStyleProject.class, "p1");
         assertSame(fsProject, Jenkins.get().getItemByFullName(folderFullName + "/p1"));
         f.renameTo("newName");
         var itemAfterFolderRename = Jenkins.get().getItemByFullName("newName/p1", FreeStyleProject.class);
