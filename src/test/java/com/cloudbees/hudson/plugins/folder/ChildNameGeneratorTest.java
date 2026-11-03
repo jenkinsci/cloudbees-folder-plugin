@@ -29,8 +29,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import com.cloudbees.hudson.plugins.folder.computed.ChildObserver;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
@@ -48,6 +52,7 @@ import hudson.model.JobPropertyDescriptor;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import hudson.util.StreamTaskListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -63,6 +68,7 @@ import java.util.TreeSet;
 import net.sf.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -136,6 +142,170 @@ class ChildNameGeneratorTest {
             instance.doReload();
             checkComputedFolder(instance, 0, Normalizer.Form.NFC);
         });
+    }
+
+    /**
+     * Given: a computed folder
+     * When: indexing discovers children whose names differ only by case, in either order
+     * Then: each child has its own identity and directory, across reindexing, reload and restart
+     */
+    @Test
+    void caseDistinctChildrenFromIndexing() throws Throwable {
+        extension.then(j -> {
+            indexCaseDistinctChildren(j, "lower-first", "prod", "PROD");
+            indexCaseDistinctChildren(j, "upper-first", "PROD", "prod");
+            j.jenkins.reload();
+            checkCaseDistinct(
+                    j, j.jenkins.getItemByFullName("lower-first", ComputedFolderImpl.class), 0, "prod", "PROD");
+            checkCaseDistinct(
+                    j, j.jenkins.getItemByFullName("upper-first", ComputedFolderImpl.class), 0, "PROD", "prod");
+        });
+        extension.then(j -> {
+            reindexAndDeleteCaseDistinctChild(j, "lower-first", "prod", "PROD");
+            reindexAndDeleteCaseDistinctChild(j, "upper-first", "PROD", "prod");
+        });
+    }
+
+    private void indexCaseDistinctChildren(JenkinsRule j, String folder, String first, String second) throws Exception {
+        ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, folder);
+        instance.assertItemNames(0);
+        instance.setKids(first);
+        instance.recompute(Result.SUCCESS);
+        checkCaseDistinct(j, instance, 1, first);
+        assertNull(instance.getItem(encode(second)), "Undiscovered " + second + " must not resolve to " + first);
+
+        instance.addKid(second);
+        instance.recompute(Result.SUCCESS);
+        checkCaseDistinct(j, instance, 2, first, second);
+        assertEquals(List.of(second), instance.getCreated());
+        FreeStyleProject firstItem = instance.getItem(encode(first));
+        FreeStyleProject secondItem = instance.getItem(encode(second));
+        assertNotSame(firstItem, secondItem, "Case-distinct children must be independent items");
+
+        instance.recompute(Result.SUCCESS);
+        checkCaseDistinct(j, instance, 3, first, second);
+        assertEquals(List.of(), instance.getCreated());
+        assertEquals(List.of(), instance.getDeleted());
+        assertSame(firstItem, instance.getItem(encode(first)), "Reindexing must update, not replace, " + first);
+        assertSame(secondItem, instance.getItem(encode(second)), "Reindexing must update, not replace, " + second);
+
+        instance.doReload();
+        checkCaseDistinct(j, instance, 3, first, second);
+        assertSame(firstItem, instance.getItem(encode(first)), "Reloading must preserve " + first);
+        assertSame(secondItem, instance.getItem(encode(second)), "Reloading must preserve " + second);
+    }
+
+    private void reindexAndDeleteCaseDistinctChild(JenkinsRule j, String folder, String first, String second)
+            throws Exception {
+        ComputedFolderImpl instance = j.jenkins.getItemByFullName(folder, ComputedFolderImpl.class);
+        checkCaseDistinct(j, instance, 0, first, second);
+
+        instance.recompute(Result.SUCCESS);
+        checkCaseDistinct(j, instance, 1, first, second);
+        assertEquals(List.of(), instance.getCreated());
+
+        FreeStyleProject firstItem = instance.getItem(encode(first));
+        File secondDir = instance.getItem(encode(second)).getRootDir();
+        instance.removeKid(second);
+        instance.recompute(Result.SUCCESS);
+        checkCaseDistinct(j, instance, 2, first);
+        assertEquals(List.of(encode(second)), instance.getDeleted());
+        assertNull(instance.getItem(encode(second)));
+        assertThat("Directory of deleted " + second + " is removed", secondDir.exists(), is(false));
+        assertSame(firstItem, instance.getItem(encode(first)), "Deleting " + second + " must not touch " + first);
+    }
+
+    /**
+     * Given: a computed folder
+     * When: events report children whose names differ only by case, in either order
+     * Then: exact duplicates are rejected but case-distinct children are created and survive a restart
+     */
+    @Test
+    void caseDistinctChildrenFromEvents() throws Throwable {
+        extension.then(j -> {
+            addCaseDistinctChildrenFromEvents(j, "lower-first", "prod", "PROD");
+            addCaseDistinctChildrenFromEvents(j, "upper-first", "PROD", "prod");
+        });
+        extension.then(j -> {
+            reindexCaseDistinctChildrenFromEvents(j, "lower-first", "prod", "PROD");
+            reindexCaseDistinctChildrenFromEvents(j, "upper-first", "PROD", "prod");
+        });
+    }
+
+    private void addCaseDistinctChildrenFromEvents(JenkinsRule j, String folder, String first, String second)
+            throws Exception {
+        ComputedFolderImpl instance = j.createProject(ComputedFolderImpl.class, folder);
+        instance.addKidFromEvent(first);
+        checkCaseDistinct(j, instance, 0, first);
+        assertNull(instance.getItem(encode(second)), "Undiscovered " + second + " must not resolve to " + first);
+
+        instance.addKidFromEvent(second);
+        checkCaseDistinct(j, instance, 0, first, second);
+        assertEquals(List.of(first, second), instance.getCreated());
+        FreeStyleProject firstItem = instance.getItem(encode(first));
+        FreeStyleProject secondItem = instance.getItem(encode(second));
+        assertNotSame(firstItem, secondItem, "Case-distinct children must be independent items");
+
+        instance.addKidFromEvent(first);
+        instance.addKidFromEvent(second);
+        assertThat("Exact duplicate " + first + " is rejected", instance.mayCreateFromEvent(first), is(false));
+        assertThat("Exact duplicate " + second + " is rejected", instance.mayCreateFromEvent(second), is(false));
+        checkCaseDistinct(j, instance, 0, first, second);
+        assertEquals(List.of(first, second), instance.getCreated());
+        assertSame(firstItem, instance.getItem(encode(first)), "Duplicate events must update, not replace, " + first);
+        assertSame(
+                secondItem, instance.getItem(encode(second)), "Duplicate events must update, not replace, " + second);
+    }
+
+    private void reindexCaseDistinctChildrenFromEvents(JenkinsRule j, String folder, String first, String second)
+            throws Exception {
+        ComputedFolderImpl instance = j.jenkins.getItemByFullName(folder, ComputedFolderImpl.class);
+        checkCaseDistinct(j, instance, 0, first, second);
+        instance.recompute(Result.SUCCESS);
+        checkCaseDistinct(j, instance, 1, first, second);
+        assertEquals(List.of(), instance.getCreated());
+        assertEquals(List.of(), instance.getDeleted());
+    }
+
+    private void checkCaseDistinct(JenkinsRule j, ComputedFolderImpl instance, int round, String... kids)
+            throws Exception {
+        assertThat("Item loaded from disk", instance, instanceOf(ComputedFolderImpl.class));
+        instance.assertItemNames(
+                round, Arrays.stream(kids).map(ChildNameGeneratorTest::encode).toArray(String[]::new));
+        instance.assertItemShortUrls(
+                round,
+                Arrays.stream(kids).map(kid -> "job/" + encode(kid) + "/").toArray(String[]::new));
+        instance.assertItemDirs(
+                round, Arrays.stream(kids).map(ChildNameGeneratorTest::mangle).toArray(String[]::new));
+        for (String kid : kids) {
+            checkCaseDistinctChild(j, instance, kid);
+        }
+        assertNull(instance.getItem(encode("Prod")), "A third spelling must not resolve to any child");
+        JenkinsRule.WebClient wc = j.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+        assertThat(
+                "A third spelling must not be routable",
+                wc.goTo(instance.getUrl() + "job/" + encode("Prod") + "/")
+                        .getWebResponse()
+                        .getStatusCode(),
+                is(404));
+    }
+
+    private void checkCaseDistinctChild(JenkinsRule j, ComputedFolderImpl instance, String kid) throws Exception {
+        FreeStyleProject item = instance.getItem(encode(kid));
+        assertThat("We have an item for name " + kid, item, notNullValue());
+        assertThat(item.getProperty(NameProperty.class).getName(), is(kid));
+        assertThat(
+                "The root directory of the item for name " + kid + " is filesystem safe",
+                item.getRootDir().getName(),
+                matchesPattern("[a-z0-9_]+-[0-9a-f]+"));
+        assertThat(
+                "The root directory of the item for name " + kid + " exists",
+                item.getRootDir().isDirectory(),
+                is(true));
+        JSONObject json = j.createWebClient()
+                .getJSON(instance.getUrl() + item.getShortUrl() + "api/json?tree=name")
+                .getJSONObject();
+        assertThat("The URL of " + kid + " routes to that child", json.getString("name"), is(encode(kid)));
     }
 
     private void checkComputedFolder(ComputedFolderImpl instance, int round, Normalizer.Form form) throws IOException {
@@ -471,6 +641,49 @@ class ChildNameGeneratorTest {
                 deleted.add(kid);
             }
             return deleting;
+        }
+
+        public void addKidFromEvent(String kid) throws IOException, InterruptedException {
+            String encodedKid = encode(kid);
+            try (StreamTaskListener listener = getComputation().createEventsListener();
+                    ChildObserver<FreeStyleProject> observer = openEventsChildObserver()) {
+                listener.getLogger().println("considering " + kid);
+                FreeStyleProject p = observer.shouldUpdate(encodedKid);
+                try {
+                    if (p == null) {
+                        if (observer.mayCreate(encodedKid)) {
+                            listener.getLogger().println("creating a child");
+                            addKid(kid);
+                            p = new FreeStyleProject(this, encodedKid);
+                            BulkChange bc = new BulkChange(p);
+                            try {
+                                p.addProperty(new NameProperty(kid));
+                                p.setDescription("created by event");
+                            } finally {
+                                bc.commit();
+                            }
+                            observer.created(p);
+                            if (created == null) {
+                                created = new ArrayList<>();
+                            }
+                            created.add(kid);
+                        } else {
+                            listener.getLogger().println("not allowed to create a child");
+                        }
+                    } else {
+                        listener.getLogger().println("updated existing child with description " + p.getDescription());
+                        p.setDescription("updated by event");
+                    }
+                } finally {
+                    observer.completed(encodedKid);
+                }
+            }
+        }
+
+        public boolean mayCreateFromEvent(String kid) {
+            try (ChildObserver<FreeStyleProject> observer = openEventsChildObserver()) {
+                return observer.mayCreate(encode(kid));
+            }
         }
 
         public String recompute(Result result) throws Exception {

@@ -52,6 +52,7 @@ import hudson.model.queue.CauseOfBlockage;
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
+import hudson.util.CopyOnWriteMap;
 import hudson.util.DescribableList;
 import io.jenkins.servlet.ServletExceptionWrapper;
 import jakarta.servlet.ServletException;
@@ -171,6 +172,9 @@ public abstract class ComputedFolder<I extends TopLevelItem> extends AbstractFol
     @SuppressFBWarnings(value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     protected ComputedFolder(ItemGroup parent, String name) {
         super(parent, name);
+        // Computed children are loaded from disk into a case-sensitive map, so use the same semantics from creation.
+        // Not done in init() because that also runs during reload.
+        items = new CopyOnWriteMap.Tree<>();
         init();
     }
 
