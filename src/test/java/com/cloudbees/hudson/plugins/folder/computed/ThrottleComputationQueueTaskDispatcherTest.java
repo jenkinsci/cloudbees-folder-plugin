@@ -1,6 +1,7 @@
 package com.cloudbees.hudson.plugins.folder.computed;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -14,8 +15,10 @@ import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.queue.QueueTaskFuture;
+import hudson.util.StreamTaskListener;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -261,6 +264,21 @@ class ThrottleComputationQueueTaskDispatcherTest {
             computation.writeWholeLogTo(baos);
             String log = baos.toString();
             assertEquals(Result.SUCCESS, computation.getResult(), log);
+        }
+    }
+
+    @Test
+    void eventsLogWritesAreNotThrottled() throws Exception {
+        SlowComputedFolder d = r.jenkins.createProject(SlowComputedFolder.class, "eventsLogWritesAreNotThrottled");
+        int count = ThrottleComputationQueueTaskDispatcher.LIMIT * 2;
+        for (int i = 0; i < count; i++) {
+            try (StreamTaskListener listener = d.getComputation().createEventsListener()) {
+                listener.getLogger().println("event " + i);
+            }
+        }
+        String log = Files.readString(d.getComputation().getEventsFile().toPath());
+        for (int i = 0; i < count; i++) {
+            assertThat(log, containsString("event " + i + "\n"));
         }
     }
 
