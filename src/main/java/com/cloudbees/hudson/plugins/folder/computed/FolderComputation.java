@@ -264,6 +264,10 @@ public class FolderComputation<I extends TopLevelItem> extends Actionable
                             timestamp.setTimeInMillis(System.currentTimeMillis() - 10000L);
                             Queue.Item probe = new Queue.WaitingItem(timestamp, folder, Collections.emptyList());
                             for (QueueTaskDispatcher d : QueueTaskDispatcher.all()) {
+                                // the throttle limits concurrent indexing and records each approved item
+                                if (d instanceof ThrottleComputationQueueTaskDispatcher) {
+                                    continue;
+                                }
                                 if (d.canRun(probe) != null) {
                                     return false;
                                 }
