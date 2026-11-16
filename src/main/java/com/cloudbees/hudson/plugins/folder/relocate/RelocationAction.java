@@ -37,6 +37,7 @@ import hudson.security.PermissionScope;
 import java.util.Collection;
 import java.util.Collections;
 import jenkins.model.TransientActionFactory;
+import jenkins.model.menu.Group;
 import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -116,6 +117,11 @@ public class RelocationAction implements Action, StaplerFallback, IconSpec {
     @Override
     public String getUrlName() {
         return ui == null ? null : ui.getUrlName();
+    }
+
+    @Override
+    public Group getGroup() {
+        return Group.FIRST_IN_MENU;
     }
 
     /**
