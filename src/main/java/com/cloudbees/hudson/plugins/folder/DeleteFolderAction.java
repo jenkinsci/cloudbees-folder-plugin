@@ -30,7 +30,6 @@ import hudson.model.Item;
 import java.util.Collection;
 import java.util.Set;
 import jenkins.model.TransientActionFactory;
-import jenkins.model.experimentalflags.UserExperimentalFlag;
 import jenkins.model.menu.Group;
 import jenkins.model.menu.Semantic;
 import jenkins.model.menu.action.DeleteAction;
@@ -97,10 +96,14 @@ public final class DeleteFolderAction implements Action {
         }
 
         @Override
+        public Class<DeleteFolderAction> actionType() {
+            return DeleteFolderAction.class;
+        }
+
+        @Override
         public Collection<? extends Action> createFor(AbstractFolder target) {
             // This condition can be removed when the flag has been removed
-            if (!Boolean.TRUE.equals(UserExperimentalFlag.getFlagValueForCurrentUser(
-                    "jenkins.model.experimentalflags.NewDashboardPageUserExperimentalFlag"))) {
+            if (!NewDashboardPage.isEnabled()) {
                 return Set.of();
             }
 

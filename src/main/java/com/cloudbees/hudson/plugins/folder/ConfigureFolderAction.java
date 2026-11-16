@@ -30,7 +30,6 @@ import hudson.model.Item;
 import java.util.Collection;
 import java.util.Set;
 import jenkins.model.TransientActionFactory;
-import jenkins.model.experimentalflags.UserExperimentalFlag;
 import jenkins.model.menu.Group;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -82,10 +81,14 @@ public final class ConfigureFolderAction implements Action {
         }
 
         @Override
+        public Class<ConfigureFolderAction> actionType() {
+            return ConfigureFolderAction.class;
+        }
+
+        @Override
         public Collection<? extends Action> createFor(AbstractFolder target) {
             // This condition can be removed when the flag has been removed
-            if (!Boolean.TRUE.equals(UserExperimentalFlag.getFlagValueForCurrentUser(
-                    "jenkins.model.experimentalflags.NewDashboardPageUserExperimentalFlag"))) {
+            if (!NewDashboardPage.isEnabled()) {
                 return Set.of();
             }
 

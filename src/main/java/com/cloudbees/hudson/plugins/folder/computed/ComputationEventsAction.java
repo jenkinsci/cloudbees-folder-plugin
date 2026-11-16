@@ -24,12 +24,12 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import com.cloudbees.hudson.plugins.folder.NewDashboardPage;
 import hudson.Extension;
 import hudson.model.Action;
 import java.util.Collection;
 import java.util.Set;
 import jenkins.model.TransientActionFactory;
-import jenkins.model.experimentalflags.UserExperimentalFlag;
 import jenkins.model.menu.Group;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -42,6 +42,8 @@ public final class ComputationEventsAction implements Action {
 
     private final ComputedFolder<?> target;
 
+    private Boolean hasEvents;
+
     ComputationEventsAction(ComputedFolder<?> target) {
         this.target = target;
     }
@@ -53,7 +55,11 @@ public final class ComputationEventsAction implements Action {
 
     @Override
     public String getIconFileName() {
-        if (!target.isHasEvents()) {
+        if (hasEvents == null) {
+            hasEvents = target.isHasEvents();
+        }
+
+        if (!hasEvents) {
             return null;
         }
 
@@ -80,10 +86,14 @@ public final class ComputationEventsAction implements Action {
         }
 
         @Override
+        public Class<ComputationEventsAction> actionType() {
+            return ComputationEventsAction.class;
+        }
+
+        @Override
         public Collection<? extends Action> createFor(ComputedFolder target) {
             // This condition can be removed when the flag has been removed
-            if (!Boolean.TRUE.equals(UserExperimentalFlag.getFlagValueForCurrentUser(
-                    "jenkins.model.experimentalflags.NewDashboardPageUserExperimentalFlag"))) {
+            if (!NewDashboardPage.isEnabled()) {
                 return Set.of();
             }
 

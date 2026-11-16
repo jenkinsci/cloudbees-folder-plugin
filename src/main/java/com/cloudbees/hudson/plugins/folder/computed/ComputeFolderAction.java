@@ -24,13 +24,13 @@
 
 package com.cloudbees.hudson.plugins.folder.computed;
 
+import com.cloudbees.hudson.plugins.folder.NewDashboardPage;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
 import java.util.Collection;
 import java.util.Set;
 import jenkins.model.TransientActionFactory;
-import jenkins.model.experimentalflags.UserExperimentalFlag;
 import jenkins.model.menu.Group;
 import jenkins.model.menu.event.Event;
 import jenkins.model.menu.event.LinkEvent;
@@ -86,10 +86,14 @@ public final class ComputeFolderAction implements Action {
         }
 
         @Override
+        public Class<ComputeFolderAction> actionType() {
+            return ComputeFolderAction.class;
+        }
+
+        @Override
         public Collection<? extends Action> createFor(ComputedFolder target) {
             // This condition can be removed when the flag has been removed
-            if (!Boolean.TRUE.equals(UserExperimentalFlag.getFlagValueForCurrentUser(
-                    "jenkins.model.experimentalflags.NewDashboardPageUserExperimentalFlag"))) {
+            if (!NewDashboardPage.isEnabled()) {
                 return Set.of();
             }
 
