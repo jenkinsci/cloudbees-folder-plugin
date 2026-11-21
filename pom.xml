@@ -35,8 +35,8 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.555</jenkins.baseline>
-    <jenkins.version>2.591-rc38902.a_5e756f76a_fa_</jenkins.version>
+    <jenkins.baseline>2.568</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
@@ -49,7 +49,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>7046.v43536164769c</version>
+        <version>7401.vf0f166b_7fd69</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
