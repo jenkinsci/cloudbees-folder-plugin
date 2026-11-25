@@ -100,6 +100,8 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithChildren;
 import jenkins.model.ProjectNamingStrategy;
 import jenkins.model.TransientActionFactory;
+import jenkins.model.dashboard.Dashboard;
+import jenkins.model.dashboard.DashboardItemGroup;
 import jenkins.security.stapler.StaplerNotDispatchable;
 import net.sf.json.JSONObject;
 import org.jenkins.ui.icon.IconSpec;
@@ -144,7 +146,8 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
                 StaplerFallback,
                 ModelObjectWithChildren,
                 StaplerOverridable,
-                IconSpec {
+                IconSpec,
+                DashboardItemGroup {
 
     /**
      * Our logger.
@@ -641,6 +644,16 @@ public abstract class AbstractFolder<I extends TopLevelItem> extends AbstractIte
     @Override
     public View getStaplerFallback() {
         return getPrimaryView();
+    }
+
+    /**
+     * Serves the actions of this folder, then the tabs of its dashboard, for users who enable the experimental
+     * dashboard. The primary view shows the dashboard at the URL of this folder.
+     */
+    @Override
+    public Object getDynamic(String token, StaplerRequest2 req, StaplerResponse2 rsp) {
+        Object result = super.getDynamic(token, req, rsp);
+        return result != null ? result : Dashboard.findTab(this, token);
     }
 
     /**
