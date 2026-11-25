@@ -36,7 +36,9 @@
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.528</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <!-- Incremental build of jenkinsci/jenkins#27901, until it is released -->
+    <jenkins.version>2.593-rc38987.0fda_882133fa_</jenkins.version>
+    <useBeta>true</useBeta>
     <no-test-jar>false</no-test-jar>
     <hpi.compatibleSinceVersion>5.2</hpi.compatibleSinceVersion>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
